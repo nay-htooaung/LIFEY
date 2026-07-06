@@ -42,11 +42,12 @@ Managed via a single `.env` file at the project root (gitignored). Docker Compos
 | `JWT_EXPIRE_MINUTES` | Access token TTL |
 | `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token TTL |
 | `FRONTEND_URL` | CORS origin (e.g., `http://localhost` or `http://localhost:5173` in dev) |
+| `OPENCODE_API_KEY` | API key for OpenCode SDK / OpenCode Zen (agent LLM access) |
 
 ## Docker Image Strategy
 
 - **Frontend:** Multi-stage build. Stage 1 builds the SPA with `node:22-alpine`. Stage 2 serves via `nginx:1.27-alpine` with a custom config that rewrites all routes to `index.html` (SPA fallback).
-- **Backend:** Multi-stage build. Stage 1 installs system deps and Python packages. Stage 2 runs with `python:3.13-slim`.
+- **Backend:** Multi-stage build. Stage 1 installs system deps and Python packages (including `opencode-sdk` and `mcp`). Stage 2 runs with `python:3.13-slim`.
 - **Database:** Stock `postgres:16-alpine` with an init SQL script for schema bootstrap (if Alembic is not used at first run).
 
 ## CI/CD
@@ -58,6 +59,20 @@ Managed via a single `.env` file at the project root (gitignored). Docker Compos
 | Checks | Lint (ruff for Python, ESLint/Prettier for TS), typecheck (mypy + tsc), test (pytest + vitest) |
 | Image build | Docker Compose build on every PR as a smoke test |
 | Deploy | Not configured — user-managed after server choice |
+
+## Agent System Prompt
+
+The agent's system prompt lives at `backend/app/modules/agent/prompt.md`. This file is version-controlled and defines the agent's personality, constraints, and tool usage instructions. SDD agents (Phase 6) must not hardcode the system prompt in code.
+
+## Agent Dependencies
+
+- **opencode-sdk** (Python package) — agent orchestration and LLM access via OpenCode Zen
+- **mcp** (Python package) — Model Context Protocol server framework for exposing tools to the agent
+
+## Network & Egress
+
+- The backend container requires HTTPS egress to the OpenCode Zen API (`api.opencode.ai` or similar) for agent LLM calls.
+- If deploying in a restricted network, ensure the `OPENCODE_API_KEY` allows outbound access.
 
 ## OS & System Dependencies
 

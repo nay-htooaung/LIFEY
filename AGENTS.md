@@ -4,16 +4,16 @@ This file is the **single source of truth** for all agents and developers workin
 
 ## 1. Project Identity
 
-LIFEY is a **household management application** — expense tracking, recipe management, to-do lists, and grocery management — delivered as a **SPA + PWA** (installable on Android/iOS via browser). It is **always-online** with a cloud-only PostgreSQL database, serving a **single household/family** (invite-only, no public sign-up).
+LIFEY is a **household management application** — expense tracking, recipe management, to-do lists, grocery management, and **AI agent chat** — delivered as a **SPA + PWA** (installable on Android/iOS via browser). It is **always-online** with a cloud-only PostgreSQL database, serving a **single household/family** (invite-only, no public sign-up).
 
-**North Star:** One unified command centre for household operations.
+**North Star:** One unified command centre for household operations — assisted by an AI agent that can answer questions and perform actions via natural language.
 
 ## 2. Non-Negotiable Tenets
 
 1. **SPA + PWA** — Browser-delivered SPA, installable on mobile home screens. No native SDK builds.
 2. **Always-online** — No offline mode.
 3. **Household isolation** — Data is scoped by `household_id`. Cross-household leakage is prohibited.
-4. **No external service dependency** — No third-party SaaS that could disappear (auth is self-managed).
+4. **No external service dependency** — No third-party SaaS that could disappear (auth is self-managed). Exceptions: OpenCode SDK / OpenCode Zen for the AI agent chat, which is a deliberate architectural dependency.
 5. **Privacy-first** — No telemetry, no analytics, no tracking.
 6. **Open data** — All categories exportable to JSON/CSV.
 
@@ -24,6 +24,8 @@ LIFEY is a **household management application** — expense tracking, recipe man
 | Frontend | React + TypeScript (strict) + Vite + Tailwind CSS |
 | State | React Query (server) + Zustand (client) |
 | Backend | Python 3.13 / FastAPI |
+| AI Agent SDK | OpenCode SDK (openframework) — agent orchestration, LLM access via OpenCode Zen |
+| MCP Protocol | MCP Python SDK — embedded MCP server exposes domain tools + read-only SQL |
 | ORM | SQLAlchemy 2.0 async + Alembic |
 | Validation | Pydantic v2 |
 | Database | PostgreSQL 16 |
@@ -34,10 +36,13 @@ LIFEY is a **household management application** — expense tracking, recipe man
 ## 4. Architecture Rules
 
 - **Monolith backend.** A single Python process. No microservices, no message broker.
-- **No WebSockets, no SSE.** Polling or manual refresh.
+- **No WebSockets, no SSE.** Polling or manual refresh. Agent chat uses chunked HTTP streaming.
 - Every database table carries `household_id`. All queries filter by it.
 - Access token in memory; refresh token in `httpOnly` cookie.
 - API responses use a consistent envelope: `{ success, data, error }`.
+- MCP server is embedded in the Python process. Not a separate service.
+- Agent LLM access is via OpenCode SDK → OpenCode Zen (external HTTPS, not self-hosted).
+- Domain tools for writes (create/update/delete); read-only SQL for queries.
 
 ## 5. Code Conventions
 
@@ -55,7 +60,9 @@ LIFEY is a **household management application** — expense tracking, recipe man
 ```
 lifey/
 ├── frontend/       # React SPA
+│   └── src/features/agent/   # Chat UI
 ├── backend/        # FastAPI monolith
+│   └── app/modules/agent/    # Chat proxy, MCP server, prompt
 ├── mise.toml
 ├── docker-compose.yml
 ├── .env.example

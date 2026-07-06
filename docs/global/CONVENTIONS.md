@@ -105,6 +105,7 @@ import { Expense } from '@/features/expense/types'
 - All models inherit from a shared `Base` with `id`, `created_at`, `updated_at`, `household_id`.
 - Alembic migrations are the single source of truth for schema changes.
 - Every query that reads or writes user data includes a `household_id` filter.
+- Agent-specific tables (`agent_conversations`, `agent_messages`) also carry `household_id` and `user_id`.
 
 ## 6. API Design
 
@@ -114,6 +115,8 @@ import { Expense } from '@/features/expense/types'
 - Sort via `?sort_by=date&sort_order=desc`.
 - JWT passed as `Authorization: Bearer <token>`.
 - All routes (except `/auth/login`, `/auth/register`) depend on `get_current_user` FastAPI dependency.
+- **Agent chat endpoint:** `POST /api/v1/agent/chat` — accepts `{ message, conversation_id? }`, streams response as chunked JSON lines (`data: {...}\n\n`). No WebSockets.
+- **Agent conversation history:** `GET /api/v1/agent/conversations` and `GET /api/v1/agent/conversations/{id}` for listing/viewing past chats.
 
 ## 7. Testing
 
@@ -169,7 +172,36 @@ import { Expense } from '@/features/expense/types'
 - Branch naming: `feat/expense-crud`, `fix/auth-refresh`, `chore/update-deps`.
 - PRs squash-merged into `main`. Single commit per PR after review.
 
-## 10. File & Folder Layout
+## 11. Agent & MCP Conventions
+
+### System Prompt
+- The agent's system prompt lives in `backend/app/modules/agent/prompt.md`.
+- The prompt is loaded at runtime and injected into the OpenCode agent. It is not hardcoded in Python modules.
+- The prompt defines the agent's personality, constraints, tool usage instructions, and output formatting rules.
+
+### MCP Tool Definitions
+- Tools are defined as Python async functions in `backend/app/modules/agent/mcp_tools/`.
+- Each tool file is named after the domain: `expense_tools.py`, `todo_tools.py`, `grocery_tools.py`, `sql_tools.py`.
+- Every tool accepts `household_id: int` as its first parameter.
+- Tool naming:
+  - Prefix: `agent_`
+  - Action verb + domain noun: `agent_get_expenses`, `agent_add_grocery_item`, `agent_update_todo`
+  - SQL tool: `agent_query_sql` (SELECT-only enforced at the tool level)
+- Tool descriptions are written for the LLM (not for developers) — they are the agent's manual for when to call each tool.
+- Domain tools (create/update/delete) use SQLAlchemy async sessions. The SQL tool uses raw SQL with parameterized queries.
+
+### Agent Error Handling
+- If the MCP server or a tool call fails, the agent receives a structured error response and reports it to the user in natural language.
+- The agent never exposes raw SQL errors or stack traces to the user.
+- Agent module errors (auth failures, missing API key, LLM timeout) return standard API envelope errors to the frontend.
+
+### Conversation Persistence
+- Agent conversations are stored in `agent_conversations` (metadata) and `agent_messages` (individual messages).
+- Messages are stored with `role` (user/agent), `content`, and `metadata` (tool calls, timestamps).
+- Conversation history is loaded when a `conversation_id` is provided; otherwise a new conversation is created.
+- Old conversations are retained for review but not automatically summarized.
+
+## 12. File & Folder Layout
 
 ```
 lifey/
@@ -181,7 +213,8 @@ lifey/
 │   │   │   ├── recipe/
 │   │   │   ├── todo/
 │   │   │   ├── grocery/
-│   │   │   └── household/
+│   │   │   ├── household/
+│   │   │   └── agent/        # Chat UI, conversation list, message components
 │   │   ├── shared/
 │   │   ├── api/
 │   │   └── router/
@@ -197,7 +230,8 @@ lifey/
 │   │   │   ├── recipe/
 │   │   │   ├── todo/
 │   │   │   ├── grocery/
-│   │   │   └── household/
+│   │   │   ├── household/
+│   │   │   └── agent/        # Chat proxy, MCP server, agent orchestration, system prompt
 │   │   ├── shared/
 │   │   ├── core/
 │   │   └── migrations/

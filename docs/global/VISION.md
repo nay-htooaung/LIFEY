@@ -16,6 +16,7 @@ LIFEY is a **general household management application** delivered as a **single-
 | **Recipe Management** | Store, organise, search, and scale family recipes |
 | **To-Do List** | Shared household tasks with assignments and completion tracking |
 | **Grocery Management** | Aggregate shopping lists from recipes, meal plans, and manual items |
+| **AI Agent Chat** | Conversational assistant that answers questions and performs actions via natural language — powered by OpenCode SDK and MCP tools |
 
 ## Target Audience
 
@@ -30,7 +31,7 @@ LIFEY is a **general household management application** delivered as a **single-
 1. **SPA + PWA** — The app must be a browser-delivered SPA that can be installed as a PWA on mobile home screens.
 2. **Always-online** — All features assume a live connection. Offline fallback is not a goal.
 3. **Household isolation** — Data is scoped to a household. Users in different households never see each other's data.
-4. **No external service dependency** — No reliance on third-party SaaS that could shut down or change pricing (auth provider excluded — that is infrastructure).
+4. **No external service dependency** — No reliance on third-party SaaS that could shut down or change pricing (exceptions: auth provider, which is infrastructure; and OpenCode SDK / OpenCode Zen for the AI agent chat, which is a deliberate architectural dependency).
 5. **Privacy-first** — No telemetry, no analytics, no tracking. The app collects only the data the user explicitly enters.
 6. **Open data** — Every data category must be exportable (JSON / CSV at minimum).
 
@@ -39,3 +40,5 @@ LIFEY is a **general household management application** delivered as a **single-
 - Public marketplace, community features, social feeds
 - Real-time collaboration (no WebSocket sync conflicts — save-and-refresh is acceptable)
 - Native mobile SDK builds — PWA is the only mobile delivery mechanism
+- Custom LLM fine-tuning — agent uses OpenCode Zen as provided
+- Multiple agent personalities — single household assistant, no user-customizable personas

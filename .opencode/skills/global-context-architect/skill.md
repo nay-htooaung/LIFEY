@@ -45,3 +45,4 @@ Once all five files are generated, inform the user:
 * Always wrap file contents in standard markdown code blocks, with the exact file path at the top of the block.
 * Do not merge files. Output one file at a time.
 * Challenge the user gently if they suggest an architectural anti-pattern.
+* **All diagrams MUST use Mermaid syntax** (```mermaid ... ```). Never use ASCII art for diagrams — system architecture, deployment topology, and data flow diagrams are Mermaid `graph TD`, `flowchart`, `sequenceDiagram`, or `block` as appropriate.
