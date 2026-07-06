@@ -60,9 +60,9 @@ Managed via a single `.env` file at the project root (gitignored). Docker Compos
 | Image build | Docker Compose build on every PR as a smoke test |
 | Deploy | Not configured — user-managed after server choice |
 
-## Agent System Prompt
+## Agent Configuration
 
-The agent's system prompt lives at `backend/app/modules/agent/prompt.md`. This file is version-controlled and defines the agent's personality, constraints, and tool usage instructions. SDD agents (Phase 6) must not hardcode the system prompt in code.
+Agent configurations are stored in the `agent_configs` database table (per household). The system prompt is a text field editable by household admins via the chat config UI. A default prompt is seeded for each new household. SDD agents (Phase 6) must not hardcode the system prompt in Python route code.
 
 ## Agent Dependencies
 

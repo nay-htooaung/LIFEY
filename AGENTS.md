@@ -62,7 +62,7 @@ lifey/
 ├── frontend/       # React SPA
 │   └── src/features/agent/   # Chat UI
 ├── backend/        # FastAPI monolith
-│   └── app/modules/agent/    # Chat proxy, MCP server, prompt
+│   └── app/modules/agent/    # Chat proxy, MCP server, agent config, default prompt
 ├── mise.toml
 ├── docker-compose.yml
 ├── .env.example

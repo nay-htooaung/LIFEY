@@ -41,4 +41,4 @@ LIFEY is a **general household management application** delivered as a **single-
 - Real-time collaboration (no WebSocket sync conflicts — save-and-refresh is acceptable)
 - Native mobile SDK builds — PWA is the only mobile delivery mechanism
 - Custom LLM fine-tuning — agent uses OpenCode Zen as provided
-- Multiple agent personalities — single household assistant, no user-customizable personas
+- Multi-agent per household — configurable via UI, system prompt stored in DB. Ships with a default agent; household admins can create, edit, and delete named agents.

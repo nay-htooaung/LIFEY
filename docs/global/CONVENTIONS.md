@@ -174,10 +174,11 @@ import { Expense } from '@/features/expense/types'
 
 ## 11. Agent & MCP Conventions
 
-### System Prompt
-- The agent's system prompt lives in `backend/app/modules/agent/prompt.md`.
-- The prompt is loaded at runtime and injected into the OpenCode agent. It is not hardcoded in Python modules.
-- The prompt defines the agent's personality, constraints, tool usage instructions, and output formatting rules.
+### Agent Configuration
+- Agents are stored in the `agent_configs` database table (per household).
+- Each household ships with one default agent on creation; admins can create, edit, and delete additional named agents.
+- The system prompt is stored as a text field in `agent_configs.system_prompt` and is editable via the chat config UI (admin only).
+- A fallback default prompt is defined in `app/modules/agent/default_prompt.py` (or seeded via Alembic migration) and loaded when a new household is created.
 
 ### MCP Tool Definitions
 - Tools are defined as Python async functions in `backend/app/modules/agent/mcp_tools/`.
@@ -189,6 +190,7 @@ import { Expense } from '@/features/expense/types'
   - SQL tool: `agent_query_sql` (SELECT-only enforced at the tool level)
 - Tool descriptions are written for the LLM (not for developers) — they are the agent's manual for when to call each tool.
 - Domain tools (create/update/delete) use SQLAlchemy async sessions. The SQL tool uses raw SQL with parameterized queries.
+- Tool calls and their results are streamed to the frontend as typed events so the UI can display them inline.
 
 ### Agent Error Handling
 - If the MCP server or a tool call fails, the agent receives a structured error response and reports it to the user in natural language.

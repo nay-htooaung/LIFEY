@@ -164,7 +164,7 @@ Single-server deployable with one external dependency (OpenCode Zen). No microse
 1. User types a message in the Agent Chat UI (frontend)
 2. Frontend sends `POST /api/v1/agent/chat` with `{ message, conversation_id? }`
 3. Backend Agent Module receives the message, retrieves conversation history, and calls the OpenCode SDK agent
-4. The OpenCode agent receives the system prompt (from `app/modules/agent/prompt.md`) and conversation context
+4. The OpenCode agent receives the system prompt (loaded from the `agent_configs` table for the chosen agent, editable by household admins via the UI) and conversation context
 5. The agent invokes MCP tools (domain tools for writes, SQL for reads) as needed — each call is scoped to the user's `household_id`
 6. MCP tools execute against PostgreSQL and return results to the agent
 7. The agent formulates a natural-language response streamed back to the frontend
