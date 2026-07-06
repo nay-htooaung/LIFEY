@@ -71,3 +71,15 @@ dir = "backend"
 [tasks.build]
 description = "Build Docker images"
 run = "docker compose build"
+
+[tasks.logs-backend]
+description = "Tail backend logs"
+run = "docker compose logs -f backend"
+
+[tasks.logs-frontend]
+description = "Tail frontend logs"
+run = "docker compose logs -f frontend"
+
+[tasks.logs-db]
+description = "Tail database logs"
+run = "docker compose logs -f db"

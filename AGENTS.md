@@ -1,84 +1,66 @@
-# AGENTS.md — LIFEY — Global Agent Constitution
+# AGENTS.md — LIFEY
 
-This file is the **single source of truth** for all agents and developers working on LIFEY. Read it before any code generation, refactoring, or decision-making.
+## Reality check
 
-## 1. Project Identity
+This repo is **docs-only** right now. No `frontend/`, `backend/`, `docker-compose.yml`, `package.json`, or `.env.example` exist yet — only `docs/`, `mise.toml`, and `opencode.json`. Every agent session starts in a blank codebase guided by specification files.
 
-LIFEY is a **household management application** — expense tracking, recipe management, to-do lists, grocery management, and **AI agent chat** — delivered as a **SPA + PWA** (installable on Android/iOS via browser). It is **always-online** with a cloud-only PostgreSQL database, serving a **single household/family** (invite-only, no public sign-up).
+## Specs (the build plan)
 
-**North Star:** One unified command centre for household operations — assisted by an AI agent that can answer questions and perform actions via natural language.
+All implementation specs live under `docs/sdd/specs/SPEC-*.md`. Read the relevant one before writing any code for that module:
 
-## 2. Non-Negotiable Tenets
+| # | Module | File |
+|---|--------|------|
+| 1 | Auth & Household | `SPEC-001-auth-household.md` |
+| 2 | Expense Management | `SPEC-002-expense-management.md` |
+| 3 | Recipe Management | `SPEC-003-recipe-management.md` |
+| 4 | To-Do List | `SPEC-004-todo-list.md` |
+| 5 | Grocery Management | `SPEC-005-grocery-management.md` |
+| 6 | AI Agent Chat | `SPEC-006-agent-chat.md` |
+| 7 | Shared Infrastructure | `SPEC-007-shared-infrastructure.md` |
 
-1. **SPA + PWA** — Browser-delivered SPA, installable on mobile home screens. No native SDK builds.
-2. **Always-online** — No offline mode.
-3. **Household isolation** — Data is scoped by `household_id`. Cross-household leakage is prohibited.
-4. **No external service dependency** — No third-party SaaS that could disappear (auth is self-managed). Exceptions: OpenCode SDK / OpenCode Zen for the AI agent chat, which is a deliberate architectural dependency.
-5. **Privacy-first** — No telemetry, no analytics, no tracking.
-6. **Open data** — All categories exportable to JSON/CSV.
+Global design tenets are in `docs/global/` (VISION, ARCHITECTURE, CONVENTIONS, INFRASTRUCTURE). Cross-reference specs against them.
 
-## 3. Tech Stack (Mandated)
+## Commands
 
-| Layer | Technology |
-|-------|------------|
-| Frontend | React + TypeScript (strict) + Vite + Tailwind CSS |
-| State | React Query (server) + Zustand (client) |
-| Backend | Python 3.13 / FastAPI |
-| AI Agent SDK | OpenCode SDK (openframework) — agent orchestration, LLM access via OpenCode Zen |
-| MCP Protocol | MCP Python SDK — embedded MCP server exposes domain tools + read-only SQL |
-| ORM | SQLAlchemy 2.0 async + Alembic |
-| Validation | Pydantic v2 |
-| Database | PostgreSQL 16 |
-| Auth | JWT (self-managed, HS256) |
-| API | REST, prefix `/api/v1/` |
-| Deployment | Docker Compose (local); production TBD |
+Everything runs via `mise` (Windows, tool versions pinned in `mise.toml`):
 
-## 4. Architecture Rules
+| Command | What it does |
+|---------|-------------|
+| `mise run dev` | `docker compose up --build` (all services) |
+| `mise run dev-backend` | `uvicorn app.main:app --reload` outside Docker |
+| `mise run test` | pytest + vitest |
+| `mise run test-backend` | `pytest` (in `backend/`) |
+| `mise run test-frontend` | `npx vitest run` (in `frontend/`) |
+| `mise run lint` | ruff check/format + ESLint + Prettier |
+| `mise run typecheck` | mypy + tsc --noEmit |
+| `mise run migrate` | `alembic upgrade head` |
+| `mise run build` | `docker compose build` |
 
-- **Monolith backend.** A single Python process. No microservices, no message broker.
-- **No WebSockets, no SSE.** Polling or manual refresh. Agent chat uses chunked HTTP streaming.
-- Every database table carries `household_id`. All queries filter by it.
-- Access token in memory; refresh token in `httpOnly` cookie.
-- API responses use a consistent envelope: `{ success, data, error }`.
-- MCP server is embedded in the Python process. Not a separate service.
-- Agent LLM access is via OpenCode SDK → OpenCode Zen (external HTTPS, not self-hosted).
-- Domain tools for writes (create/update/delete); read-only SQL for queries.
+Preferred verification order: `lint` → `typecheck` → `test`.
 
-## 5. Code Conventions
+## Architecture rules (non-negotiable)
 
-- **Python:** `snake_case`, absolute imports, async routes, type hints required (mypy strict).
-- **TypeScript:** `camelCase` (vars/funcs), `PascalCase` (components/types), named exports only, path alias `@/` → `src/`.
-- **State:** React Query for all API data. Zustand only for UI-global state.
-- **Error handling:** Custom exception classes + global FastAPI handler on backend. Axios interceptors + React Error Boundaries on frontend.
-- **Linting:** ruff (Python), ESLint + Prettier (TypeScript).
-- **Testing:** pytest + pytest-asyncio (backend), vitest + testing-library + msw (frontend). Coverage: 80% backend, 70% frontend.
-- **Automation:** mise (Windows) manages tool versions and defines tasks (`mise run dev`, `mise run test`, etc.).
-- **Git:** Conventional Commits. Branches: `feat/`, `fix/`, `chore/`.
+- **Monolith backend.** Single Python process. No microservices, no message broker.
+- **No WebSockets, no SSE.** Agent chat uses chunked HTTP streaming only.
+- **Every DB table carries `household_id`.** All queries filter by it. Cross-household leakage is prohibited.
+- **Access token in memory; refresh token in `httpOnly` cookie.**
+- **API envelope:** `{ success, data, error }` on every response.
+- **MCP server is embedded** in the Python process (not a separate service).
+- **No export default** in TypeScript. Named exports only. Path alias `@/` → `src/`.
+- **No OAuth, no social login.** Self-managed JWT (HS256) only.
+- **Open data:** every category exportable to JSON/CSV.
+- **No telemetry, no analytics, no tracking.**
+- `opencode.json` permissions: `ask` for `bash`, `task`, `external_directory`; all else `allow`. Do not change.
 
-## 6. File Layout
+## Agent conventions
 
-```
-lifey/
-├── frontend/       # React SPA
-│   └── src/features/agent/   # Chat UI
-├── backend/        # FastAPI monolith
-│   └── app/modules/agent/    # Chat proxy, MCP server, agent config, default prompt
-├── mise.toml
-├── docker-compose.yml
-├── .env.example
-├── docs/
-│   └── global/     # VISION, ARCHITECTURE, INFRASTRUCTURE, CONVENTIONS
-└── AGENTS.md       # ← THIS FILE
-```
+- Agents are stored in `agent_configs` DB table (per household). System prompt is a text field editable by household admins via UI. Not a `.md` file.
+- MCP tools in `backend/app/modules/agent/mcp_tools/`. Prefix: `agent_` (e.g., `agent_create_expense`). Every tool receives `household_id` as first param.
+- SQL tool `agent_query_sql` is SELECT-only enforced at the tool level.
+- Tool calls and results stream to frontend as typed events for inline display.
 
-## 7. Agent Behaviour Rules
+## SDD document chain
 
-1. **Never write application code** unless explicitly instructed by a user task. This file defines the rules — feature agents write the code.
-2. **Never change `opencode.json`** unless asked.
-3. **If a user request conflicts with a tenet above**, flag the conflict before proceeding.
-4. **Read this file first** every time you enter a new session.
-5. **Prefer editing over creating new files** unless the task requires a new module.
-
-## 8. OpenCode Config
-
-- `opencode.json` permission: `ask` for all tools. Do not change this.
+- `SPEC-*` specs → `DSN-*` designs → `TST-*` test matrices.
+- Templates exist in `docs/sdd/{specs,designs,matrices}/`.
+- Write specs first, then designs, then implementation code.
