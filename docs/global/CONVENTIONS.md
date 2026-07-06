@@ -23,7 +23,26 @@
 | Files (hooks, utils) | `camelCase` | `useExpenseList.ts` |
 | Constants / enums | `UPPER_SNAKE_CASE` | `EXPENSE_CATEGORIES` |
 
-## 2. Imports
+## 2. Document Numbering & Cross-References
+
+### Specs (SPEC-*)
+- Each acceptance criterion is numbered `US-XXX` uniquely **within its spec file** (e.g., `US-001`, `US-002`).
+- When referencing from outside the file, use the qualified form `SPEC-<N>:US-XXX` (e.g., `SPEC-001:US-003` for use case 3 in spec 1).
+
+### Designs (DSN-*)
+- Sections are numbered `1`, `2`, `3`... uniquely **within the design file**.
+- When referencing from outside the file, use `DSN-<NNN>:<section>` (e.g., `DSN-001:2` refers to section 2 of DSN-001).
+
+### Test Matrices (TST-*)
+- Each test case is numbered `TC-XXX` uniquely **within its matrix file**.
+- When referencing from outside, use `TST-<N>:TC-XXX`.
+
+### Rationale
+- Keeps numbering local — no global ID registry needed.
+- Avoids merge conflicts when multiple specs are written in parallel.
+- Cross-references are always unambiguous when qualified with the document ID.
+
+## 3. Imports
 
 ### Python
 ```
@@ -56,7 +75,7 @@ import { Expense } from '@/features/expense/types'
 - Path alias: `@/` maps to `src/`.
 - **Named exports only.** No `export default` in any file (except pages/route files if necessary).
 
-## 3. State Management
+## 4. State Management
 
 ### Server state (data from API)
 - **React Query** (`@tanstack/react-query`) for all API data fetching, caching, mutations.
@@ -70,7 +89,7 @@ import { Expense } from '@/features/expense/types'
 ### Derivation
 - Derived state is computed with `useMemo` or selector functions. No syncing between stores.
 
-## 4. Error Handling
+## 5. Error Handling
 
 ### Backend
 - All API responses follow a consistent envelope:
@@ -90,35 +109,76 @@ import { Expense } from '@/features/expense/types'
 }
 ```
 - HTTP status codes: 200 (success), 201 (created), 400 (validation), 401 (auth), 403 (forbidden), 404 (not found), 409 (conflict), 422 (Pydantic validation), 500 (internal).
-- Use custom exception classes inheriting from `HTTPException` in `app/core/exceptions.py`.
+- Use custom exception classes inheriting from `AppException` in `app/core/exceptions.py`.
 - Unhandled exceptions are caught by a global FastAPI exception handler that logs the traceback and returns 500.
+- Error response format:
+  ```json
+  { "success": false, "data": null, "error": { "code": "ERROR_CODE", "message": "..." } }
+  ```
+
+#### Error codes
+
+| Code | HTTP Status | When |
+|------|-------------|------|
+| `VALIDATION_ERROR` | 422 | Pydantic validation failure |
+| `UNAUTHORIZED` | 401 | Missing / expired / invalid JWT |
+| `FORBIDDEN` | 403 | Wrong household, non-admin action |
+| `NOT_FOUND` | 404 | Resource does not exist |
+| `CONFLICT` | 409 | Duplicate resource (email, name) |
+| `INTERNAL_ERROR` | 500 | Unhandled exception |
 
 ### Frontend
-- API client (axios) interceptors handle 401 → redirect to login.
+- API client (axios) interceptors handle 401 → attempt token refresh → redirect to login on failure.
 - React Query's `onError` callbacks show toast notifications.
 - React Error Boundaries at the route level (one per feature page).
 - No `try/catch` in components unless interacting with non-query side effects.
 
-## 5. Database
+#### Axios client pattern (src/api/client.ts)
+- Base URL: `/api/v1`.
+- Request interceptor attaches `Authorization: Bearer <token>` from in-memory store.
+- Response interceptor:
+  - On success (2xx): unwrap `response.data.data` so callers receive the payload directly.
+  - On 401: attempt refresh token call, retry original request; if refresh fails, redirect to `/login`.
+  - On other errors: throw structured `ApiError { code: string, message: string }`.
+
+#### Typed response wrappers (src/api/types.ts)
+```typescript
+interface ApiResponse<T> { success: true; data: T; error: null }
+interface ApiError { code: string; message: string }
+interface ApiErrorResponse { success: false; data: null; error: ApiError }
+interface PaginatedResponse<T> { items: T[]; total: number; page: number; page_size: number; pages: number }
+```
+
+## 6. Database
 
 - **SQLAlchemy 2.0 async** style (`select()`, not legacy `Query` API).
-- All models inherit from a shared `Base` with `id`, `created_at`, `updated_at`, `household_id`.
+- A shared `Base` (`DeclarativeBase`) lives in `app/shared/base.py` with mixins:
+  - `TimestampMixin`: provides `id` (PK autoincrement), `created_at`, `updated_at` (auto-updated).
+  - `HouseholdMixin`: provides `household_id` FK to `households.id`.
+  - Feature models inherit both: `class ExpenseModel(Base, TimestampMixin, HouseholdMixin)`.
 - Alembic migrations are the single source of truth for schema changes.
 - Every query that reads or writes user data includes a `household_id` filter.
 - Agent-specific tables (`agent_conversations`, `agent_messages`) also carry `household_id` and `user_id`.
 
-## 6. API Design
+## 7. API Design
 
 - URL prefix: `/api/v1/`.
 - Resourceful endpoints: `GET /api/v1/expenses`, `POST /api/v1/expenses`, `GET /api/v1/expenses/{id}`, etc.
-- Pagination via query params `?page=1&page_size=20`. Response includes `total`, `page`, `page_size`, `items`.
+- Pagination via query params `?page=1&page_size=20` (defaults: page=1, page_size=20, max page_size=100). Response shape:
+  ```json
+  { "items": [...], "total": 100, "page": 1, "page_size": 20, "pages": 5 }
+  ```
 - Sort via `?sort_by=date&sort_order=desc`.
 - JWT passed as `Authorization: Bearer <token>`.
-- All routes (except `/auth/login`, `/auth/register`) depend on `get_current_user` FastAPI dependency.
+- Protected routes (all `/api/v1/*` except `/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/reset-password/*`) depend on `get_current_user` FastAPI dependency which injects `user_id` and `household_id`.
+- JWT payload structure:
+  ```json
+  { "sub": "user_id", "household_id": 1, "exp": 1700000000, "type": "access" }
+  ```
 - **Agent chat endpoint:** `POST /api/v1/agent/chat` — accepts `{ message, conversation_id? }`, streams response as chunked JSON lines (`data: {...}\n\n`). No WebSockets.
 - **Agent conversation history:** `GET /api/v1/agent/conversations` and `GET /api/v1/agent/conversations/{id}` for listing/viewing past chats.
 
-## 7. Testing
+## 8. Testing
 
 ### Backend
 - **pytest** with `pytest-asyncio`.
@@ -133,7 +193,7 @@ import { Expense } from '@/features/expense/types'
 - Test files co-located with their feature: `ExpenseCard.test.tsx` next to `ExpenseCard.tsx`.
 - Coverage target: 70%+ (components and hooks).
 
-## 8. Linting & Formatting
+## 9. Linting & Formatting
 
 ### Backend
 - **ruff** for both linting and formatting (single tool).
@@ -146,7 +206,27 @@ import { Expense } from '@/features/expense/types'
 - **Prettier** for formatting — line length 100, single quotes, trailing commas all.
 - Run as pre-commit hook (lint-staged + husky).
 
-## 9. Automation & Tools
+## 10. Progressive Web App (PWA)
+
+- **Manifest** (`public/manifest.json`): `name: "LIFEY"`, `short_name: "LIFEY"`, `start_url: "/"`, `display: "standalone"`, icons at 192x192 and 512x512, theme color and background color set.
+- **Service worker:** Managed by `vite-plugin-pwa` (Workbox). Cache-first for static assets, network-first for API calls. Offline fallback page displayed when offline.
+- **Index.html meta:** `<link rel="manifest">`, `<meta name="theme-color">`, `<meta name="apple-mobile-web-app-capable">`.
+- **Registration:** Service worker registers on app load via `VitePWA` plugin with `registerType: 'autoUpdate'`.
+
+## 11. Container & Build Conventions
+
+### Docker
+- **Multi-stage builds** for both frontend and backend to minimise image size.
+- **Frontend Dockerfile:** Stage 1 builds the SPA with `node:22-alpine`. Stage 2 serves via `nginx:1.27-alpine` with SPA fallback config (`try_files $uri $uri/ /index.html`). API calls proxied to `backend:8000`.
+- **Backend Dockerfile:** Stage 1 installs Python deps with pip. Stage 2 runs `python:3.13-slim` with uvicorn.
+- **docker-compose.yml:** Three services — `frontend` (port 80), `backend` (no exposed port), `db` (postgres:16-alpine with named volume). Backend depends on db health check. All read env vars from `.env`.
+- **Named volume:** `postgres_data` for database persistence.
+
+### nginx
+- SPA fallback: all non-file routes rewrite to `/index.html`.
+- API proxy: `/api/v1/` forwarded to `http://backend:8000`.
+
+## 12. Automation & Tools
 
 ### mise
 
@@ -166,13 +246,13 @@ import { Expense } from '@/features/expense/types'
 | `migrate` | Run Alembic migrations |
 | `build` | Build Docker images |
 
-## 10. Git
+## 13. Git
 
 - **Conventional Commits**: `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, `ci:`.
 - Branch naming: `feat/expense-crud`, `fix/auth-refresh`, `chore/update-deps`.
 - PRs squash-merged into `main`. Single commit per PR after review.
 
-## 11. Agent & MCP Conventions
+## 14. Agent & MCP Conventions
 
 ### Agent Configuration
 - Agents are stored in the `agent_configs` database table (per household).
@@ -203,10 +283,13 @@ import { Expense } from '@/features/expense/types'
 - Conversation history is loaded when a `conversation_id` is provided; otherwise a new conversation is created.
 - Old conversations are retained for review but not automatically summarized.
 
-## 12. File & Folder Layout
+## 15. File & Folder Layout
 
 ```
 lifey/
+├── .github/
+│   └── workflows/
+│       └── ci.yml
 ├── frontend/
 │   ├── src/
 │   │   ├── features/
@@ -217,15 +300,36 @@ lifey/
 │   │   │   ├── grocery/
 │   │   │   ├── household/
 │   │   │   └── agent/        # Chat UI, conversation list, message components
-│   │   ├── shared/
 │   │   ├── api/
-│   │   └── router/
+│   │   │   ├── client.ts     # Axios instance, interceptors, token refresh
+│   │   │   └── types.ts      # ApiResponse<T>, PaginatedResponse<T>, ApiError
+│   │   ├── shared/           # UI primitives, hooks, utils
+│   │   ├── router/
+│   │   └── service-worker.ts # Workbox service worker (PWA)
 │   ├── public/
+│   │   ├── manifest.json     # PWA manifest
+│   │   └── icons/            # 192x192.png, 512x512.png
 │   ├── index.html
-│   ├── vite.config.ts
+│   ├── vite.config.ts        # VitePWA plugin, @/ alias, proxy
+│   ├── .eslintrc.cjs
+│   ├── .prettierrc
+│   ├── Dockerfile            # Multi-stage: node build → nginx serve
+│   ├── nginx.conf            # SPA fallback, API proxy
 │   └── package.json
 ├── backend/
 │   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py           # App factory: CORS, exception handlers, routers
+│   │   ├── core/
+│   │   │   ├── config.py     # pydantic-settings, env vars
+│   │   │   ├── security.py   # JWT create/verify, bcrypt hash/verify
+│   │   │   ├── exceptions.py # AppException hierarchy
+│   │   │   ├── exception_handlers.py  # Global FastAPI handlers
+│   │   │   └── dependencies.py        # get_current_user
+│   │   ├── shared/
+│   │   │   ├── base.py       # SQLAlchemy Base, TimestampMixin, HouseholdMixin
+│   │   │   ├── schemas.py    # APIResponse[T], PaginatedResponse[T], ErrorSchema
+│   │   │   └── pagination.py # PaginationParams, paginate()
 │   │   ├── modules/
 │   │   │   ├── auth/
 │   │   │   ├── expense/
@@ -233,18 +337,22 @@ lifey/
 │   │   │   ├── todo/
 │   │   │   ├── grocery/
 │   │   │   ├── household/
-│   │   │   └── agent/        # Chat proxy, MCP server, agent orchestration, system prompt
-│   │   ├── shared/
-│   │   ├── core/
-│   │   └── migrations/
+│   │   │   └── agent/        # Chat proxy, MCP server, agent orchestration
+│   │   └── migrations/       # Alembic
 │   ├── tests/
-│   ├── Dockerfile
+│   ├── Dockerfile            # Multi-stage: pip deps → python:3.13-slim runtime
 │   ├── requirements.txt
-│   └── pyproject.toml
-├── mise.toml
-├── docker-compose.yml
+│   └── pyproject.toml        # ruff config, mypy config
+├── docker-compose.yml        # Three services: frontend, backend, db
+├── mise.toml                 # Tool versions + tasks
 ├── .env.example
 ├── docs/
 │   └── global/
+│       ├── VISION.md
+│       ├── ARCHITECTURE.md
+│       ├── CONVENTIONS.md
+│       ├── INFRASTRUCTURE.md
+│       ├── BACKEND.md
+│       └── FRONTEND.md
 └── AGENTS.md
 ```

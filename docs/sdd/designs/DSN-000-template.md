@@ -1,5 +1,8 @@
-# DSN-001: IPC Bridge for Chat Sidecar
-**Linked to:** `SPEC-001`
+# DSN-<NNN>: <Short Title>
+
+**Linked to:** `SPEC-<N>`
+
+Design sections are numbered `1`, `2`, `3`, etc. uniquely within this file. When referencing from outside (another DSN, a test matrix, a conversation), use the qualified form `DSN-<NNN>:<section>` (e.g., `DSN-001:2` refers to section 2 of DSN-001).
 
 ## 1. Architecture Map
 * **Frontend Component:** `ChatInput.tsx`, `MessageList.tsx`

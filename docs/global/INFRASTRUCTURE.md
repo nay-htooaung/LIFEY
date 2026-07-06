@@ -18,31 +18,34 @@ The current setup targets a **single Linux VM** via Docker Compose. The user wil
 
 ```
 services:
-  frontend:    # nginx:1.27-alpine serving built SPA
-  backend:     # python:3.12-slim running uvicorn
-  db:          # postgres:16-alpine
+  frontend:    # nginx:1.27-alpine serving built SPA (port 80 exposed)
+  backend:     # python:3.13-slim running uvicorn with --reload (not exposed)
+  db:          # postgres:16-alpine with named volume (not exposed)
 ```
 
 - All services communicate over an internal Docker network.
 - Only the frontend (port 80) is exposed to the host.
-- The backend and database are not exposed externally.
+- Backend depends on db health check (`pg_isready`). Frontend depends on backend.
+- Named volume `postgres_data` for database persistence across restarts.
+- Backend and frontend mount their source directories as volumes for hot-reload in dev.
 
 ## Secrets & Environment Variables
 
-Managed via a single `.env` file at the project root (gitignored). Docker Compose references `${VAR}` placeholders.
+Managed via a single `.env` file at the project root (gitignored). Docker Compose references `${VAR}` placeholders. `app/core/config.py` reads them via `pydantic-settings`.
 
-| Variable | Purpose |
-|----------|---------|
-| `POSTGRES_DB` | Database name |
-| `POSTGRES_USER` | Database user |
-| `POSTGRES_PASSWORD` | Database password |
-| `DATABASE_URL` | Full connection string for SQLAlchemy |
-| `JWT_SECRET_KEY` | HMAC signing key for JWT |
-| `JWT_ALGORITHM` | `HS256` |
-| `JWT_EXPIRE_MINUTES` | Access token TTL |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | Refresh token TTL |
-| `FRONTEND_URL` | CORS origin (e.g., `http://localhost` or `http://localhost:5173` in dev) |
-| `OPENCODE_API_KEY` | API key for OpenCode SDK / OpenCode Zen (agent LLM access) |
+| Variable | Required | Default | Purpose |
+|----------|----------|---------|---------|
+| `DATABASE_URL` | Yes | — | Full connection string for SQLAlchemy |
+| `POSTGRES_DB` | Yes | — | Database name (Docker Compose) |
+| `POSTGRES_USER` | Yes | — | Database user (Docker Compose) |
+| `POSTGRES_PASSWORD` | Yes | — | Database password (Docker Compose) |
+| `JWT_SECRET_KEY` | Yes | — | HMAC signing key for JWT (generate via `openssl rand -hex 32`) |
+| `JWT_ALGORITHM` | No | `HS256` | JWT signing algorithm |
+| `JWT_EXPIRE_MINUTES` | No | `30` | Access token TTL |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | No | `30` | Refresh token TTL |
+| `FRONTEND_URL` | No | `http://localhost` | CORS origin |
+| `OPENCODE_API_KEY` | No | `""` | API key for OpenCode SDK / OpenCode Zen (agent LLM access) |
+| `DEBUG` | No | `False` | Enable debug mode |
 
 ## Docker Image Strategy
 
@@ -56,8 +59,11 @@ Managed via a single `.env` file at the project root (gitignored). Docker Compos
 |---------|--------|
 | Platform | GitHub Actions |
 | Trigger | Push to `main`, pull requests targeting `main` |
-| Checks | Lint (ruff for Python, ESLint/Prettier for TS), typecheck (mypy + tsc), test (pytest + vitest) |
-| Image build | Docker Compose build on every PR as a smoke test |
+| Pipeline | Lint → Typecheck → Test → Build (sequential, each depends on prior) |
+| Lint | `ruff check backend/`, `npx eslint frontend/` |
+| Typecheck | `mypy backend/`, `npx tsc --noEmit frontend/` |
+| Test | `pytest backend/`, `npx vitest run frontend/` |
+| Build | `docker compose build` as a smoke test (no push) |
 | Deploy | Not configured — user-managed after server choice |
 
 ## Agent Configuration
@@ -73,6 +79,14 @@ Agent configurations are stored in the `agent_configs` database table (per house
 
 - The backend container requires HTTPS egress to the OpenCode Zen API (`api.opencode.ai` or similar) for agent LLM calls.
 - If deploying in a restricted network, ensure the `OPENCODE_API_KEY` allows outbound access.
+
+## Guardrails (Out of Scope for Local Dev)
+
+- No production deployment orchestrator (Kubernetes, Nomad). Docker Compose is for local dev only.
+- No monitoring, logging aggregation, or APM.
+- No secrets management beyond `.env` (no Vault, no AWS Secrets Manager).
+- No SSL/TLS termination in local dev (handled in production deployment).
+- No database connection pooling beyond SQLAlchemy's built-in pool.
 
 ## OS & System Dependencies
 

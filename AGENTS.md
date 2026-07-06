@@ -16,9 +16,19 @@ All implementation specs live under `docs/sdd/specs/SPEC-*.md`. Read the relevan
 | 4 | To-Do List | `SPEC-004-todo-list.md` |
 | 5 | Grocery Management | `SPEC-005-grocery-management.md` |
 | 6 | AI Agent Chat | `SPEC-006-agent-chat.md` |
-| 7 | Shared Infrastructure | `SPEC-007-shared-infrastructure.md` |
 
-Global design tenets are in `docs/global/` (VISION, ARCHITECTURE, CONVENTIONS, INFRASTRUCTURE). Cross-reference specs against them.
+Global design tenets are in `docs/global/`:
+
+| File | Covers |
+|------|--------|
+| `VISION.md` | Product north star, pillars, target audience, non-negotiables |
+| `ARCHITECTURE.md` | System diagram, tech stack, module structure, communication patterns |
+| `CONVENTIONS.md` | Cross-cutting conventions: naming, imports, error handling, database, API design, PWA, Docker, testing, linting, git, agents, file layout |
+| `INFRASTRUCTURE.md` | Docker Compose, env vars, CI/CD, image strategy, network/security, guardrails |
+| `BACKEND.md` | Backend-specific implementation patterns: core module, shared module, app factory, Dockerfile, linting config |
+| `FRONTEND.md` | Frontend-specific implementation patterns: API client, types, Vite config, PWA, Dockerfile, nginx, linting config |
+
+Cross-reference specs against these. Infrastructure conventions (API envelope, error handling, pagination, PWA, Docker, CI/CD, linting) are global — there is no SPEC-007 for them; they live directly in the global docs above.
 
 ## Commands
 
@@ -59,8 +69,34 @@ Preferred verification order: `lint` → `typecheck` → `test`.
 - SQL tool `agent_query_sql` is SELECT-only enforced at the tool level.
 - Tool calls and results stream to frontend as typed events for inline display.
 
-## SDD document chain
+## SDD document chain (feature modules only)
 
 - `SPEC-*` specs → `DSN-*` designs → `TST-*` test matrices.
 - Templates exist in `docs/sdd/{specs,designs,matrices}/`.
-- Write specs first, then designs, then implementation code.
+- Infrastructure conventions (envelope, error handling, pagination, PWA, Docker, CI, linting, mise tasks) live in `docs/global/` — not as SDD specs.
+- Write specs first, then designs (matching DSN-* number), then implementation code.
+- Read both the spec **and** its corresponding design doc before writing any code for a module.
+
+## Shared infrastructure implementation order
+
+Before implementing any feature module, establish shared infrastructure in this order:
+
+1. **mise.toml** — Confirm all tasks are defined (dev, test, lint, typecheck, migrate, build).
+2. **Backend config** — `app/core/config.py`, `.env.example`.
+3. **Backend security** — `app/core/security.py` (JWT + bcrypt).
+4. **Backend exceptions** — `app/core/exceptions.py`, `app/core/exception_handlers.py`.
+5. **Backend shared** — `app/shared/base.py`, `app/shared/schemas.py`, `app/shared/pagination.py`.
+6. **Backend deps** — `app/core/dependencies.py` (`get_current_user`).
+7. **Backend app factory** — `app/main.py` with CORS, exception handlers, placeholder routers.
+8. **Backend Dockerfile** — `backend/Dockerfile`, `backend/requirements.txt`.
+9. **Frontend scaffolding** — `package.json`, `tsconfig.json`, `vite.config.ts`, `index.html`.
+10. **Frontend API layer** — `src/api/types.ts`, `src/api/client.ts`.
+11. **Frontend PWA** — `public/manifest.json`, `src/service-worker.ts`, PWA icons, `index.html` meta.
+12. **Frontend Dockerfile** — `frontend/Dockerfile`, `frontend/nginx.conf`.
+13. **Frontend linting** — `.eslintrc.cjs`, `.prettierrc`.
+14. **Backend linting** — `pyproject.toml` (ruff + mypy config).
+15. **Docker Compose** — `docker-compose.yml`.
+16. **CI/CD** — `.github/workflows/ci.yml`.
+17. **Verification** — `mise run lint` → `mise run typecheck` → `mise run build`.
+
+Refer to `BACKEND.md` and `FRONTEND.md` for detailed conventions during each step.
