@@ -1,17 +1,35 @@
-# TST-001: IPC Chat Communication Matrix
-**Linked to:** `DSN-001`
+# TST-<NNN>: <Design Title> — Test Matrix
 
-## 1. Decision Table: Command Handling
+**Linked to:** `DSN-<NNN>` | **Spec:** `SPEC-<N>`
 
-| ID | Condition (Input) | Expected State | Output / Event Emitted |
-| :--- | :--- | :--- | :--- |
-| TC-01 | Valid text string provided | Sidecar accepts payload | Emits `chat_token` events |
-| TC-02 | Empty text string provided | Rejects immediately | Returns Error: "Message cannot be empty" |
-| TC-03 | Claude API timeout | Graceful failure | Returns Error: "Sidecar timeout" |
+Test cases are numbered `TC-XXX` uniquely within this file. When referencing from outside, use the qualified form `TST-<N>:TC-XXX`.
 
-## 2. Concrete Unit Tests Required
-* **`test_payload_deserialization`**: Assert that JSON payloads map correctly to the Rust struct.
-* **`test_empty_message_rejection`**: Assert that an empty string triggers an immediate failure without hitting the Claude SDK.
+## 1. Test Case Overview
 
-## 3. Implementation Directive
-Implementor Agent: Write code in `chat_handler.rs` to satisfy TC-01 through TC-03. Stop when tests are green.
+| TC ID | Use Case | Area | Type | Description |
+|-------|----------|------|------|-------------|
+| TC-001 | SPEC-<N>:US-001 | Backend | Unit | ... |
+| TC-002 | SPEC-<N>:US-001 | Backend | Integration | ... |
+| TC-003 | SPEC-<N>:US-002 | Frontend | Component | ... |
+
+## 2. Backend Test Cases
+
+### TC-001: <title> (SPEC-<N>:US-001)
+- **Type:** Unit / Integration
+- **Given:** precondition
+- **When:** action
+- **Then:** expected result / assertion
+- **Mock:** what to mock (if any)
+
+## 3. Frontend Test Cases
+
+### TC-003: <title> (SPEC-<N>:US-002)
+- **Type:** Component / Hook / E2E
+- **Given:** initial state
+- **When:** user interaction
+- **Then:** expected UI state / API call
+- **Mock:** MSW handler for which endpoint
+
+## 4. Coverage Notes
+- Which lines/branches are intentionally not covered and why.
+- Any manual testing scenarios.
