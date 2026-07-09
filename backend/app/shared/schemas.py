@@ -1,4 +1,4 @@
-from typing import Generic, Optional, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel
 
@@ -10,13 +10,13 @@ class ErrorSchema(BaseModel):
     message: str
 
 
-class APIResponse(BaseModel, Generic[T]):
+class APIResponse[T](BaseModel):
     success: bool
-    data: Optional[T] = None
-    error: Optional[ErrorSchema] = None
+    data: T | None = None
+    error: ErrorSchema | None = None
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     items: list[T]
     total: int
     page: int

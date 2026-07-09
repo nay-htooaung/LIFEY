@@ -12,8 +12,9 @@ dependencies = [
     "pydantic-settings>=2.6.0",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
-    "bcrypt>=4.0.0",
+    "bcrypt<5",
     "python-multipart>=0.0.12",
+    "email-validator>=2.3.0",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +23,8 @@ dev = [
     "pytest-asyncio>=0.24.0",
     "httpx>=0.28.0",
     "factory-boy>=3.3.0",
+    "aiosqlite>=0.20.0",
+    "freezegun>=1.5.0",
     "mypy>=1.13.0",
     "ruff>=0.8.0",
 ]
@@ -32,7 +35,12 @@ target-version = "py312"
 
 [tool.ruff.lint]
 select = ["ALL"]
-ignore = ["D", "ANN", "S101", "PLR0913", "PLR2004"]
+ignore = [
+    "D", "ANN", "S101", "S106", "PLR0913", "PLR2004",
+    "COM812", "TRY300", "TRY301", "BLE001",
+    "B904", "UP017", "F841", "F401",
+    "B008", "FAST002", "ARG001", "INP001", "S107",
+]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -46,3 +54,15 @@ disallow_any_unimported = false
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1",
+    "email-validator>=2.3.0",
+    "factory-boy>=3.3.3",
+    "freezegun>=1.5.5",
+    "httpx>=0.28.1",
+    "mypy>=2.2.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+]

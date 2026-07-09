@@ -100,3 +100,12 @@ Before implementing any feature module, establish shared infrastructure in this 
 17. **Verification** — `mise run lint` → `mise run typecheck` → `mise run build`.
 
 Refer to `BACKEND.md` and `FRONTEND.md` for detailed conventions during each step.
+
+## Package management
+
+Use `uv` for all Python package operations:
+- `uv pip install <pkg>` — install a package
+- `uv pip sync` — sync from `pyproject.toml` / `requirements.txt`
+- `uv pip install -e ".[dev]"` — install project + dev deps
+
+Use `npm` (via `mise exec -- npm`) for frontend package operations.

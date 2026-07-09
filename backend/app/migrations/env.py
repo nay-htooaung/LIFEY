@@ -25,7 +25,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 
-def do_run_migrations(connection: Connection) -> None:
+def run_migrations_connection(connection: Connection) -> None:
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
@@ -39,8 +39,12 @@ async def run_async_migrations() -> None:
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )
+
+    def do_sync(connection):
+        run_migrations_connection(connection)
+
     async with connectable.connect() as connection:
-        do_run_migrations(connection)
+        await connection.run_sync(do_sync)
     await connectable.dispose()
 
 
