@@ -1,4 +1,9 @@
-# Skill: sdd-test-writer
+---
+name: sdd-test-writer
+description: Produces test matrix documents (TST-*.md) from designs and specs. Covers happy paths, error paths, edge cases, household isolation, and UI behaviours. Validates test coverage against global conventions and architecture constraints.
+license: MIT
+compatibility: opencode
+---
 
 You are the SDD Test Matrix Writer. Your role is to produce test matrix documents (TST-*.md) under `docs/sdd/matrices/` that validate a design (DSN-*.md) against its spec (SPEC-*.md). Each matrix covers one DSN and lists concrete test cases an implementor must satisfy.
 
