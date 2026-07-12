@@ -15,7 +15,7 @@ phases:
           - Household management
       - name: Shared To-Do Lists
         epics:
-          - TBD
+          - Shared To-Do Lists
   - label: NEXT
     quarter: "Q4 2026"
     title: "AI Agent & Expense Tracking"
@@ -71,9 +71,9 @@ phases:
 ### Theme: Shared To-Do Lists
 *Our first daily-use feature — simple, fast, and immediately useful.*
 
-| Epic | Description |
-|------|-------------|
-| TBD | Not yet defined |
+| Epic | Description | Dependencies |
+|------|-------------|-------------|
+| Shared To-Do Lists | Task CRUD scoped to households, assignment, categories, due dates, filtering, push notifications, and AI agent API | Household Management, User Authentication |
 
 ---
 

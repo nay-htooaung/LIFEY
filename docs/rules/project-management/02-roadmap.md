@@ -52,7 +52,95 @@ Do **not** assign dates further out than "later." Certainty decreases sharply wi
 
 ## 5. Roadmap Formats
 
-### 5.1. Theme-Based (Recommended)
+### 5.1. Structured Frontmatter (Required)
+
+The roadmap data for the diagram lives in the YAML frontmatter under a `phases` key. This is parsed directly — no regex, no body parsing.
+
+```yaml
+---
+title: "Roadmap — LIFEY"
+status: Draft
+type: roadmap
+quarter: Q3 2026
+phases:
+  - label: NOW
+    quarter: "Q3 2026"
+    title: "Foundation & To-Do Lists"
+    themes:
+      - name: Shared Foundation
+        epics:
+          - Mobile app shell       # existing epic doc → shows real name
+          - User Authentication
+          - Household management
+      - name: Shared To-Do Lists
+        epics:
+          - TBD                    # no epic doc yet → shows italic TBD
+  - label: NEXT
+    quarter: "Q4 2026"
+    title: "AI Agent & Expense Tracking"
+    themes:
+      - name: AI Agent
+        epics:
+          - TBD
+      - name: Expense Tracking
+        epics:
+          - TBD
+  - label: LATER
+    quarter: "H1 2027+"
+    title: "Chat, Recipes, Groceries & Custom Agents"
+    themes:
+      - name: Household Chat
+        epics:
+          - TBD
+      - name: Recipe Management
+        epics:
+          - TBD
+      - name: Grocery Integration
+        epics:
+          - TBD
+      - name: Custom Agents
+        epics:
+          - TBD
+      - name: Advanced AI
+        epics:
+          - TBD
+---
+```
+
+Rules:
+- `label` must be `NOW`, `NEXT`, or `LATER` (case-sensitive — drives CSS color).
+- `quarter` is a short string (`"Q3 2026"`, `"H1 2027+"`, etc.).
+- `title` is a short human-readable title for the phase.
+- Each `theme` has a `name` and an `epics` list.
+- Epic names that match an existing epic doc title (case-insensitive) will be cross-referenced automatically — their status dot reflects the epic's status.
+- Epic names set to `TBD` render as dimmed italic placeholders.
+
+### 5.2. Body Markdown (Detail View)
+
+The body after the frontmatter is free-form markdown for the detail view. It should stay consistent with the frontmatter but can include descriptions, dependencies, and other context.
+
+```
+## NOW — Q3 2026: "Foundation & To-Do Lists"
+
+### Theme: Shared Foundation
+*The app exists and we can use it together.*
+
+| Epic | Description | Dependencies |
+|------|-------------|-------------|
+| Mobile app shell | iOS + Android project, navigation, UI components | — |
+| User Authentication | Sign up, log in, profile management | Mobile app shell |
+| Household management | Create households, invite members, context switching | User auth |
+
+### Theme: Shared To-Do Lists
+*Our first daily-use feature — simple, fast, and immediately useful.*
+
+| Epic | Description |
+|------|-------------|
+| TBD | Not yet defined |
+```
+
+### 5.3. Theme-Based (Alternative Format Reference)
+
 ```
 Q3 2026 — "Core Expense Management"
   Epic: Auto-split recurring bills
@@ -69,7 +157,7 @@ H1 2027 — "AI-Powered Insights"
   Epic: AI assistant for household Q&A
 ```
 
-### 5.2. Outcome-Based
+### 5.4. Outcome-Based
 ```
 Goal: Reduce time spent on expense reconciliation by 80%
   - Integrate bank feed API (Q3)

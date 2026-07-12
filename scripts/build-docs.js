@@ -74,20 +74,12 @@ const HIERARCHY_RULES = {
     description: "Feature-bounded initiative",
   },
   user_story: {
-    label: "Story",
+    label: "User Story",
     icon: "●",
     color: "#10b981",
     requiredFields: ["title", "status", "type", "epic"],
     parentField: "epic",
     description: "Single user action or goal",
-  },
-  task: {
-    label: "Task",
-    icon: "◼",
-    color: "#14b8a6",
-    requiredFields: ["title", "status", "type", "story"],
-    parentField: "story",
-    description: "Technical implementation step",
   },
   reference: {
     label: "Reference",
@@ -141,14 +133,19 @@ function relativePath(absPath) {
 
 function detectType(frontmatter, filePath) {
   if (frontmatter.type) return frontmatter.type;
+  // Detect type from parent directory name
+  const dir = path.basename(path.dirname(filePath));
+  if (dir === "vision") return "vision";
+  if (dir === "roadmap") return "roadmap";
+  if (dir === "epic") return "epic";
+  if (dir === "story" || dir === "stories") return "user_story";
+  // Fallback for root-level files (e.g. templates)
   const basename = path.basename(filePath).toLowerCase();
-  if (basename.startsWith("01-") || basename.includes("vision")) return "vision";
-  if (basename.startsWith("02-") || basename.includes("roadmap")) return "roadmap";
-  if (basename.startsWith("03-") || basename.includes("epic")) return "epic";
-  if (basename.startsWith("04-") || basename.includes("userstory") || basename.includes("story")) return "user_story";
-  if (basename.startsWith("05-") || basename.includes("task")) return "task";
-  if (basename.startsWith("06-") || basename.includes("granularity") || basename.includes("matrix")) return "reference";
-  if (basename.includes("template")) return "template";
+  if (basename.includes("vision")) return "vision";
+  if (basename.includes("roadmap")) return "roadmap";
+  if (basename.includes("epic")) return "epic";
+  if (basename.includes("story") || basename.includes("userstory")) return "user_story";
+  if (basename.includes("granularity") || basename.includes("matrix")) return "reference";
   return "reference";
 }
 
@@ -157,15 +154,24 @@ function detectType(frontmatter, filePath) {
 // ──────────────────────────────────────────────
 function discoverFiles() {
   const files = [];
-  for (const dir of SOURCE_DIRS) {
-    if (!fs.existsSync(dir)) continue;
-    const entries = fs.readdirSync(dir, { recursive: false });
+  function walk(dir) {
+    // Skip templates directory
+    if (path.basename(dir) === "templates") return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch { return; }
     for (const entry of entries) {
-      const fullPath = path.join(dir, entry);
-      if (fs.statSync(fullPath).isFile() && entry.endsWith(".md")) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile() && entry.name.endsWith(".md")) {
         files.push(fullPath);
       }
     }
+  }
+  for (const dir of SOURCE_DIRS) {
+    if (fs.existsSync(dir)) walk(dir);
   }
   return files;
 }
@@ -400,20 +406,6 @@ function validate(docs, docMap) {
 
   // Hierarchy depth consistency
   for (const doc of docs) {
-    if (doc.type === "task") {
-      const storyRef = doc.frontmatter.story;
-      if (storyRef) {
-        const storyDoc = docMap.get(storyRef.toLowerCase()) || docMap.get(storyRef);
-        if (storyDoc && storyDoc.type !== "user_story") {
-          warnings.push({
-            doc: doc.id,
-            file: doc.relativePath,
-            message: `Task's parent "${storyRef}" is type "${storyDoc.type}", expected "user_story"`,
-            severity: "warning",
-          });
-        }
-      }
-    }
     if (doc.type === "user_story") {
       const epicRef = doc.frontmatter.epic;
       if (epicRef) {
@@ -531,7 +523,6 @@ const CATEGORIES = [
   { type: "roadmap",    icon: "◆",  label: "Roadmap",     plural: "Roadmap" },
   { type: "epic",       icon: "▲",  label: "Epic",        plural: "Epics" },
   { type: "user_story", icon: "●",  label: "Story",       plural: "Stories" },
-  { type: "task",       icon: "◼",  label: "Task",        plural: "Tasks" },
 ];
 
 const STATUS_COLORS = {
@@ -1203,7 +1194,7 @@ function generateHTML(docs, graph, validation, docMap) {
       if (!hash || hash === '/') { showOverview(); return; }
       if (hash.startsWith('doc-')) { showDoc(hash.slice(4)); return; }
       // Check if it's a category name
-      const cats = ['vision','roadmap','epic','user_story','task'];
+      const cats = ['vision','roadmap','epic','user_story'];
       if (cats.includes(hash)) { showCategory(hash); return; }
       showOverview();
     }
@@ -1216,8 +1207,8 @@ function generateHTML(docs, graph, validation, docMap) {
       const height = 450;
       const legendEl = document.getElementById('graphLegend');
       const types = [...new Set(graphData.nodes.map(n => n.type))];
-      const typeColors = { vision:'#e6b800', roadmap:'#3b82f6', epic:'#8b5cf6', user_story:'#10b981', task:'#14b8a6', reference:'#6b7280', unknown:'#ef4444' };
-      const typeIcons = { vision:'★', roadmap:'◆', epic:'▲', user_story:'●', task:'◼', reference:'■', unknown:'?' };
+      const typeColors = { vision:'#e6b800', roadmap:'#3b82f6', epic:'#8b5cf6', user_story:'#10b981', reference:'#6b7280', unknown:'#ef4444' };
+      const typeIcons = { vision:'★', roadmap:'◆', epic:'▲', user_story:'●', reference:'■', unknown:'?' };
       types.forEach(t => {
         const item = document.createElement('div'); item.className = 'graph-legend-item';
         item.innerHTML = '<span class="graph-legend-dot" style="background:' + (typeColors[t]||'#6b7280') + '"></span> ' + (typeIcons[t]||'') + ' ' + t.replace(/_/g,' ');

@@ -19,7 +19,6 @@ All project management conventions are defined under `docs/rules/project-managem
 | 2 | `02-roadmap.md` | Now/Next/Later horizons, theme-based planning |
 | 3 | `03-epics.md` | Multi-sprint initiatives, epic decomposition |
 | 4 | `04-userstory.md` | INVEST, 3 C's, acceptance criteria, splitting |
-| 5 | `05-tasks.md` | Smallest execution unit, task breakdown |
 
 ---
 
@@ -36,15 +35,14 @@ Always read the corresponding `docs/rules/project-management/0X-*.md` file befor
 - **Roadmap** — Organize into Now / Next / Later horizons. Use themes with epics underneath. Do not over-specify future quarters.
 - **Epics** — Define clear scope, success criteria, and out-of-scope. Decompose into stories. Ensure each epic traces to a roadmap theme.
 - **User Stories** — Use the "As a… I want… so that…" template. Validate against INVEST. Write Gherkin acceptance criteria. Split if too large.
-- **Tasks** — Break stories into concrete developer actions. Each task should be ~1 day of work with a clear DoD.
 
 ### 4. Validate
-- Cross-check the artifact against its level in the hierarchy (vision → roadmap → epics → stories → tasks).
-- Ensure traceability: every task belongs to a story, every story belongs to an epic, every epic belongs to a roadmap theme, every theme traces to the vision.
+- Cross-check the artifact against its level in the hierarchy (vision → roadmap → epics → stories).
+- Ensure traceability: every story belongs to an epic, every epic belongs to a roadmap theme, every theme traces to the vision.
 - Flag inconsistencies or gaps to the user.
 
 ### 5. Save to `docs/project-management/`
-All created or updated artifacts must be saved under `docs/project-management/`. Do not ask — this is the fixed location. Use the same numbered prefix convention as the reference files (e.g., `01-product-vision.md`, `02-roadmap.md`).
+All created or updated artifacts must be saved under `docs/project-management/` in their type-specific subdirectory. Do not ask — this is the fixed location. Use the same numbered prefix convention as the reference files (e.g., `vision/01-product-vision.md`, `roadmap/02-roadmap.md`).
 
 ---
 
@@ -56,7 +54,6 @@ All created or updated artifacts must be saved under `docs/project-management/`.
 | Plan what to build and when | `02-roadmap.md` | Create/update roadmap with Now/Next/Later |
 | Scope a large initiative | `03-epics.md` | Define epic with success criteria and story list |
 | Write a user-facing feature | `04-userstory.md` | Write story with AC; validate INVEST |
-| Break down work for devs | `05-tasks.md` | Create task list under a story |
 | Split a large story | `04-userstory.md` | Apply splitting strategies |
 | Brainstorm features | All | Start from vision → roadmap → epics |
 | Review existing artifacts | All | Read and validate hierarchy consistency |
@@ -68,7 +65,6 @@ All created or updated artifacts must be saved under `docs/project-management/`.
 ## Rules
 
 - **Always read the reference file first** before creating or editing an artifact.
-- **Do not create a task without a parent story.** Ask the user which story it belongs to.
 - **Do not create a story without a parent epic.** Ask the user which epic it belongs to.
 - **Validate INVEST** on every user story before marking it ready.
 - **Keep the hierarchy consistent** — if a story is too large (multiple sprints), recommend promoting it to an epic and splitting.

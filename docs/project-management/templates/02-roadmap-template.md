@@ -1,24 +1,43 @@
 ---
-# ──────────────────────────────────────────────
-# Roadmap — Template
-# ──────────────────────────────────────────────
 title: "Roadmap — [Product Name]"
-status: draft             # draft | review | approved
-version: 1.0
-quarter: "QX YYYY"
-last_updated: YYYY-MM-DD
-author: "[Name]"
+status: Draft
 type: roadmap
-horizons:
-  now:
-    theme: "[Theme name — e.g., Core Expense Management]"
-    key_result: "[Measurable outcome for this quarter]"
-  next:
-    theme: "[Theme name — e.g., Household Collaboration]"
-    key_result: "[Measurable outcome for next quarter]"
-  later:
-    theme: "[Theme name — e.g., AI-Powered Insights]"
-    key_result: "[Long-term outcome]"
+quarter: QX YYYY
+version: 1.0
+last_updated: YYYY-MM-DD
+phases:
+  - label: NOW
+    quarter: "QX YYYY"
+    title: "[Short theme title for this quarter]"
+    themes:
+      - name: "[Theme Name]"
+        epics:
+          - "[Epic 1 — use exact title matching an epic doc, or TBD]"
+          - "[Epic 2]"
+          - "[Epic 3]"
+      - name: "[Theme Name]"
+        epics:
+          - "[Epic 4]"
+  - label: NEXT
+    quarter: "QX YYYY"
+    title: "[Short theme title for next quarter]"
+    themes:
+      - name: "[Theme Name]"
+        epics:
+          - TBD
+      - name: "[Theme Name]"
+        epics:
+          - TBD
+  - label: LATER
+    quarter: "HX YYYY+"
+    title: "[Longer-term theme]"
+    themes:
+      - name: "[Theme Name]"
+        epics:
+          - TBD
+      - name: "[Theme Name]"
+        epics:
+          - TBD
 ---
 
 > **Instructions:** Replace all `[bracketed]` placeholders with your content.
@@ -32,116 +51,73 @@ horizons:
 
 ---
 
-## Timeline Overview
+## Horizon Guide
 
-> *Visual sequence of Now → Next → Later. Edit the HTML below to add your epics.*
-> *(This renders as a styled diagram on the HTML site — no dates, just order.)*
-
-<div class="roadmap-timeline">
-
-<div class="phase now">
-  <div class="label">Now</div>
-  <div class="period">[Current Quarter]</div>
-  <div class="theme">[Theme Name]</div>
-  <ul class="epic-list">
-    <li>[Epic 1]</li>
-    <li>[Epic 2]</li>
-    <li>[Epic 3]</li>
-  </ul>
-  <div class="key-result">🎯 [Key result]</div>
-</div>
-
-<div class="arrow">→</div>
-
-<div class="phase next">
-  <div class="label">Next</div>
-  <div class="period">[Next Quarter]</div>
-  <div class="theme">[Theme Name]</div>
-  <ul class="epic-list">
-    <li>[Epic 4]</li>
-    <li>[Epic 5]</li>
-  </ul>
-  <div class="key-result">🎯 [Key result]</div>
-</div>
-
-<div class="arrow">→</div>
-
-<div class="phase later">
-  <div class="label">Later</div>
-  <div class="period">[2–4 Quarters Out]</div>
-  <div class="theme">[Theme Name]</div>
-  <ul class="epic-list">
-    <li>[Epic idea 1]</li>
-    <li>[Epic idea 2]</li>
-  </ul>
-  <div class="key-result">🎯 [Key result]</div>
-</div>
-
-</div>
+| Horizon | Timeframe | Certainty | Detail Level |
+|---------|-----------|-----------|-------------|
+| **Now** | This quarter | High | Epics + key stories estimated |
+| **Next** | Next quarter | Medium | Themes + epics (not yet detailed) |
+| **Later** | 2–4 quarters out | Low | Themes only (placeholder) |
 
 ---
 
-## 1. Now — [Current Quarter, e.g., Q3 2026]
+## NOW — QX YYYY: "[Short theme title]"
 
 ### Theme: [Theme Name — Outcome Area]
+*[Short description of the goal for this theme.]*
 
-**Key Result:** [How we'll know this theme is successful — measurable.]
-
-| Epic | Description | Size | Status |
-|------|-------------|:----:|--------|
-| [Epic 1] | [1-line summary] | M | In Progress |
-| [Epic 2] | [1-line summary] | S | Refining |
-| [Epic 3] | [1-line summary] | L | Committed |
-
-> **Example:**
-> ### Theme: Core Expense Management
-> **Key Result:** Reduce manual split edits by 50%.
-> | Epic | Description | Size | Status |
-> |------|-------------|:----:|--------|
-> | Auto-split recurring bills | Automatically detect and split recurring household bills | M | In Progress |
-> | Receipt image capture | Snap a receipt and auto-extract line items | L | Refining |
-> | Expense categories & budgets | Group expenses by category with monthly budget tracking | S | Committed |
-
----
-
-## 2. Next — [Next Quarter, e.g., Q4 2026]
+| Epic | Description | Dependencies |
+|------|-------------|-------------|
+| [Epic 1] | [1-line summary] | — |
+| [Epic 2] | [1-line summary] | [Epic 1] |
+| [Epic 3] | [1-line summary] | — |
 
 ### Theme: [Theme Name]
+*[Short description.]*
 
-**Key Result:** [Measurable outcome.]
-
-| Epic | Description | Size |
-|------|-------------|:----:|
-| [Epic 1] | [1-line summary] | [S/M/L] |
-| [Epic 2] | [1-line summary] | [S/M/L] |
-
-> **Example:**
-> ### Theme: Household Collaboration
-> **Key Result:** 80% of households have at least 2 active members within 7 days.
-> | Epic | Description | Size |
-> |------|-------------|:----:|
-> | Shared grocery lists | Real-time collaborative grocery lists | M |
-> | Chore assignment & tracking | Assign, claim, and complete household chores | M |
-> | Household activity feed | See what others have done at a glance | S |
+| Epic | Description |
+|------|-------------|
+| TBD | Not yet defined |
 
 ---
 
-## 3. Later — [2–4 Quarters Out]
+## NEXT — QX YYYY: "[Short theme title]"
 
 ### Theme: [Theme Name]
+*[Short description.]*
 
-**Key Result:** [Long-term measurable outcome.]
+| Epic | Description |
+|------|-------------|
+| TBD | Not yet defined |
 
-*Themes only — no epics committed yet.*
+### Theme: [Theme Name]
+*[Short description.]*
 
-> **Example:**
-> ### Theme: AI-Powered Insights
-> **Key Result:** 30% of users engage with AI recommendations weekly.
-> *(No epics committed — placeholder for future refinement.)*
+| Epic | Description |
+|------|-------------|
+| TBD | Not yet defined |
 
 ---
 
-## 4. Not Planned (Explicit "No")
+## LATER — HX YYYY+: "[Longer-term theme]"
+
+### Theme: [Theme Name]
+*[Short description.]*
+
+| Epic | Description |
+|------|-------------|
+| TBD | Not yet defined |
+
+### Theme: [Theme Name]
+*[Short description.]*
+
+| Epic | Description |
+|------|-------------|
+| TBD | Not yet defined |
+
+---
+
+## Not Planned (Explicit "No")
 
 Items explicitly out of scope for the foreseeable future (manages stakeholder expectations):
 
@@ -149,24 +125,14 @@ Items explicitly out of scope for the foreseeable future (manages stakeholder ex
 - **[Item 2]** — [Brief rationale]
 
 > **Example:**
-> - **Multi-currency support** — Our target users are domestic households, not international travelers.
+> - **Multi-currency support** — Target users are domestic households, not international travelers.
 > - **Investment tracking** — Household management, not personal finance.
 
 ---
 
-## 5. Roadmap Health Checklist
+## Traceability
 
-- [ ] Every theme traces back to the product vision.
-- [ ] "Now" has epics with estimated sizes (S/M/L).
-- [ ] "Next" has themes + key results (epics optional).
-- [ ] "Later" has themes only (no false precision).
-- [ ] "Not Planned" is populated to manage expectations.
-- [ ] Roadmap fits on one printed page.
-
----
-
-## 6. Revision History
-
-| Date | Version | Author | Change |
-|------|---------|--------|--------|
-| YYYY-MM-DD | 1.0 | [Name] | Initial draft |
+| Theme | Traces to Vision Principle |
+|-------|---------------------------|
+| [Theme 1] | [Vision pillar] |
+| [Theme 2] | [Vision pillar] |

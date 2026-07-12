@@ -32,7 +32,7 @@ A user story is defined by three elements:
 
 ### Boundaries — What a user story is NOT
 - **Not a spec** — It does not contain technical details, UI mockups, or implementation steps.
-- **Not a task** — Tasks are the decomposition of a story (e.g., "create DB migration", "add API endpoint").
+- **Not a task** — Stories are user-facing; avoid stories written from the implementer's perspective (e.g., "create DB migration", "add API endpoint").
 - **Not an epic** — Epics are large bodies of work that are broken into multiple stories.
 - **Not a bug report** — Bugs are defects; stories are new value.
 
@@ -46,7 +46,7 @@ Every well-formed user story should be:
 |--------|---------|-------------|
 | **I** | **Independent** — Can be developed, tested, and shipped in any order. | If story A blocks story B, split or reorder. |
 | **N** | **Negotiable** — Details are not locked in; open to change through conversation. | If it reads like a legal contract, it's too rigid. |
-| **V** | **Valuable** — Delivers concrete value to the end-user or business. | If it only benefits developers, it's a task, not a story. |
+| **V** | **Valuable** — Delivers concrete value to the end-user or business. | If it only benefits developers, it's not a story. |
 | **E** | **Estimable** — The team can roughly estimate effort. | If it's too vague or too large, split it. |
 | **S** | **Small** — Fits within one sprint (ideally 2–3 days of work). | If it takes more than a few days, decompose further. |
 | **T** | **Testable** — Has clear acceptance criteria that can be verified. | If you can't write a test for it, it's not done. |
@@ -177,7 +177,7 @@ Each story should cut across all layers (UI → API → DB), delivering a comple
 | **Zombie story** | Story sits in backlog for months without conversation. | Remove or re-prioritize. |
 | **Waterfall story** | Over-detailed spec disguised as a story. | Keep it short; let conversation fill gaps. |
 | **Compound story** | "As a user, I can add, edit, delete, and export expenses." | Split into 4 separate stories. |
-| **Task-as-story** | "As a developer, I want to set up the database." | No user value. Make it a task under a real story. |
+| **Developer story** | "As a developer, I want to set up the database." | No user value. Rewrite from the user's perspective or scope it as technical work under a real story. |
 | **No AC** | Story without confirmation criteria is not testable. | Always write at least one Given/When/Then. |
 
 ---

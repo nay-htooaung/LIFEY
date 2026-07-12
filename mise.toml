@@ -23,3 +23,7 @@ run = "pnpm run build:watch"
 [tasks.validate]
 description = "Parse + validate only (no HTML output); exits 1 on errors"
 run = "pnpm run validate"
+
+[tasks.convert]
+description = "Convert Client Discovery Brief .md templates to .docx and .pdf"
+run = "pnpm run convert"

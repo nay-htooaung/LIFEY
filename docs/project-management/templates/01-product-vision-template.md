@@ -1,13 +1,9 @@
 ---
-# ──────────────────────────────────────────────
-# Product Vision — Template
-# ──────────────────────────────────────────────
 title: "Product Vision — [Product Name]"
-status: draft      # draft | review | approved
+status: Draft
+type: vision
 version: 1.0
 last_updated: YYYY-MM-DD
-author: "[Name]"
-type: vision
 ---
 
 > **Instructions:** Replace all `[bracketed]` placeholders with your content.
@@ -17,7 +13,7 @@ type: vision
 
 # Product Vision — [Product Name]
 
-## 1. Vision Statement
+## Vision Statement
 
 For **[target customer]**  
 who **[need or problem]** ,  
@@ -39,7 +35,7 @@ our product **[key differentiator]** .
 
 ---
 
-## 2. Mission
+## Mission
 
 > *What we do every day to realize the vision.*
 
@@ -51,7 +47,7 @@ our product **[key differentiator]** .
 
 ---
 
-## 3. Strategy
+## Strategy
 
 > *How we will achieve the mission — the high-level approach.*
 
@@ -71,7 +67,7 @@ our product **[key differentiator]** .
 
 ---
 
-## 4. Key Components
+## Key Components
 
 | Component | Definition |
 |-----------|------------|
@@ -93,7 +89,7 @@ our product **[key differentiator]** .
 
 ---
 
-## 5. Alignment Checklist
+## Alignment Checklist
 
 Use this to validate your vision before approving:
 
@@ -106,7 +102,7 @@ Use this to validate your vision before approving:
 
 ---
 
-## 6. Revision History
+## Revision History
 
 | Date | Version | Author | Change |
 |------|---------|--------|--------|

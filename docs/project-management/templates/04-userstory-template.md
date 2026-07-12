@@ -1,31 +1,18 @@
 ---
-# ──────────────────────────────────────────────
-# User Story — Template
-# ──────────────────────────────────────────────
 title: "[Short, action-oriented story title]"
-status: backlog            # backlog | refined | in_progress | review | done
+status: Draft
 type: user_story
-epic: "[Parent Epic Title]"
-story_points:              # Optional: Fibonacci (1, 2, 3, 5, 8, 13)
-author: "[Name]"
-created: YYYY-MM-DD
-invest:
-  independent: true
-  negotiable: true
-  valuable: true
-  estimable: true
-  small: true
-  testable: true
+epic: "[Parent Epic Title — must match an epic doc's title exactly]"
 ---
 
 > **Instructions:** Replace all `[bracketed]` placeholders with your content.
-> The completed file should be saved under `docs/project-management/` in the epics registry or as a separate stories document.
+> The completed file should be saved as `docs/project-management/XX-story-your-story-name.md`.
 
 ---
 
 # [Story Title]
 
-## 1. User Story
+## User Story
 
 ```text
 As a [role],
@@ -43,7 +30,7 @@ so that the system automatically splits the bill on each due date without manual
 
 ---
 
-## 2. Acceptance Criteria
+## Acceptance Criteria
 
 > *Gherkin-style (Given / When / Then). Each scenario tests one behavior.*
 
@@ -71,9 +58,7 @@ When  [action]
 Then  [expected result]
 ```
 
-### ✅ Example
-
-#### Scenario: Successful bill template creation
+### ✅ Example: Successful bill template creation
 
 ```gherkin
 Given I am logged in as a household member with "admin" role
@@ -83,7 +68,7 @@ And each member's share is calculated as "$33.33"
 And a confirmation message is shown
 ```
 
-#### Scenario: Edit pending auto-split before due date
+### ✅ Example: Edit pending auto-split before due date
 
 ```gherkin
 Given I have a recurring bill template with a pending auto-split due in 3 days
@@ -92,7 +77,7 @@ Then the updated split is recalculated
 And all members are notified of the change
 ```
 
-#### Scenario: Invalid amount entered
+### ✅ Example: Invalid amount entered
 
 ```gherkin
 Given I am on the "create recurring bill" form
@@ -103,44 +88,16 @@ And the form is not submitted
 
 ---
 
-## 3. INVEST Checklist
-
-> *Validate the story against INVEST before promoting it to sprint-ready.*
-
-| Letter | Criterion | Check |
-|--------|-----------|:-----:|
-| **I** | **Independent** — Can this story be built, tested, and shipped in any order? | ☐ |
-| **N** | **Negotiable** — Are details open to change through conversation (not a rigid spec)? | ☐ |
-| **V** | **Valuable** — Does it deliver concrete value to an end-user? | ☐ |
-| **E** | **Estimable** — Can the team roughly estimate effort? | ☐ |
-| **S** | **Small** — Can one developer complete it in 2–3 days? | ☐ |
-| **T** | **Testable** — Are there clear acceptance criteria that can be verified? | ☐ |
-
-### ✅ Example (filled)
-
-| Letter | Criterion | Check |
-|--------|-----------|:-----:|
-| **I** | Independent — Can this story be built, tested, and shipped in any order? | ✅ |
-| **N** | Negotiable — Are details open to change? | ✅ |
-| **V** | Valuable — Does it deliver concrete value to an end-user? | ✅ |
-| **E** | Estimable — Can the team roughly estimate effort? | ✅ |
-| **S** | Small — Can one developer complete it in 2–3 days? | ✅ |
-| **T** | Testable — Are there clear acceptance criteria? | ✅ |
-
----
-
-## 4. Definition of Ready (DoR) vs. Done (DoD)
-
-### DoR — Ready for Sprint
+## Definition of Ready (DoR) — Ready for Sprint
 
 - [ ] Clear title & description
 - [ ] Acceptance criteria written (Gherkin)
 - [ ] Estimated by the team (story points or t-shirt)
-- [ ] Attached to a parent epic
+- [ ] Attached to a parent epic via `epic` field
+- [ ] Title matches a [[Wiki Link]] in the parent epic
 - [ ] Dependencies identified and resolved
-- [ ] INVEST-compliant (all checked above)
 
-### DoD — Ready for Release
+## Definition of Done (DoD) — Ready for Release
 
 - [ ] Code merged to main
 - [ ] Tests pass (unit + integration)
@@ -151,26 +108,7 @@ And the form is not submitted
 
 ---
 
-## 5. Notes / Conversation Log
-
-> *Capture decisions made during refinement conversations — not a spec, just key outcomes.*
-
-- **[Date]:** [Decision or clarification]
-- **[Date]:** [Decision or clarification]
-
----
-
-## 6. Technical Tasks
-
-> *Filled in during sprint planning. These are the tasks that decompose this story.*
-
-- [ ] [Task 1 — e.g., Create DB migration for recurring bills table]
-- [ ] [Task 2 — e.g., Implement POST /api/recurring-bills]
-- [ ] [Task 3 — e.g., Build frontend form for bill template]
-
----
-
-## 7. Revision History
+## Revision History
 
 | Date | Version | Author | Change |
 |------|---------|--------|--------|

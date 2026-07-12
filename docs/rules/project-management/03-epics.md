@@ -111,3 +111,35 @@ An epic is **Done** when:
 | **Epic-as-a-label** | Every story is tagged as an epic. | Use epics only for multi-sprint initiatives. |
 | **No visible progress** | Epic lives for months with no demo. | Demo after each constituent story. |
 | **Too small** | Epic contains 2 stories = it's a story. | Skip the epic level; just write stories. |
+
+---
+
+## 9. Agent Workflow — Epic Creation
+
+When an agent creates a new epic, follow this collaborative workflow:
+
+### 9.1 Gather info first
+Ask the user for the epic's:
+- Title and description (problem, beneficiaries, roadmap theme connection)
+- Success criteria / definition of done
+- Scope boundary (what's in vs. out of scope)
+- Dependencies on other epics
+- Feature area classification
+
+### 9.2 Do NOT auto-generate stories
+**Never write the story list yourself.** The story decomposition must be a conversation, not an assumption.
+
+### 9.3 Propose stories one by one
+For each story:
+1. **Propose one story** to the user with a brief description.
+2. **Wait for confirmation** — the user must explicitly approve, reject, or request a change before moving on.
+3. **Move to the next story** only after the current one is confirmed.
+4. **Ask if there are more** — after each confirmed story, ask: *"Should I add another story, or is that all for this epic?"*
+
+### 9.4 Finalize only on user confirmation
+The User Stories table in the epic doc is written only after all stories have been individually confirmed. If the user confirms "that's all," write the table and save the epic.
+
+### 9.5 Rationale
+- Prevents scope creep from the outset (every story is intentional).
+- Keeps the user in control of decomposition — they know their domain best.
+- Avoids the "dumping ground" anti-pattern where an epic accumulates unvalidated stories.
