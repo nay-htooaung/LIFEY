@@ -1,85 +1,16 @@
 [tools]
-python = "3.13.14"
-node = "22.23.1"
-ruff = "0.15.20"
-
-[tasks.dev]
-description = "Start all local dev services"
-run = "docker compose up --build"
-
-[tasks.dev-backend]
-description = "Run backend with hot reload (outside Docker)"
-run = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
-dir = "backend"
-
-[tasks.test]
-description = "Run all test suites"
-run = [
-    "mise run test-backend",
-    "mise run test-frontend",
-]
-
-[tasks.test-backend]
-description = "Run backend tests"
-run = "pytest"
-dir = "backend"
-
-[tasks.test-frontend]
-description = "Run frontend tests"
-run = "npx vitest run"
-dir = "frontend"
-
-[tasks.lint]
-description = "Lint all code"
-run = [
-    "mise run lint-backend",
-    "mise run lint-frontend",
-]
-
-[tasks.lint-backend]
-description = "Lint Python code"
-run = "ruff check . && ruff format --check ."
-dir = "backend"
-
-[tasks.lint-frontend]
-description = "Lint TypeScript code"
-run = "npx eslint . && npx prettier --check ."
-dir = "frontend"
-
-[tasks.typecheck]
-description = "Run type checkers"
-run = [
-    "mise run typecheck-backend",
-    "mise run typecheck-frontend",
-]
-
-[tasks.typecheck-backend]
-description = "Type-check Python"
-run = "mypy ."
-dir = "backend"
-
-[tasks.typecheck-frontend]
-description = "Type-check TypeScript"
-run = "npx tsc --noEmit"
-dir = "frontend"
-
-[tasks.migrate]
-description = "Run Alembic migrations"
-run = "alembic upgrade head"
-dir = "backend"
+python = "3.13"
+node = "22"
+pnpm = "10"
 
 [tasks.build]
-description = "Build Docker images"
-run = "docker compose build"
+description = "Parse .md artifacts → validate → generate docs/dist/index.html"
+run = "node scripts/build-docs.js"
 
-[tasks.logs-backend]
-description = "Tail backend logs"
-run = "docker compose logs -f backend"
+[tasks.build-watch]
+description = "Rebuild on file changes"
+run = "node scripts/build-docs.js --watch"
 
-[tasks.logs-frontend]
-description = "Tail frontend logs"
-run = "docker compose logs -f frontend"
-
-[tasks.logs-db]
-description = "Tail database logs"
-run = "docker compose logs -f db"
+[tasks.validate]
+description = "Parse + validate only (no HTML output); exits 1 on errors"
+run = "node scripts/build-docs.js --validate-only"
