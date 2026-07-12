@@ -3,14 +3,23 @@ python = "3.13"
 node = "22"
 pnpm = "10"
 
+[settings]
+experimental = true
+
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[deps.pnpm]
+auto = true
+
 [tasks.build]
 description = "Parse .md artifacts → validate → generate docs/dist/index.html"
-run = "node scripts/build-docs.js"
+run = "pnpm run build"
 
 [tasks.build-watch]
 description = "Rebuild on file changes"
-run = "node scripts/build-docs.js --watch"
+run = "pnpm run build:watch"
 
 [tasks.validate]
 description = "Parse + validate only (no HTML output); exits 1 on errors"
-run = "node scripts/build-docs.js --validate-only"
+run = "pnpm run validate"
