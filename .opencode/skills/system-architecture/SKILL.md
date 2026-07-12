@@ -1,0 +1,121 @@
+---
+name: system-architecture
+description: >-
+  Guidance for designing system architecture: service boundaries, API
+  patterns, C4 model diagrams, integration patterns, cross-cutting
+  concerns. Use this when designing or evolving the system.
+---
+
+# System Architecture
+
+Guidance on designing the overall system architecture — service decomposition, API design, integration patterns, and documentation via C4 diagrams.
+
+---
+
+## Core Principles
+
+1. **Boundaries before implementation.** Define service/module boundaries before writing code. Boundaries should follow business domains (not technical layers).
+2. **APIs are contracts.** Every API is a contract between components. Design them intentionally, version them explicitly, and document them.
+3. **Prefer simple integration.** Start with synchronous REST or messaging. Add complexity (GraphQL, event sourcing, CQRS) only when justified by concrete requirements.
+4. **Cross-cutting concerns are not afterthoughts.** Authentication, authorisation, logging, observability, and error handling must be designed into the architecture from day one.
+
+---
+
+## C4 Model Diagrams
+
+Document architecture using the C4 model (Context, Container, Component, Code).
+
+### Where diagrams live
+
+`docs/diagrams/` — one subdirectory per level or view.
+
+| Level | Audience | What it shows | File naming |
+|-------|----------|---------------|-------------|
+| **C1 — Context** | Everyone (incl. non-technical) | The system, users, and external dependencies | `c1-context.puml` (PlantUML) or `c1-context.md` |
+| **C2 — Container** | Developers, ops | High-level tech blocks (web app, API, DB, queue) | `c2-containers.puml` |
+| **C3 — Component** | Developers | What's inside each container (controllers, services, repos) | `c3-components.puml` |
+| **C4 — Code** | Developers implementing | Detailed class/sequence diagrams (only for complex parts) | `c4-*.puml` |
+
+### Diagram tooling
+
+Prefer **PlantUML** for C4 diagrams (stored as `.puml` files with generated outputs). Keep the source in version control; generated images can be `.gitignore`d or committed alongside.
+
+If PlantUML is not available, use Mermaid in markdown for simpler diagrams.
+
+### Diagram maintenance
+
+- Update C1 and C2 whenever a new service/external dependency is added or removed.
+- Update C3 when component boundaries change.
+- C4 is updated only for the specific component being modified.
+
+---
+
+## API Design
+
+### REST (default choice)
+
+- Use resource-oriented URLs: `/api/v1/users/{id}`
+- Use standard HTTP methods: GET, POST, PUT, PATCH, DELETE
+- Use standard status codes consistently
+- Paginate list endpoints (cursor-based preferred)
+- Version via URL prefix (`/api/v1/`, `/api/v2/`)
+- Document with OpenAPI 3.x spec stored in `docs/api/`
+
+### When to consider alternatives
+
+| Pattern | Consider when... |
+|---------|-----------------|
+| **GraphQL** | Clients need flexible queries, multiple data sources need aggregation, or you have many client types (web, mobile, 3rd-party) |
+| **gRPC** | Internal service-to-service communication, low-latency requirements, streaming use cases |
+| **WebSocket** | Real-time updates, live collaboration features |
+| **Message queue** | Async processing, event-driven workflows, decoupling services |
+
+### API design checklist
+
+- [ ] URLs are resource-oriented, not action-oriented
+- [ ] Consistent error response format (`{ "error": "...", "code": "...", "details": {} }`)
+- [ ] Authentication/authorisation defined per endpoint
+- [ ] Rate limiting considered
+- [ ] Idempotency for mutating operations
+- [ ] Input validation at the boundary
+
+---
+
+## Integration Patterns
+
+| Pattern | When to use |
+|---------|-------------|
+| **Request-response (sync)** | Simple queries, CRUD, command operations |
+| **Event-driven (async)** | Cross-domain notifications, eventual consistency, workflows |
+| **Saga / Choreography** | Distributed transactions across services |
+| **CQRS** | Different read/write models justified by performance or complexity |
+| **API Gateway** | Multiple backend services exposed to a single client, need auth/rate-limiting at edge |
+| **Backend-for-Frontend (BFF)** | Different client types need different API surfaces or aggregations |
+
+---
+
+## Cross-Cutting Concerns
+
+### Authentication
+- Use token-based auth (JWT or OAuth2)
+- Tokens contain identity + claims — validate on every request
+- Store secrets in environment variables / secret manager, never in code
+
+### Authorisation
+- Implement at the API boundary (coarse) and at the service layer (fine)
+- Prefer policy-based authorisation (RBAC or ABAC) over hard-coded checks
+
+### Observability
+- Structured logging with correlation IDs across services
+- Metrics for: request rate, error rate, latency percentiles (RED metrics)
+- Health check endpoints: `/health` (liveness) and `/ready` (readiness)
+
+### Error handling
+- Consistent error model across all services
+- Don't leak internal implementation details in error responses
+- Distinguish between client errors (4xx) and server errors (5xx)
+
+### Resilience
+- Timeouts and retries with exponential backoff for all external calls
+- Circuit breakers for dependencies
+- Graceful degradation — don't let one failing service take down the whole system

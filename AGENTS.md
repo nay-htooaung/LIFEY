@@ -6,8 +6,8 @@ This repo manages **project artifacts** (vision → roadmap → epics → storie
 
 | Command | What it does |
 |---------|-------------|
-| `mise build` | Parse → validate → generate `docs/dist/index.html` |
-| `mise build-watch` | Same, re-runs on file changes |
+| `mise build-doc` | Parse → validate → generate `docs/dist/index.html` |
+| `mise build-doc-watch` | Same, re-runs on file changes |
 | `mise validate` | Parse + validate only (exits 1 on errors, no HTML output) |
 | `mise deps` | Install npm packages via pnpm (auto-runs before tasks) |
 
@@ -24,9 +24,13 @@ Direct build: `node scripts/build-docs.js` (with `--watch` flag for file watchin
 | `docs/project-management/04-story/` | User story documents |
 | `docs/project-management/templates/` | Templates (excluded from build) |
 | `docs/rules/project-management/` | Convention rules (01–04) — **read before editing that artifact type** |
+| `docs/adr/` | Architecture Decision Records (created/maintained by tech-lead) |
+| `docs/architecture/` | Tech radar, tech debt log, architecture conventions |
+| `docs/diagrams/` | C4 model architecture diagrams |
 | `scripts/build-docs.js` | Single HTML site generator (Node.js, ~1100 lines) |
 | `docs/dist/` | Build output (gitignored) |
-| `.opencode/agents/` | Subagent defs (`project-manager`, `opencode-manager`) |
+| `.opencode/agents/` | Agent defs (`project-manager`, `opencode-manager`, `tech-lead`) |
+| `.opencode/skills/` | Skill definitions loaded on-demand by agents |
 
 ## Artifact rules
 
@@ -55,6 +59,7 @@ All `.md` files under `docs/project-management/` are scanned recursively, except
 
 - **project-manager** — Always reads the matching `docs/rules/project-management/0X-*.md` before creating/editing that artifact type. Saves all artifacts to `docs/project-management/`.
 - **opencode-manager** — Fetches `https://opencode.ai/docs/` via `webfetch` to answer OpenCode config questions.
+- **tech-lead** — Architectural decision-maker. Evaluates technologies, designs system/data/infra architecture, maintains ADRs in `docs/adr/`, and manages tech strategy. Does not write application code.
 
 ## CI (aspirational)
 
