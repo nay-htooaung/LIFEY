@@ -453,6 +453,71 @@ function autoLink(content, docMap) {
   });
 }
 
+/**
+ * Preprocess epic document bodies to auto-link story names in Key Stories tables.
+ * Scans the first table under a "Key Stories" heading and wraps matching story
+ * names in [[wiki-link]] syntax so autoLink can resolve them.
+ */
+function preprocessEpicKeyStories(body, doc, docMap) {
+  // Only process epic documents
+  if (doc.type !== "epic") return body;
+
+  // Split into sections by level-2 headings
+  const sections = body.split(/(?=^##\s)/m);
+  let found = false;
+
+  const processed = sections.map((section) => {
+    // Only process the first "Key Stories" section
+    if (found) return section;
+    if (!/^##\s*Key\s+Stories\b/i.test(section)) return section;
+    found = true;
+
+    // Find the first markdown table in this section
+    const tableMatch = section.match(
+      /((?:\|[^\n]*\|\s*\n)+?)(?=\n\n|\n##|$)/
+    );
+    if (!tableMatch) return section;
+
+    const tableBlock = tableMatch[1];
+    const lines = tableBlock
+      .split("\n")
+      .filter((l) => l.trim().startsWith("|"));
+
+    if (lines.length < 3) return section; // header + separator + at least 1 data row
+
+    const updatedLines = lines.map((line, idx) => {
+      // Skip header row and separator row
+      if (idx === 0) return line; // header: | Story | Size |
+      if (idx === 1) return line; // separator: | --- | --- |
+
+      // Data row — extract first cell content
+      const parts = line.split("|");
+      if (parts.length < 3) return line; // malformed row
+
+      const rawCell = parts[1]; // e.g. " Create task "
+      const cellText = rawCell.trim();
+      if (!cellText) return line;
+      if (cellText.startsWith("[[")) return line; // already linked
+
+      // Check if this matches a user_story document (exact title match only)
+      const matchedDoc =
+        docMap.get(cellText.toLowerCase()) ||
+        docMap.get(cellText) ||
+        docMap.get(slugify(cellText));
+
+      if (matchedDoc && matchedDoc.type === "user_story") {
+        parts[1] = ` [[${cellText}]] `;
+        return parts.join("|");
+      }
+      return line;
+    });
+
+    return section.replace(tableBlock, updatedLines.join("\n") + "\n");
+  });
+
+  return processed.join("");
+}
+
 // ──────────────────────────────────────────────
 // Phase 5: Page Generation
 // ──────────────────────────────────────────────
@@ -481,11 +546,14 @@ function renderDocArticle(doc, docMap) {
   const color = typeDef.color || "#6b7280";
   const typeLabel = typeDef.label || doc.type;
 
+  // Preprocess epic bodies: auto-link story names in Key Stories tables
+  let body = preprocessEpicKeyStories(doc.body, doc, docMap);
+
   let rendered;
   try {
-    rendered = marked.parse(doc.body);
+    rendered = marked.parse(body);
   } catch {
-    rendered = `<pre>${doc.body}</pre>`;
+    rendered = `<pre>${body}</pre>`;
   }
   rendered = autoLink(rendered, docMap);
 
@@ -572,21 +640,61 @@ function renderSidebar(docs) {
 
 function renderListViews(docs) {
   let html = "";
+  const epics = docs.filter((d) => d.type === "epic");
+  const epicMap = {};
+  for (const ep of epics) epicMap[ep.title] = ep;
+
   for (const cat of CATEGORIES) {
     const items = docs.filter((d) => d.type === cat.type);
     let rows = "";
-    for (const doc of items) {
-      const sc = STATUS_COLORS[doc.status] || "#6b7280";
-      const typeDef = HIERARCHY_RULES[doc.type] || {};
-      const color = typeDef.color || "#6b7280";
-      rows += `<div class="list-item" onclick="showDoc('${doc.id}')" style="border-left-color:${color}">
-        <span class="status-dot" style="background:${sc};width:10px;height:10px;flex-shrink:0;"></span>
-        <div class="list-item-info">
-          <div class="list-item-title">${doc.title}</div>
-          <div class="list-item-meta">${doc.frontmatter.status || ""}${doc.frontmatter.theme ? " · " + doc.frontmatter.theme : ""}${doc.frontmatter.epic ? " · " + doc.frontmatter.epic : ""}${doc.frontmatter.story ? " · " + doc.frontmatter.story : ""}</div>
-        </div>
-        <span class="nav-badge">${doc.status}</span>
-      </div>`;
+
+    if (cat.type === "user_story") {
+      // Group stories under their parent epics
+      const storyGroups = {};
+      for (const story of items) {
+        const epicRef = story.frontmatter.epic || "Unlinked";
+        if (!storyGroups[epicRef]) storyGroups[epicRef] = [];
+        storyGroups[epicRef].push(story);
+      }
+
+      const sortedGroups = Object.entries(storyGroups).sort((a, b) => a[0].localeCompare(b[0]));
+      for (const [epicTitle, groupStories] of sortedGroups) {
+        const ep = epicMap[epicTitle];
+        const epId = ep ? ep.id : "";
+        const epicColor = HIERARCHY_RULES.epic.color;
+        rows += `<div class="list-group-header" onclick="${epId ? "showDoc('" + epId + "')" : ""}" style="border-bottom-color:${epicColor}40;">
+          <span style="font-size:0.75rem;color:${epicColor};">▲</span>
+          <span class="list-group-title">${epicTitle}</span>
+          <span class="nav-badge">${groupStories.length}</span>
+        </div>`;
+
+        for (const story of groupStories) {
+          const gram = HIERARCHY_RULES.user_story;
+          rows += `<div class="list-item" onclick="showDoc('${story.id}')" style="padding-left:2rem;">
+            <span style="font-size:0.7rem;color:${gram.color};">●</span>
+            <div class="list-item-info">
+              <div class="list-item-title">${story.title}</div>
+              <div class="list-item-meta">${story.frontmatter.status || ""}</div>
+            </div>
+            <span class="nav-badge">${story.status}</span>
+          </div>`;
+        }
+      }
+    } else {
+      // Flat list for other types
+      for (const doc of items) {
+        const typeDef = HIERARCHY_RULES[doc.type] || {};
+        const color = typeDef.color || "#6b7280";
+        const icon = typeDef.icon || "■";
+        rows += `<div class="list-item" onclick="showDoc('${doc.id}')">
+          <span style="font-size:0.7rem;color:${color};">${icon}</span>
+          <div class="list-item-info">
+            <div class="list-item-title">${doc.title}</div>
+            <div class="list-item-meta">${doc.frontmatter.status || ""}${doc.frontmatter.theme ? " · " + doc.frontmatter.theme : ""}${doc.frontmatter.epic ? " · " + doc.frontmatter.epic : ""}${doc.frontmatter.story ? " · " + doc.frontmatter.story : ""}</div>
+          </div>
+          <span class="nav-badge">${doc.status}</span>
+        </div>`;
+      }
     }
 
     html += `<div id="list-${cat.type}" class="view-panel list-panel">
@@ -645,34 +753,146 @@ function renderValidationPanel(validation) {
   </div>`;
 }
 
-function renderOverviewContent(docs, validation, graphJSON) {
-  const typeCounts = {};
-  for (const doc of docs) typeCounts[doc.type] = (typeCounts[doc.type] || 0) + 1;
+function renderEpicTree(docs) {
+  const epics = docs.filter((d) => d.type === "epic");
+  const stories = docs.filter((d) => d.type === "user_story");
 
-  let cards = "";
-  for (const cat of CATEGORIES) {
-    const count = typeCounts[cat.type] || 0;
-    cards += `<a href="#" onclick="showCategory('${cat.type}');return false;" class="overview-card">
-      <div class="icon">${cat.icon}</div>
-      <div class="count">${count}</div>
-      <div class="label">${cat.plural}</div>
-    </a>`;
+  // Group stories by their epic frontmatter reference
+  const storyMap = {};
+  for (const story of stories) {
+    const epicRef = story.frontmatter.epic;
+    if (epicRef) {
+      if (!storyMap[epicRef]) storyMap[epicRef] = [];
+      storyMap[epicRef].push(story);
+    }
   }
 
+  let html = `<div class="epic-tree">`;
+  for (const epic of epics) {
+    const childStories = storyMap[epic.title] || [];
+    const epigram = HIERARCHY_RULES.epic;
+    const storygram = HIERARCHY_RULES.user_story;
+
+    html += `<div class="epic-tree-node">
+      <div class="epic-tree-header" onclick="toggleEpicTree(this)">
+        <span class="epic-tree-arrow">▶</span>
+        <span style="font-size:0.8rem;color:${epigram.color};">${epigram.icon}</span>
+        <span class="epic-tree-title" onclick="event.stopPropagation();showDoc('${epic.id}')">${epic.title}</span>
+        <span class="epic-tree-spacer"></span>
+        <span class="nav-badge">${epic.status}</span>
+        <span class="epic-tree-count">${childStories.length} ${childStories.length === 1 ? "story" : "stories"}</span>
+      </div>
+      <div class="epic-tree-children" style="display:none;">`;
+
+    for (const story of childStories) {
+      html += `<div class="epic-tree-story">
+        <span style="font-size:0.7rem;color:${storygram.color};">${storygram.icon}</span>
+        <span class="epic-tree-story-title" onclick="event.stopPropagation();showDoc('${story.id}')">${story.title}</span>
+        <span class="epic-tree-spacer"></span>
+        <span class="nav-badge">${story.status}</span>
+      </div>`;
+    }
+
+    if (childStories.length === 0) {
+      html += `<div class="epic-tree-empty">No stories linked yet</div>`;
+    }
+
+    html += `</div></div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function parseRoadmapPhases(docs) {
+  const roadmapDoc = docs.find((d) => d.type === "roadmap");
+  if (!roadmapDoc) return [];
+
+  const phases = roadmapDoc.frontmatter?.phases;
+  if (!Array.isArray(phases)) return [];
+
+  // Cross-reference epic names with actual epic docs for status
+  for (const p of phases) {
+    if (!p.themes) continue;
+    for (const t of p.themes) {
+      if (!t.epics) continue;
+      t.epics = t.epics.map((name) => {
+        const epicDoc = docs.find(
+          (d) => d.type === "epic" && d.title.toLowerCase() === name.toLowerCase()
+        );
+        return {
+          name: typeof name === "string" ? name : name.name,
+          doc: epicDoc,
+          status: epicDoc ? epicDoc.status : null,
+        };
+      });
+    }
+  }
+
+  return phases;
+}
+
+function renderRoadmapTimeline(docs) {
+  const phases = parseRoadmapPhases(docs);
+  if (phases.length === 0) return "";
+
+  const nowColor = "#3b82f6";
+  const nextColor = "#8b5cf6";
+  const laterColor = "#4a4d57";
+
+  let phasesHtml = "";
+  for (let i = 0; i < phases.length; i++) {
+    const p = phases[i];
+    const color = p.label === "NOW" ? nowColor : p.label === "NEXT" ? nextColor : laterColor;
+    const borderOpacity = p.label === "NOW" ? "60" : p.label === "NEXT" ? "50" : "40";
+
+    let themesHtml = "";
+    for (const t of p.themes) {
+      let epicsHtml = "";
+      for (const e of t.epics) {
+        const isTbd = e.name === "TBD" || !e.status;
+        const statusColor = e.status && e.status !== "unknown"
+          ? (STATUS_COLORS[e.status] || "#6b7280")
+          : "#4a4d57";
+        const nameClass = isTbd ? 'rm-epic-name tbd' : 'rm-epic-name';
+        const nameStyle = isTbd ? ' style="color:#4a4d57;font-style:italic;"' : '';
+        epicsHtml += `<div class="rm-epic" style="background:${color}15;">
+          <span class="rm-epic-dot" style="background:${isTbd ? '#2a2d37' : statusColor};"></span>
+          <span class="${nameClass}"${nameStyle}>${e.name}</span>
+        </div>`;
+      }
+      themesHtml += `<div class="rm-theme">
+        <div class="rm-theme-name" style="color:${color};">${t.name}</div>
+        <div class="rm-theme-epics">${epicsHtml}</div>
+      </div>`;
+    }
+
+    phasesHtml += `<div class="rm-phase" style="border-color:${color}${borderOpacity};">
+      <div class="rm-phase-header" style="background:${color}10;">
+        <span class="rm-phase-label" style="color:${color};">${p.label}</span>
+        <span class="rm-phase-quarter">${p.quarter}</span>
+      </div>
+      <div class="rm-phase-title">${p.title}</div>
+      <div class="rm-phase-themes">${themesHtml}</div>
+    </div>`;
+
+    if (i < phases.length - 1) {
+      phasesHtml += `<div class="rm-arrow">→</div>`;
+    }
+  }
+
+  return `<div class="roadmap-scroll"><div class="roadmap-container">${phasesHtml}</div></div>`;
+}
+
+function renderOverviewContent(docs) {
   return `
     <div id="view-overview" class="view-panel">
-      <h1 style="font-size:2rem;font-weight:700;color:#fff;margin-bottom:0.5rem;">📋 Project Management Docs</h1>
-      <p style="color:#6b7280;margin-bottom:2rem;">${docs.length} documents · ${validation.errors.length} errors · ${validation.warnings.length} warnings</p>
-
-      ${renderValidationPanel(validation)}
-
-      <h2 style="font-size:1.25rem;font-weight:600;color:#f3f4f6;margin-bottom:1rem;">Artifacts by Type</h2>
-      <div class="overview-grid">${cards}</div>
-
-      <h2 style="font-size:1.25rem;font-weight:600;color:#f3f4f6;margin:2rem 0 1rem;">Relationship Graph</h2>
-      <p style="font-size:0.85rem;color:#6b7280;margin-bottom:1rem;">Drag nodes to explore. Click a node to navigate.</p>
-      <div class="graph-legend" id="graphLegend"></div>
-      <div id="graph-container"></div>
+      <div class="list-header" style="margin-top:0;">
+        <span class="list-icon">📋</span>
+        <span class="list-title">Overview</span>
+        <span class="list-count">${docs.length} documents</span>
+      </div>
+      <h2 style="font-size:0.8rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.04em;margin:0 0 0.75rem;padding:0 0.75rem;">Roadmap</h2>
+      ${renderRoadmapTimeline(docs)}
     </div>
   `;
 }
@@ -680,7 +900,7 @@ function renderOverviewContent(docs, validation, graphJSON) {
 function generateHTML(docs, graph, validation, docMap) {
   const graphJSON = JSON.stringify(graph);
   const navHTML = renderSidebar(docs);
-  const overviewHTML = renderOverviewContent(docs, validation, graphJSON);
+  const overviewHTML = renderOverviewContent(docs);
   const listViews = renderListViews(docs);
   const detailViews = renderDetailViews(docs, docMap);
 
@@ -749,21 +969,31 @@ function generateHTML(docs, graph, validation, docMap) {
     .back-link:hover { color: #60a5fa; }
 
     /* List panel */
-    .list-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; }
-    .list-icon { font-size: 2rem; }
-    .list-title { font-size: 1.5rem; font-weight: 700; color: #fff; }
-    .list-count { font-size: 0.8rem; color: #6b7280; margin-left: auto; }
+    .list-header { display: flex; align-items: baseline; gap: 0.75rem; margin-bottom: 1.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid #2a2d37; }
+    .list-icon { font-size: 1.25rem; }
+    .list-title { font-size: 1.25rem; font-weight: 700; color: #fff; letter-spacing: -0.01em; }
+    .list-count { font-size: 0.75rem; color: #4a4d57; margin-left: auto; font-feature-settings: "tnum"; }
     .list-item {
       display: flex; align-items: center; gap: 0.75rem;
-      padding: 0.75rem 1rem; margin-bottom: 0.5rem;
-      background: #1a1d27; border-radius: 8px;
-      border-left: 3px solid #2a2d37;
-      cursor: pointer; transition: background 0.15s;
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid #1e2030;
+      cursor: pointer; transition: background 0.1s, color 0.1s;
     }
-    .list-item:hover { background: #1e2130; }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: #161822; }
     .list-item-info { flex: 1; min-width: 0; }
-    .list-item-title { font-size: 0.9rem; font-weight: 600; color: #e1e4eb; }
-    .list-item-meta { font-size: 0.7rem; color: #6b7280; margin-top: 0.15rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .list-item-title { font-size: 0.875rem; font-weight: 500; color: #c4c9d4; transition: color 0.1s; }
+    .list-item:hover .list-item-title { color: #e1e4eb; }
+    .list-item-meta { font-size: 0.7rem; color: #4a4d57; margin-top: 0.1rem; }
+    .list-group-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 0.75rem 0.35rem; margin-top: 1.25rem;
+      border-bottom: 1px solid #2a2d37; cursor: pointer;
+      transition: opacity 0.1s;
+    }
+    .list-group-header:first-of-type { margin-top: 0; }
+    .list-group-header:hover { opacity: 0.85; }
+    .list-group-title { font-size: 0.75rem; font-weight: 600; color: #6b7280; flex: 1; text-transform: uppercase; letter-spacing: 0.04em; }
 
     /* Detail panel */
     .detail-panel { }
@@ -800,6 +1030,38 @@ function generateHTML(docs, graph, validation, docMap) {
     .doc-link:hover { border-bottom-style: solid; }
     .broken-link { color: #ef4444; border-bottom: 1px dashed #ef444480; cursor: help; }
 
+    /* Epic Tree */
+    .epic-tree { margin: 1.5rem 0 2.5rem; }
+    .epic-tree-node { margin-bottom: 0.25rem; }
+    .epic-tree-header {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.55rem 0.75rem;
+      border-bottom: 1px solid #2a2d37;
+      cursor: pointer; user-select: none;
+      transition: background 0.1s;
+    }
+    .epic-tree-header:hover { background: #161822; }
+    .epic-tree-arrow { font-size: 0.65rem; color: #4a4d57; width: 1rem; text-align: center; flex-shrink: 0; transition: transform 0.15s; }
+    .epic-tree-header.open .epic-tree-arrow { transform: rotate(90deg); }
+    .epic-tree-icon { font-size: 0.8rem; flex-shrink: 0; }
+    .epic-tree-title { font-size: 0.9rem; font-weight: 600; color: #e1e4eb; cursor: pointer; flex-shrink: 0; }
+    .epic-tree-title:hover { color: #60a5fa; }
+    .epic-tree-spacer { flex: 1; min-width: 0.5rem; }
+    .epic-tree-count { font-size: 0.7rem; color: #4a4d57; margin-left: 0.5rem; font-feature-settings: "tnum"; }
+    .epic-tree-children { }
+    .epic-tree-story {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.45rem 0.75rem 0.45rem 2rem;
+      border-bottom: 1px solid #1e2030;
+      cursor: pointer; transition: background 0.1s;
+      font-size: 0.85rem;
+    }
+    .epic-tree-story:last-child { border-bottom: none; }
+    .epic-tree-story:hover { background: #161822; }
+    .epic-tree-story-title { color: #c4c9d4; cursor: pointer; flex-shrink: 0; }
+    .epic-tree-story-title:hover { color: #60a5fa; }
+    .epic-tree-empty { padding: 0.5rem 0.75rem 0.5rem 2rem; font-size: 0.8rem; color: #4a4d57; font-style: italic; }
+
     /* Graph */
     #graph-container { width: 100%; height: 450px; background: #0a0c12; border-radius: 12px; border: 1px solid #2a2d37; overflow: hidden; position: relative; margin-top: 1rem; }
     #graph-container svg { display: block; }
@@ -830,33 +1092,34 @@ function generateHTML(docs, graph, validation, docMap) {
     .overview-card .label { font-size: 0.8rem; color: #6b7280; }
 
     /* Roadmap Timeline */
-    .roadmap-timeline { display: flex; gap: 0.5rem; margin: 2rem 0; align-items: stretch; }
-    .roadmap-timeline .phase { flex: 1; border-radius: 12px; padding: 1.25rem; border: 1px solid #2a2d37; position: relative; }
-    .roadmap-timeline .phase.now { background: linear-gradient(135deg, #1e3a5f40, #1a1d27); border-color: #3b82f660; }
-    .roadmap-timeline .phase.next { background: linear-gradient(135deg, #3b1f6e40, #1a1d27); border-color: #8b5cf660; }
-    .roadmap-timeline .phase.later { background: linear-gradient(135deg, #1f293740, #1a1d27); border-color: #4a4d5760; }
-    .roadmap-timeline .phase .label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
-    .roadmap-timeline .phase.now .label { color: #60a5fa; }
-    .roadmap-timeline .phase.next .label { color: #a78bfa; }
-    .roadmap-timeline .phase.later .label { color: #6b7280; }
-    .roadmap-timeline .phase .period { font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0.15rem 0 0.75rem; }
-    .roadmap-timeline .phase .theme { font-size: 0.85rem; font-weight: 600; color: #d1d5db; margin-bottom: 0.5rem; }
-    .roadmap-timeline .phase .epic-list { list-style: none; padding: 0; margin: 0; }
-    .roadmap-timeline .phase .epic-list li { font-size: 0.8rem; color: #9ca3af; padding: 0.3rem 0; border-bottom: 1px solid #2a2d3730; display: flex; align-items: center; gap: 0.4rem; }
-    .roadmap-timeline .phase .epic-list li:last-child { border-bottom: none; }
-    .roadmap-timeline .phase .epic-list li::before { content: ""; width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-    .roadmap-timeline .phase.now .epic-list li::before { background: #60a5fa; }
-    .roadmap-timeline .phase.next .epic-list li::before { background: #a78bfa; }
-    .roadmap-timeline .phase.later .epic-list li::before { background: #4a4d57; }
-    .roadmap-timeline .phase .key-result { font-size: 0.7rem; color: #6b7280; font-style: italic; margin-top: 0.75rem; padding-top: 0.5rem; border-top: 1px dashed #2a2d3740; }
-    .roadmap-timeline .arrow { display: flex; align-items: center; color: #4a4d57; font-size: 1.5rem; flex-shrink: 0; padding: 0 0.25rem; user-select: none; }
+    .roadmap-scroll { overflow-x: auto; overflow-y: visible; margin: 0 0 2rem; padding-bottom: 0.75rem; scrollbar-width: thin; scrollbar-color: #2a2d37 transparent; }
+    .roadmap-scroll::-webkit-scrollbar { height: 6px; }
+    .roadmap-scroll::-webkit-scrollbar-track { background: transparent; }
+    .roadmap-scroll::-webkit-scrollbar-thumb { background: #2a2d37; border-radius: 3px; }
+    .roadmap-scroll::-webkit-scrollbar-thumb:hover { background: #3a3d47; }
+    .roadmap-container { display: flex; gap: 0.5rem; align-items: stretch; min-width: min-content; padding: 0 0.75rem; }
+    .rm-phase { flex: 1; min-width: 280px; max-width: 380px; border: 1px solid; border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+    .rm-phase-header { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.85rem; border-radius: 7px 7px 0 0; }
+    .rm-phase-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .rm-phase-quarter { font-size: 0.65rem; color: #6b7280; }
+    .rm-phase-title { font-size: 0.8rem; color: #9ca3af; padding: 0 0.85rem 0.6rem; }
+    .rm-phase-themes { padding: 0 0.85rem 0.85rem; display: flex; flex-direction: column; gap: 0.6rem; }
+    .rm-theme { }
+    .rm-theme-name { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.35rem; }
+    .rm-theme-epics { display: flex; flex-direction: column; gap: 0.2rem; }
+    .rm-epic { display: flex; align-items: center; gap: 0.35rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.78rem; color: #d1d5db; }
+    .rm-epic-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .rm-epic-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .rm-epic-name.tbd { color: #4a4d57; font-style: italic; }
+    .rm-arrow { display: flex; align-items: center; color: #4a4d57; font-size: 1.25rem; flex-shrink: 0; user-select: none; opacity: 0.5; }
 
     @media (max-width: 768px) {
       body { flex-direction: column; }
       #sidebar { width: 100%; min-width: auto; height: auto; position: static; }
       #content-area { padding: 1.5rem; }
-      .roadmap-timeline { flex-direction: column; }
-      .roadmap-timeline .arrow { transform: rotate(90deg); padding: 0.25rem 0; justify-content: center; }
+      .roadmap-container { flex-direction: column; align-items: stretch; }
+      .rm-phase { max-width: none; min-width: auto; }
+      .rm-arrow { transform: rotate(90deg); padding: 0.25rem 0; justify-content: center; }
       .view-panel.active { display: block; }
     }
   </style>
@@ -881,6 +1144,15 @@ function generateHTML(docs, graph, validation, docMap) {
   <script>
     const graphData = ${graphJSON};
     const docTypeMap = ${JSON.stringify(docTypeMap)};
+
+    // ─── Epic Tree ───
+    function toggleEpicTree(header) {
+      const children = header.nextElementSibling;
+      if (!children) return;
+      const isOpen = children.style.display !== 'none';
+      children.style.display = isOpen ? 'none' : 'block';
+      header.classList.toggle('open', !isOpen);
+    }
 
     // ─── Views ───
     function showOverview() {

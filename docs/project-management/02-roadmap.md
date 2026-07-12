@@ -3,6 +3,48 @@ title: "Roadmap — LIFEY"
 status: Draft
 type: roadmap
 quarter: Q3 2026
+phases:
+  - label: NOW
+    quarter: "Q3 2026"
+    title: "Foundation & To-Do Lists"
+    themes:
+      - name: Shared Foundation
+        epics:
+          - Mobile app shell
+          - User Authentication
+          - Household management
+      - name: Shared To-Do Lists
+        epics:
+          - TBD
+  - label: NEXT
+    quarter: "Q4 2026"
+    title: "AI Agent & Expense Tracking"
+    themes:
+      - name: AI Agent
+        epics:
+          - TBD
+      - name: Expense Tracking
+        epics:
+          - TBD
+  - label: LATER
+    quarter: "H1 2027+"
+    title: "Chat, Recipes, Groceries & Custom Agents"
+    themes:
+      - name: Household Chat
+        epics:
+          - TBD
+      - name: Recipe Management
+        epics:
+          - TBD
+      - name: Grocery Integration
+        epics:
+          - TBD
+      - name: Custom Agents
+        epics:
+          - TBD
+      - name: Advanced AI
+        epics:
+          - TBD
 ---
 
 ## Horizon Guide
@@ -15,7 +57,7 @@ quarter: Q3 2026
 
 ---
 
-## 🟢 NOW — Q3 2026: "Foundation & To-Do Lists"
+## NOW — Q3 2026: "Foundation & To-Do Lists"
 
 ### Theme: Shared Foundation
 *The app exists and we can use it together.*
@@ -23,7 +65,7 @@ quarter: Q3 2026
 | Epic | Description | Dependencies |
 |------|-------------|-------------|
 | Mobile app shell | iOS + Android project, navigation, UI components | — |
-| User auth | Sign up, log in, profile management | Mobile app shell |
+| User Authentication | Sign up, log in, profile management | Mobile app shell |
 | Household management | Create households, invite members, context switching | User auth |
 
 ### Theme: Shared To-Do Lists
@@ -31,90 +73,68 @@ quarter: Q3 2026
 
 | Epic | Description |
 |------|-------------|
-| Personal tasks | Create, view, complete, edit tasks (personal scope) |
-| Shared tasks | Create, view, complete, edit tasks (shared scope) |
-| Task assignments | Assign tasks to household members |
-| Categories & due dates | Organize tasks with labels and deadlines |
-| Notifications | Alerts for task assignments and due dates |
+| TBD | Not yet defined |
 
 ---
 
-## 🟡 NEXT — Q4 2026: "AI Agent & Expense Tracking"
+## NEXT — Q4 2026: "AI Agent & Expense Tracking"
 
 ### Theme: AI Agent
 *Talk to your life — the core differentiator is live.*
 
 | Epic | Description |
 |------|-------------|
-| Chat UI | Messaging-style interface for conversing with the AI |
-| To-Do integration | AI can create, assign, complete, and query tasks |
-| Natural language actions | "Remind me to buy milk tomorrow" → task created |
-| Agent personality & memory | Agent remembers context across conversations |
+| TBD | Not yet defined |
 
 ### Theme: Expense Tracking
 *Money management for shared life.*
 
 | Epic | Description |
 |------|-------------|
-| Add expenses | Log personal and shared expenses with amount, category, payer |
-| Split expenses | Split equally or by custom amounts among household members |
-| Expense history & categories | Browse, filter, and organize past expenses |
-| AI agent integration | Agent can answer questions like "How much did we spend on groceries this month?" |
+| TBD | Not yet defined |
 
 ---
 
-## 🔵 LATER — H1 2027+: "Chat, Recipes, Groceries & Custom Agents"
+## LATER — H1 2027+: "Chat, Recipes, Groceries & Custom Agents"
 
 ### Theme: Household Chat
 *Talk to each other.*
 
 | Epic | Description |
 |------|-------------|
-| Real-time messaging | Text chat between household members |
-| Inline task actions | Complete tasks, confirm payments directly from chat |
-| Notifications hub | Central feed for shared events (task done, expense added, etc.) |
-| AI @mentions | Mention the AI agent in group chat for assistance |
+| TBD | Not yet defined |
 
 ### Theme: Recipe Management
 *Cook together, store your favorites.*
 
 | Epic | Description |
 |------|-------------|
-| Recipe CRUD | Add, view, edit, organize recipes |
-| Categories & search | Browse by cuisine, ingredients, tags |
-| AI recipe suggestions | Agent recommends recipes based on mood, ingredients on hand |
+| TBD | Not yet defined |
 
 ### Theme: Grocery Integration
 *From recipe to shopping list — automatically.*
 
 | Epic | Description |
 |------|-------------|
-| Auto-generate list | One tap: recipe ingredients → grocery list |
-| Manual grocery list | Add/edit items manually |
-| Shared sync | Real-time sync so both partners see the same list |
-| AI grocery agent | "Add milk to the shopping list" via chat |
+| TBD | Not yet defined |
 
 ### Theme: Custom Agents
 *Your AI, your rules.*
 
 | Epic | Description |
 |------|-------------|
-| Agent creation wizard | UI to create a custom agent with name, prompt, capabilities |
-| Custom capabilities | Choose which modules the agent can access |
-| Agent sharing | Share custom agents within the household |
+| TBD | Not yet defined |
 
 ### Theme: Advanced AI
 *Smarter together.*
 
 | Epic | Description |
 |------|-------------|
-| Spending insights | Monthly reports, category breakdowns, trends |
-| Predictive suggestions | "You usually buy eggs on Fridays — add them to the list?" |
-| Multi-agent collaboration | Default agent + custom agents working together |
+| TBD | Not yet defined |
 
 ---
 
-## 📋 Non-Planned (Not Now)
+## Non-Planned (Not Now)
 
 - Bank feed API integrations (Plaid, etc.)
 - OCR receipt scanning

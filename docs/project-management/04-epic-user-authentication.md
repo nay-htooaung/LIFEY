@@ -39,4 +39,4 @@ The entry point to LIFEY. Users need to create an account and log in securely be
 | Sign up with email + password + invite keycode | M |
 | Log in / log out | S |
 | Session persistence | S |
-| Profile management (name, avatar) | S |
+| Profile Management | S |
