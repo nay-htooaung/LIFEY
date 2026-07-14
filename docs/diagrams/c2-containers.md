@@ -11,7 +11,7 @@ flowchart TD
     subgraph spa["LIFEY SPA (browser)"]
         react["React App Shell<br/>React + Router + TS"]
         sw["Service Worker<br/>vite-plugin-pwa"]
-        host["Static Host<br/>Netlify / CF Pages"]
+        host["Static Host<br/>Cloudflare Pages"]
     end
 
     subgraph supabase["Supabase (managed)"]
@@ -54,8 +54,9 @@ flowchart TD
 ### Authentication flow
 
 ```
-Member → React Shell → Supabase Auth (email/password + keycode)
-                     → Returns JWT token
+Member → React Shell → invite code gate → enter email → magic link sent
+                     → Click magic link → Supabase Auth authenticates
+                     → Returns JWT token (stored in IndexedDB via persistQueryClient)
                      → Token attached to all subsequent requests
                      → RLS policies enforce per-household data isolation
 ```
