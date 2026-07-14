@@ -17,5 +17,12 @@
     "webfetch": "ask",
     "websearch": "ask",
     "question": "allow"
+  },
+  "mcp": {
+    "brilliant": {
+      "type": "remote",
+      "url": "http://127.0.0.1:3333/mcp",
+      "enabled": true
+    }
   }
 }

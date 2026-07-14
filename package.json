@@ -4,8 +4,8 @@
   "private": true,
   "description": "Build pipeline for project management documentation site",
   "scripts": {
-    "build": "node scripts/build-docs.js",
-    "build:watch": "node scripts/build-docs.js --watch",
+    "build-doc": "node scripts/build-docs.js",
+    "build-doc:watch": "node scripts/build-docs.js --watch",
     "validate": "node scripts/build-docs.js --validate-only",
     "convert": "node scripts/convert-templates.js"
   },
