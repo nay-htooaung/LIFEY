@@ -1,0 +1,686 @@
+# Syntax: {id} {type}[(...)] [p(x,y)] [s(w,h)] [f[(id,spec),...]] [st[(id,color,w(N)),...]]
+#   [rd(n)] [o(n)] [rot(n)] [skew(x,y)] [flip(h,v)] [clip] ["name"]
+# Types: r, c, l, fr, gr, t(content,family,size,weight,align), al(dir,x(...),y(...),g(n),pad(...)), v(...), inst(ref)
+# Fill: f[(id,#hex)] | f[(id,solid(#hex,o(N)))] | f[(id,linear(angle,stop(#hex,pos),...))]
+# Stroke: st[(id,#hex,w(N),cap(start,end),pos(p))]
+#
+# 176dd1fff7b9fb7c al(v,pad(40,24)) p(0,0) s(390,844) f[(29f9e06f5f8792a3,#0D0D1F)] rd(40) clip "Profile Management"
+#   3168c4c1315ecc26 al(h,x(sb),pad(0,0,32,0)) s(fill,hug) f[] "Frame 2"
+#     9622cb99119181fb t("9:41",Inter,12,r,align(l)) f[(13d39f893fe9f249,solid(#FFFFFF,o(0.40)))] "Text 1"
+#     d5c2cc3940fb927f al(h,g(6)) s(hug,fill) f[] "Frame 3"
+#       9215620050294f52 t("●●●●",Inter,12,r,align(l)) f[(f1bd32a2edb6744f,solid(#FFFFFF,o(0.40)))] "Text 2"
+#   f3b3a97a9d482167 al(h,x(sb),y(c)) s(fill,hug) f[] "Frame 4"
+#     b9cc659bcd1a7d83 t("Profile",Inter,22,b,align(l)) f[(f20e9af2f9b8d07f,#FFFFFF)] "Text 3"
+#     aee970ecd3a07e38 t("Done",Inter,15,m,align(l)) f[(54237e781e83d6ea,#A78BFA)] "Text 4"
+#   ececeb0492eedae9 fr s(fill,32) f[] "Frame 5"
+#   ff3cb7e0e0f66d3e al(v,x(c),g(12)) s(fill,hug) f[] "Frame 6"
+#     9e7fe132860694c6 al(h,x(c),y(c)) s(88,88) f[(273a66c2973e5710,linear(135,#7C3AED,#EC4899))] rd(44) "Frame 7"
+#       543e8adaf2637458 t("A",Inter,32,sb,align(l)) f[(331ae3d34a9039e4,#FFFFFF)] "Text 5"
+#       a1849e916336c3cc al(h,x(c),y(c)) p(60,60) s(28,28) f[(f3a4dbc6826ccf60,#1E1E3A)] st[(7c9b7d41297251ee,#0D0D1F,w(2))] rd(14) abs "Frame 8"
+#         a746a6fa47ba814d t("✎",Inter,12,r,align(l)) f[(e5ae81d7f6db4a95,#A78BFA)] "Text 6"
+#     69eb031acf9c85e9 t("Edit photo",Inter,14,m,align(l)) f[(9ee56e4bb5cae6e4,#A78BFA)] "Text 7"
+#   628e5837521dc331 fr s(fill,40) f[] "Frame 9"
+#   697e56312ac10219 al(v,g(24)) s(fill,hug) f[] "Frame 10"
+#     ac6e4f92fbdb3287 al(v,g(8)) s(fill,hug) f[] "Frame 11"
+#       d8322eb198454ede t("DISPLAY NAME",Inter,13,m,align(l)) s(fill,hug) f[(4b0ae301d3142024,solid(#FFFFFF,o(0.70)))] "Text 8"
+#       2a6c04059655abc9 al(h,y(c),g(12),pad(0,16)) s(fill,52) f[(4206500abea2810b,solid(#FFFFFF,o(0.05)))] st[(e8c96baf8b93869c,solid(#FFFFFF,o(0.15)),w(1))] rd(12) "Frame 12"
+#     368e2363b68fd363 al(v,g(8)) s(fill,hug) f[] "Frame 13"
+#       1e3f173d221ec3bf t("EMAIL",Inter,13,m,align(l)) s(fill,hug) f[(6752b17d6706d35c,solid(#FFFFFF,o(0.70)))] "Text 9"
+#       e245e5e9a65b2400 al(h,y(c),g(12),pad(0,16)) s(fill,52) f[(1022c2b7f419060b,solid(#FFFFFF,o(0.03)))] st[(e665df6336ef36f7,solid(#FFFFFF,o(0.08)),w(1))] rd(12) "Frame 14"
+#   ab5e14483c06ebd1 fr s(fill,fill) f[] "Frame 15"
+#   25dd8543534a2c26 al(v) s(fill,hug) f[] "Frame 16"
+#     c9fe370031935852 al(h,x(c),y(c),pad(16)) s(fill,hug) f[(8a3ae26c56a39638,#7C3AED)] rd(12) "Frame 17"
+#       340c1aa30728dcf0 t("Save Changes",Inter,16,sb,align(l)) f[(657fdff7819abebb,#FFFFFF)] "Text 10"
+#   60826d62ea9d2da4 fr s(fill,16) f[] "Frame 18"
+#   158c5ac3a68b75ef al(h,x(c),y(c)) s(fill,hug) f[] "Frame 19"
+#     52c55769cc3b00be t("Log out",Inter,14,m,align(l)) f[(24622ac57790341c,#EF4444)] "Text 11"
+#   5d26b421fbdbd4a3 fr s(fill,24) f[] "Frame 20"
+#   960eddf22e2a1d19 al(h,x(c),pad(0,0,8,0)) s(fill,hug) f[] "Frame 21"
+#     d3c67ca62d4b073f fr s(134,5) f[(081ede3620b3dfc2,solid(#FFFFFF,o(0.15)))] rd(100) "Frame 22"
+version: 4
+canvas:
+  background:
+    type: solid
+    color: "#000000"
+    opacity: 0.5
+  backgroundEnabled: false
+elements:
+  - id: 176dd1fff7b9fb7c
+    type: parent
+    name: Profile Management
+    corners:
+      - [0.0, 0.0]
+      - [390.0, 0.0]
+      - [390.0, 844.0]
+      - [0.0, 844.0]
+    fills:
+      - id: 29f9e06f5f8792a3
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [40.0, 24.0, 40.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: 3168c4c1315ecc26
+    type: parent
+    name: Frame 2
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 40.0]
+      - [366.0, 40.0]
+      - [366.0, 87.0]
+      - [24.0, 87.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: spaceBetween
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 9622cb99119181fb
+    type: text
+    name: Text 1
+    parent: 3168c4c1315ecc26
+    corners:
+      - [0.0, 0.0]
+      - [23.75, 0.0]
+      - [23.75, 15.0]
+      - [0.0, 15.0]
+    fills:
+      - id: 13d39f893fe9f249
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.4
+    text:
+      content: "9:41"
+      font: Inter
+      size: 12.0
+    layout:
+      width: hug
+      height: hug
+  - id: d5c2cc3940fb927f
+    type: parent
+    name: Frame 3
+    parent: 3168c4c1315ecc26
+    corners:
+      - [298.12, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 15.0]
+      - [298.12, 15.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      spacing: 6.0
+    layout:
+      width: hug
+      height: fill
+  - id: 9215620050294f52
+    type: text
+    name: Text 2
+    parent: d5c2cc3940fb927f
+    corners:
+      - [0.0, 0.0]
+      - [43.88, 0.0]
+      - [43.88, 15.0]
+      - [0.0, 15.0]
+    fills:
+      - id: f1bd32a2edb6744f
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.4
+    text:
+      content: ●●●●
+      font: Inter
+      size: 12.0
+    layout:
+      width: hug
+      height: hug
+  - id: f3b3a97a9d482167
+    type: parent
+    name: Frame 4
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 87.0]
+      - [366.0, 87.0]
+      - [366.0, 114.0]
+      - [24.0, 114.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: spaceBetween
+      crossAxis: center
+    layout:
+      width: fill
+      height: hug
+  - id: b9cc659bcd1a7d83
+    type: text
+    name: Text 3
+    parent: f3b3a97a9d482167
+    corners:
+      - [0.0, 0.0]
+      - [71.54, 0.0]
+      - [71.54, 27.0]
+      - [0.0, 27.0]
+    fills:
+      - id: f20e9af2f9b8d07f
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Profile
+      font: Inter
+      size: 22.0
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: aee970ecd3a07e38
+    type: text
+    name: Text 4
+    parent: f3b3a97a9d482167
+    corners:
+      - [303.98, 4.5]
+      - [342.0, 4.5]
+      - [342.0, 22.5]
+      - [303.98, 22.5]
+    fills:
+      - id: 54237e781e83d6ea
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: Done
+      font: Inter
+      size: 15.0
+      weight: medium
+    layout:
+      width: hug
+      height: hug
+  - id: ececeb0492eedae9
+    type: parent
+    name: Frame 5
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 114.0]
+      - [366.0, 114.0]
+      - [366.0, 146.0]
+      - [24.0, 146.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: ff3cb7e0e0f66d3e
+    type: parent
+    name: Frame 6
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 146.0]
+      - [366.0, 146.0]
+      - [366.0, 263.0]
+      - [24.0, 263.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 12.0
+    layout:
+      width: fill
+      height: hug
+  - id: 9e7fe132860694c6
+    type: parent
+    name: Frame 7
+    parent: ff3cb7e0e0f66d3e
+    corners:
+      - [127.0, 0.0]
+      - [215.0, 0.0]
+      - [215.0, 88.0]
+      - [127.0, 88.0]
+    fills:
+      - id: 273a66c2973e5710
+        type: linearGradient
+        colors: ["#7C3AED", "#EC4899"]
+        positions: [0.0, 1.0]
+        startPoint: [0.1465, 0.1465]
+        endPoint: [0.8536, 0.8536]
+    parent-data:
+      type: autoLayout
+      cornerRadius: [44.0, 44.0, 44.0, 44.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 88.0
+      fixedHeight: 88.0
+  - id: 543e8adaf2637458
+    type: text
+    name: Text 5
+    parent: 9e7fe132860694c6
+    corners:
+      - [32.05, 24.5]
+      - [55.95, 24.5]
+      - [55.95, 63.5]
+      - [32.05, 63.5]
+    fills:
+      - id: 331ae3d34a9039e4
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: A
+      font: Inter
+      size: 32.0
+      weight: semibold
+    layout:
+      width: hug
+      height: hug
+  - id: a1849e916336c3cc
+    type: parent
+    name: Frame 8
+    parent: 9e7fe132860694c6
+    corners:
+      - [60.0, 60.0]
+      - [88.0, 60.0]
+      - [88.0, 88.0]
+      - [60.0, 88.0]
+    fills:
+      - id: f3a4dbc6826ccf60
+        type: solid
+        color: "#1E1E3A"
+    strokes:
+      - id: 7c9b7d41297251ee
+        thickness: 2.0
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [14.0, 14.0, 14.0, 14.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 28.0
+      fixedHeight: 28.0
+      abs: true
+  - id: a746a6fa47ba814d
+    type: text
+    name: Text 6
+    parent: a1849e916336c3cc
+    corners:
+      - [8.0, 6.0]
+      - [20.0, 6.0]
+      - [20.0, 22.0]
+      - [8.0, 22.0]
+    fills:
+      - id: e5ae81d7f6db4a95
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: ✎
+      font: Inter
+      size: 12.0
+    layout:
+      width: hug
+      height: hug
+  - id: 69eb031acf9c85e9
+    type: text
+    name: Text 7
+    parent: ff3cb7e0e0f66d3e
+    corners:
+      - [136.75, 100.0]
+      - [205.26, 100.0]
+      - [205.26, 117.0]
+      - [136.75, 117.0]
+    fills:
+      - id: 9ee56e4bb5cae6e4
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: Edit photo
+      font: Inter
+      size: 14.0
+      weight: medium
+    layout:
+      width: hug
+      height: hug
+  - id: 628e5837521dc331
+    type: parent
+    name: Frame 9
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 263.0]
+      - [366.0, 263.0]
+      - [366.0, 303.0]
+      - [24.0, 303.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 40.0
+  - id: 697e56312ac10219
+    type: parent
+    name: Frame 10
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 303.0]
+      - [366.0, 303.0]
+      - [366.0, 479.0]
+      - [24.0, 479.0]
+    parent-data:
+      type: autoLayout
+      spacing: 24.0
+    layout:
+      width: fill
+      height: hug
+  - id: ac6e4f92fbdb3287
+    type: parent
+    name: Frame 11
+    parent: 697e56312ac10219
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 76.0]
+      - [0.0, 76.0]
+    parent-data:
+      type: autoLayout
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: d8322eb198454ede
+    type: text
+    name: Text 8
+    parent: ac6e4f92fbdb3287
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 16.0]
+      - [0.0, 16.0]
+    fills:
+      - id: 4b0ae301d3142024
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.7
+    text:
+      content: DISPLAY NAME
+      font: Inter
+      size: 13.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 2a6c04059655abc9
+    type: parent
+    name: Frame 12
+    parent: ac6e4f92fbdb3287
+    corners:
+      - [0.0, 24.0]
+      - [342.0, 24.0]
+      - [342.0, 76.0]
+      - [0.0, 76.0]
+    fills:
+      - id: 4206500abea2810b
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.05
+    strokes:
+      - id: e8c96baf8b93869c
+        thickness: 1.0
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.15
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      crossAxis: center
+      spacing: 12.0
+      padding: [0.0, 16.0, 0.0, 16.0]
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: 368e2363b68fd363
+    type: parent
+    name: Frame 13
+    parent: 697e56312ac10219
+    corners:
+      - [0.0, 100.0]
+      - [342.0, 100.0]
+      - [342.0, 176.0]
+      - [0.0, 176.0]
+    parent-data:
+      type: autoLayout
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 1e3f173d221ec3bf
+    type: text
+    name: Text 9
+    parent: 368e2363b68fd363
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 16.0]
+      - [0.0, 16.0]
+    fills:
+      - id: 6752b17d6706d35c
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.7
+    text:
+      content: EMAIL
+      font: Inter
+      size: 13.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: e245e5e9a65b2400
+    type: parent
+    name: Frame 14
+    parent: 368e2363b68fd363
+    corners:
+      - [0.0, 24.0]
+      - [342.0, 24.0]
+      - [342.0, 76.0]
+      - [0.0, 76.0]
+    fills:
+      - id: 1022c2b7f419060b
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.03
+    strokes:
+      - id: e665df6336ef36f7
+        thickness: 1.0
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.08
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      crossAxis: center
+      spacing: 12.0
+      padding: [0.0, 16.0, 0.0, 16.0]
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: ab5e14483c06ebd1
+    type: parent
+    name: Frame 15
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 479.0]
+      - [366.0, 479.0]
+      - [366.0, 683.0]
+      - [24.0, 683.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 25dd8543534a2c26
+    type: parent
+    name: Frame 16
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 683.0]
+      - [366.0, 683.0]
+      - [366.0, 734.0]
+      - [24.0, 734.0]
+    parent-data:
+      type: autoLayout
+    layout:
+      width: fill
+      height: hug
+  - id: c9fe370031935852
+    type: parent
+    name: Frame 17
+    parent: 25dd8543534a2c26
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 51.0]
+      - [0.0, 51.0]
+    fills:
+      - id: 8a3ae26c56a39638
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      padding: [16.0, 16.0, 16.0, 16.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 340c1aa30728dcf0
+    type: text
+    name: Text 10
+    parent: c9fe370031935852
+    corners:
+      - [115.12, 16.0]
+      - [226.89, 16.0]
+      - [226.89, 35.0]
+      - [115.12, 35.0]
+    fills:
+      - id: 657fdff7819abebb
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Save Changes
+      font: Inter
+      size: 16.0
+      weight: semibold
+    layout:
+      width: hug
+      height: hug
+  - id: 60826d62ea9d2da4
+    type: parent
+    name: Frame 18
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 734.0]
+      - [366.0, 734.0]
+      - [366.0, 750.0]
+      - [24.0, 750.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 16.0
+  - id: 158c5ac3a68b75ef
+    type: parent
+    name: Frame 19
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 750.0]
+      - [366.0, 750.0]
+      - [366.0, 767.0]
+      - [24.0, 767.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      height: hug
+  - id: 52c55769cc3b00be
+    type: text
+    name: Text 11
+    parent: 158c5ac3a68b75ef
+    corners:
+      - [145.62, 0.0]
+      - [196.39, 0.0]
+      - [196.39, 17.0]
+      - [145.62, 17.0]
+    fills:
+      - id: 24622ac57790341c
+        type: solid
+        color: "#EF4444"
+    text:
+      content: Log out
+      font: Inter
+      size: 14.0
+      weight: medium
+    layout:
+      width: hug
+      height: hug
+  - id: 5d26b421fbdbd4a3
+    type: parent
+    name: Frame 20
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 767.0]
+      - [366.0, 767.0]
+      - [366.0, 791.0]
+      - [24.0, 791.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 24.0
+  - id: 960eddf22e2a1d19
+    type: parent
+    name: Frame 21
+    parent: 176dd1fff7b9fb7c
+    corners:
+      - [24.0, 791.0]
+      - [366.0, 791.0]
+      - [366.0, 804.0]
+      - [24.0, 804.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      padding: [0.0, 0.0, 8.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: d3c67ca62d4b073f
+    type: parent
+    name: Frame 22
+    parent: 960eddf22e2a1d19
+    corners:
+      - [104.0, 0.0]
+      - [238.0, 0.0]
+      - [238.0, 5.0]
+      - [104.0, 5.0]
+    fills:
+      - id: 081ede3620b3dfc2
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.15
+    parent-data:
+      type: frame
+      cornerRadius: [100.0, 100.0, 100.0, 100.0]
+    layout:
+      fixedWidth: 134.0
+      fixedHeight: 5.0

@@ -1,0 +1,7 @@
+version: 4
+canvas:
+  background:
+    type: solid
+    color: "#000000"
+    opacity: 0.5
+  backgroundEnabled: false
