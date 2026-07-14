@@ -1,6 +1,7 @@
 ---
 title: Foundational Tech Stack
-status: Proposed
+status: Superseded
+superseded-by: 0002
 date: 2026-07-12
 deciders: [tech-lead]
 ---

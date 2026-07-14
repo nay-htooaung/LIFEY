@@ -5,7 +5,9 @@
     "bash": {
       "*": "ask",
       "gh *": "allow",
-      "git *": "allow"
+      "git *": "allow",
+      "node *": "allow",
+      "New-Item *": "allow"
     },
     "edit": "allow",
     "read": "allow",
