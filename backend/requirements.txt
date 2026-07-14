@@ -1,0 +1,2 @@
+# LIFEY Backend — Q4 2026
+# Placeholder file. Dependencies will be added when the Python/FastAPI service is built.

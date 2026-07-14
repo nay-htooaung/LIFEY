@@ -1,18 +1,17 @@
 #!/usr/bin/env node
 
 /**
- * convert-templates.js — Convert Client Discovery Brief .md files to .docx and .pdf
+ * convert-templates.js — Convert any .md file to .docx and .pdf
  *
- * Reads the two template files from docs/project-management/templates/,
- * parses them with marked, and outputs styled .docx and .pdf versions
- * to docs/dist/.
+ * Reads .md file(s) passed as CLI arguments, parses them with marked,
+ * and outputs styled .docx and .pdf versions to docs/dist/.
  *
  * Dependencies: marked, html-to-docx, pdfkit (no browser needed)
  *
  * Usage:
- *   node scripts/convert-templates.js
- *   pnpm run convert
- *   mise run convert
+ *   node scripts/convert-templates.js path/to/file.md [path/to/another.md...]
+ *   pnpm run convert-md -- path/to/file.md
+ *   mise run convert-md path/to/file.md
  */
 
 const fs = require("fs");
@@ -23,13 +22,26 @@ const PDFDocument = require("pdfkit");
 // ──────────────────────────────────────────────
 // Paths
 // ──────────────────────────────────────────────
-const TEMPLATES_DIR = path.join(__dirname, "..", "docs", "project-management", "templates");
 const OUTPUT_DIR = path.join(__dirname, "..", "docs", "dist");
 
-const FILES = [
-  "07-client-discovery-brief.md",
-  "07-client-discovery-brief--filled.md",
-];
+// ──────────────────────────────────────────────
+// CLI argument parsing
+// ──────────────────────────────────────────────
+const args = process.argv.slice(2);
+if (args.length === 0) {
+  console.error(`
+Usage:
+  node scripts/convert-templates.js <file.md> [file2.md ...]
+  mise run convert-md <file.md> [file2.md ...]
+
+Converts one or more .md files to .docx and .pdf, saved in docs/dist/.
+
+Examples:
+  mise run convert-md docs/project-management/templates/07-client-discovery-brief.md
+  mise run convert-md docs/project-management/04-story/EP0001-ST0001-*.md
+`);
+  process.exit(0);
+}
 
 // ──────────────────────────────────────────────
 // HTML wrapper for .docx output
@@ -344,17 +356,18 @@ async function main() {
 
   let htmlToDocx;
 
-  for (const file of FILES) {
-    const mdPath = path.join(TEMPLATES_DIR, file);
-    if (!fs.existsSync(mdPath)) {
-      console.warn(`  ⚠  Skipping — file not found: ${file}`);
+  for (const filePath of args) {
+    if (!fs.existsSync(filePath)) {
+      console.warn(`  ⚠  Skipping — file not found: ${filePath}`);
       continue;
     }
 
-    const basename = path.basename(file, ".md");
-    console.log(`\nProcessing: ${file}`);
+    const basename = path.basename(filePath, ".md");
+    console.log(`\nProcessing: ${filePath}`);
 
-    const md = fs.readFileSync(mdPath, "utf-8");
+    console.log(`\nProcessing: ${filePath}`);
+
+    const md = fs.readFileSync(filePath, "utf-8");
 
     // ── .pdf (via pdfkit — no browser needed) ──
     try {

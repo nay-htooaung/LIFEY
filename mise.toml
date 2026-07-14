@@ -24,10 +24,63 @@ run = "pnpm run build-doc"
 description = "Rebuild on file changes"
 run = "pnpm run build-doc:watch"
 
-[tasks.validate]
-description = "Parse + validate only (no HTML output); exits 1 on errors"
-run = "pnpm run validate"
+[tasks.validate-doc]
+description = "Parse + validate project docs only (no HTML output); exits 1 on errors"
+run = "pnpm run validate-doc"
 
-[tasks.convert]
-description = "Convert Client Discovery Brief .md templates to .docx and .pdf"
-run = "pnpm run convert"
+[tasks.convert-md]
+description = "Convert one or more .md files to .docx + .pdf in docs/dist/"
+run = "pnpm run convert-md"
+# Usage: mise run convert-md path/to/file.md [file2.md ...]
+
+[tasks.validate-tests]
+description = "Validate test coverage against story ACs (--story EPxxxx-STxxxx, --epic EPxxxx, or --all)"
+run = "node scripts/validate-tests.js"
+alias = "vt"
+
+[tasks.validate-tests-story]
+description = "Validate tests for a single story"
+run = "node scripts/validate-tests.js --story"
+alias = "vts"
+
+[tasks.validate-tests-epic]
+description = "Validate tests for an entire epic"
+run = "node scripts/validate-tests.js --epic"
+alias = "vte"
+
+[tasks.validate-tests-all]
+description = "Validate test coverage for all stories and epics"
+run = "node scripts/validate-tests.js --all"
+alias = "vta"
+
+# ------------------------------------------------------------------
+# Frontend development tasks (delegate to frontend/ via pnpm -F)
+# ------------------------------------------------------------------
+
+[tasks.dev]
+description = "Start the Vite dev server for the frontend SPA"
+run = "pnpm --filter lifey-frontend dev"
+
+[tasks.build]
+description = "Build the frontend for production"
+run = "pnpm --filter lifey-frontend build"
+
+[tasks.test]
+description = "Run frontend tests with vitest"
+run = "pnpm --filter lifey-frontend test"
+
+[tasks.lint]
+description = "Lint frontend source files with ESLint"
+run = "pnpm --filter lifey-frontend lint"
+
+[tasks.format]
+description = "Format frontend source files with Prettier"
+run = "pnpm --filter lifey-frontend format"
+
+[tasks.format-check]
+description = "Check frontend formatting without writing"
+run = "pnpm --filter lifey-frontend format:check"
+
+[tasks.typecheck]
+description = "Type-check frontend with tsc --noEmit"
+run = "pnpm --filter lifey-frontend typecheck"

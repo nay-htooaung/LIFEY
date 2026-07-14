@@ -20,6 +20,10 @@ frontend/dist/
 # Environment
 .env
 .env.local
+.env.*.local
+
+# TypeScript
+*.tsbuildinfo
 
 # OS
 .DS_Store

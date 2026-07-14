@@ -11,7 +11,9 @@
       "Select-String *": "allow",
       "ForEach-Object *": "allow",
       "Select-Object *": "allow",
-      "Get-Content *": "allow"
+      "Get-Content *": "allow",
+      "Test-Path *": "allow",
+      "Write-Output *": "allow"
     },
     "edit": "allow",
     "read": "allow",

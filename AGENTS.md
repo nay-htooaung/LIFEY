@@ -8,11 +8,23 @@ This repo manages **project artifacts** (vision → roadmap → epics → storie
 |---------|-------------|
 | `mise build-doc` | Parse → validate → generate `docs/dist/index.html` |
 | `mise build-doc-watch` | Same, re-runs on file changes |
-| `mise validate` | Parse + validate only (exits 1 on errors, no HTML output) |
+| `mise validate-doc` | Parse + validate docs only (exits 1 on errors, no HTML output) |
 | `mise deps` | Install npm packages via pnpm (auto-runs before tasks) |
 
 Fastest validation: `node scripts/build-docs.js --validate-only`
 Direct build: `node scripts/build-docs.js` (with `--watch` flag for file watching)
+Convert any markdown: `mise run convert-md path/to/file.md`
+
+## Test Validation
+
+| Command | What it does |
+|---------|-------------|
+| `mise validate-tests` or `mise vt` | Show usage (needs `--story`, `--epic`, or `--all`) |
+| `mise vts -- EP0004-ST0001` | Validate one story (checks all ACs have tests) |
+| `mise vte -- EP0004` | Validate an epic (checks all stories in the epic) |
+| `mise vta` | Validate all stories across all epics |
+| `node scripts/validate-tests.js --all --json` | Machine-readable JSON output |
+| `node scripts/validate-tests.js --story EP0004-ST0001 --run` | Also execute the tests
 
 ## Project layout
 
@@ -30,7 +42,8 @@ Direct build: `node scripts/build-docs.js` (with `--watch` flag for file watchin
 | `scripts/build-docs.js` | Single HTML site generator (Node.js, ~1100 lines) |
 | `docs/dist/` | Build output (gitignored) |
 | `.opencode/agents/` | Agent defs (`project-manager`, `opencode-manager`, `tech-lead`) |
-| `.opencode/skills/` | Skill definitions loaded on-demand by agents |
+| `.opencode/skills/` | Skill definitions loaded on-demand by agents (e.g., `tdd-dev-workflow`) |
+| `.opencode/agents/dev-agent.md` | TDD implementation agent — writes tests + code for stories |
 
 ## Artifact rules
 
@@ -65,6 +78,8 @@ All `.md` files under `docs/project-management/` are scanned recursively, except
 - **project-manager** — Always reads the matching `docs/rules/project-management/0X-*.md` before creating/editing that artifact type. Saves all artifacts to `docs/project-management/`.
 - **opencode-manager** — Fetches `https://opencode.ai/docs/` via `webfetch` to answer OpenCode config questions.
 - **tech-lead** — Architectural decision-maker. Evaluates technologies, designs system/data/infra architecture, maintains ADRs in `docs/adr/`, and manages tech strategy. Does not write application code.
+- **dev-agent** — Implements stories using 1-AC-at-a-time TDD. Delegates architecture decisions to tech-lead. Reads the `tdd-dev-workflow` skill for the TDD contract. Never edits story/epic files.
+- **review-agent** — Gate between dev-agent implementation and merge. Reviews branches against ADRs, code conventions, story criteria, and scope boundaries. Produces a structured report before the user merges.
 
 ## CI (aspirational)
 

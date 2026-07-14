@@ -1,13 +1,20 @@
 {
-  "name": "agent-workflow-docs",
+  "name": "lifey",
   "version": "1.0.0",
   "private": true,
-  "description": "Build pipeline for project management documentation site",
+  "description": "LIFEY — household management platform",
   "scripts": {
     "build-doc": "node scripts/build-docs.js",
     "build-doc:watch": "node scripts/build-docs.js --watch",
-    "validate": "node scripts/build-docs.js --validate-only",
-    "convert": "node scripts/convert-templates.js"
+    "validate-doc": "node scripts/build-docs.js --validate-only",
+    "convert-md": "node scripts/convert-templates.js",
+    "dev": "cd frontend && pnpm dev",
+    "build": "cd frontend && pnpm build",
+    "test": "cd frontend && pnpm test",
+    "lint": "cd frontend && pnpm lint",
+    "format": "cd frontend && pnpm format",
+    "format:check": "cd frontend && pnpm format:check",
+    "typecheck": "cd frontend && pnpm typecheck"
   },
   "dependencies": {
     "chokidar": "^4.0.0",

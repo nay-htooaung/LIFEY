@@ -9,48 +9,99 @@ on:
 jobs:
   lint:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: pip install ruff
-      - run: cd backend && ruff check . && ruff format --check .
-      - run: cd frontend && npm install && npx eslint . && npx prettier --check .
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm format:check
 
   typecheck:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: pip install mypy
-      - run: cd backend && mypy .
-      - run: cd frontend && npm install && npx tsc --noEmit
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
 
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - run: pip install -r backend/requirements.txt
-      - run: cd backend && pytest
-      - run: cd frontend && npm install && npx vitest run
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
 
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
-      - run: docker compose build
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  # ------------------------------------------------------------------
+  # Backend CI (Q4): uncomment when the Python/FastAPI service is built
+  # ------------------------------------------------------------------
+  # backend-lint:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: backend
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.13"
+  #     - run: pip install ruff
+  #     - run: ruff check . && ruff format --check .
+  #
+  # backend-typecheck:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: backend
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.13"
+  #     - run: pip install mypy
+  #     - run: mypy .
+  #
+  # backend-test:
+  #   runs-on: ubuntu-latest
+  #   defaults:
+  #     run:
+  #       working-directory: backend
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-python@v5
+  #       with:
+  #         python-version: "3.13"
+  #     - run: pip install -r requirements.txt
+  #     - run: pytest
