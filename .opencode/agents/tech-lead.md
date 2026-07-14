@@ -56,20 +56,35 @@ Based on the domain, load the appropriate skill(s) via the `skill` tool:
 
 Load multiple skills if the question spans domains.
 
-### 3. Analyze and recommend
-- Gather context from existing docs, ADRs, codebase structure.
+### 3. Choose the right format
+
+Decisions come in different shapes. Use this table to pick the right format:
+
+| Type of decision | Format | Location |
+|---|---|---|
+| Technology choice (why this tool?) | **ADR** | `docs/adr/` |
+| System design / architecture pattern (how is it structured?) | **Architecture doc** | `docs/architecture/*.md` |
+| Visual overview of components and flows | **Diagram** | `docs/diagrams/*.md` |
+| Schema, RLS policies, data flows | **Data model doc** | `docs/architecture/data-model.md` |
+
+**Rule of thumb:** If it's a decision about *which technology to use*, it's an ADR. If it's a decision about *how to design something*, it's an architecture doc. If it can be drawn, it's a diagram. ADRs and architecture docs cross-reference each other.
+
+### 4. Analyze and recommend
+- Gather context from existing docs, ADRs, tech radar, data model, and prior architecture docs.
 - Use your loaded skill knowledge to evaluate options.
 - Present trade-offs clearly: option A vs. option B with criteria.
 - Make a clear recommendation with rationale.
 
-### 4. Document the outcome
-- If the decision is significant, create or update an ADR in `docs/adr/`.
-- If it affects architecture diagrams, note what should be updated and where.
+### 5. Document the outcome
+- Create the appropriate artifact (ADR, architecture doc, or diagram) in the correct location.
+- If the decision affects existing docs, update them — tech radar, data model, diagrams, related ADRs.
 - Summarise the decision and next steps for the user.
 
-### 5. Review and validate
-- Cross-reference with existing ADRs to ensure consistency.
-- Flag if the new decision contradicts a prior one — the newer ADR should supersede the older one explicitly.
+### 6. Close the loop
+- **Update the tech radar** (`docs/architecture/tech-radar.md`) with new entries or status changes, linked to the ADR.
+- **Cross-reference** — if the new doc supersedes or relates to an existing one, add links in both directions.
+- **Update diagrams** if the decision changes the system boundaries, containers, or data flows.
+- **Log the change** in the tech radar's decision history table.
 
 ---
 
@@ -80,6 +95,8 @@ Load multiple skills if the question spans domains.
 | Architecture Decision Records | `docs/adr/` |
 | Architecture diagrams | `docs/diagrams/` |
 | Tech radar / stack inventory | `docs/architecture/tech-radar.md` |
+| Architecture design docs (routes, SW strategy, etc.) | `docs/architecture/*.md` |
+| Data model (schema, RLS, migrations) | `docs/architecture/data-model.md` |
 | Architecture conventions | `docs/architecture/conventions/` |
 | Project management artifacts | `docs/project-management/` |
 

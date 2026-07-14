@@ -117,6 +117,22 @@ What problem are we solving? What constraints, assumptions, or forces are at pla
 ## Compliance
 
 How will we verify this decision is followed? (linting, review gates, automated checks)
+
+## Future (optional)
+
+If the decision has a planned evolution path (e.g., Q3 vs Q4 phases), document the future stages here. This section is optional — only include it when the decision is expected to change or expand.
+
+```
+## Future
+
+The following evolution path is planned but not yet implemented:
+
+| Phase | Capability | Mechanism | When |
+|-------|-----------|-----------|------|
+| Q3 | Offline reads | `persistQueryClient` → IndexedDB | Now |
+| Q4 | Offline writes | SW Background Sync → replay queued mutations | Future ADR |
+| Future | Full local-first | Evaluate RxDB / wa-sqlite if needed | If needed |
+```
 ```
 
 ---

@@ -95,6 +95,8 @@ Elasticsearch — search (only when needed)
 
 ### Migration workflow
 
+#### Standard workflow (custom API server)
+
 ```
 1. Write migration (up + down)
 2. Review with peers
@@ -102,6 +104,26 @@ Elasticsearch — search (only when needed)
 4. Apply to production
 5. Never look back
 ```
+
+#### Supabase workflow (LIFEY default)
+
+LIFEY uses the **Supabase CLI** for database migrations. Schema changes are auto-detected via `supabase db diff`.
+
+```
+1. Edit the database schema (SQL in Studio, raw SQL file, or ORM schema push)
+2. Generate migration: supabase db diff --use-migra -f description_of_change
+3. Review the generated migration file in supabase/migrations/YYYYMMDD_description.sql
+4. Reset local: supabase db reset (reapplies all migrations from scratch)
+5. Test against local Supabase: supabase start → verify RLS policies work
+6. Commit migration + app code together in the same PR
+7. Deploy: supabase db push (applies to staging/production Supabase project)
+```
+
+Key differences from standard workflow:
+- Migrations are **auto-generated** from schema changes via `supabase db diff` — write SQL, get a migration file
+- `supabase db reset` reapplies all migrations from scratch — useful for clean testing
+- Rollback is handled by reverting the migration file in git and running `supabase db push` again
+- Never manually edit a migration that has been applied to any environment — amend via a new migration
 
 ### Risky migrations (require extra care)
 

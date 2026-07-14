@@ -80,25 +80,36 @@ Maintain a tech radar in `docs/architecture/tech-radar.md` to track the team's s
 
 ### Tech radar format
 
+The tech radar is a single markdown file in `docs/architecture/tech-radar.md`. Each technology is a table row with its ring, purpose, and ADR link:
+
 ```markdown
-# Tech Radar
+## Frontend — SPA
 
-Last updated: 2026-07-12
+| Technology | Ring | Purpose | ADR |
+|-----------|------|---------|-----|
+| **Vite** | Adopt | Build tool and dev server | [ADR-0002](../adr/0002-installable-spa-architecture.md) |
+| **React** | Adopt | UI framework | [ADR-0002](../adr/0002-installable-spa-architecture.md) |
+| **shadcn/ui** | Adopt | UI component strategy | [ADR-0003](../adr/0003-ui-component-strategy.md) |
+| **Web Push API** | Trial | Push notifications (browser) | [ADR-0002](../adr/0002-installable-spa-architecture.md) |
+```
 
-## Adopt
-- PostgreSQL — primary database
-- Docker — all services
-- TypeScript — frontend and backend
+### Rings
 
-## Trial
-- Grafana — monitoring dashboard (pilot on staging)
+| Ring | Meaning |
+|------|---------|
+| **Adopt** | Proven, standardised — use by default |
+| **Trial** | Confident but still evaluating in production |
+| **Assess** | Worth exploring with a proof of concept |
+| **Hold** | Known issues — avoid without strong justification |
 
-## Assess
-- DuckDB — for analytical queries
-- Bun — JavaScript runtime alternative
+### Decision history
 
-## Hold
-- MongoDB — previous project experience showed schema-less caused consistency issues
+Every update to the tech radar is logged in a decision history table:
+
+```markdown
+| Date | Change | Rationale |
+|------|--------|-----------|
+| 2026-07-14 | Added TanStack Query + Zustand as Adopt | Per [ADR-0004](../adr/0004-state-management-and-offline-strategy.md) |
 ```
 
 Update the tech radar at least once per quarter or after any significant tech evaluation.

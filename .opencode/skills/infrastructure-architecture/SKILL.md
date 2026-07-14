@@ -24,7 +24,26 @@ Guidance on containerisation, environments, deployment topology, and operational
 
 ## Containerisation (Docker)
 
-### Dockerfile conventions
+### Supabase CLI workflow (LIFEY default)
+
+LIFEY uses **`supabase start`** which manages Docker containers internally. No custom `docker-compose.yml` is needed for the Supabase stack.
+
+```bash
+supabase start    # pulls images, starts PostgreSQL, GoTrue, PostgREST, Realtime, Studio
+supabase stop     # stops all containers
+supabase status   # check which services are running
+```
+
+See [ADR-0005](../adr/0005-supabase-local-development.md) for details.
+
+- The Supabase CLI manages Docker under the hood — no manual `docker compose up`
+- Containers run in WSL2 (Windows) or natively (macOS/Linux)
+- Studio UI is available at `http://localhost:54323`
+- All config lives in `supabase/config.toml` (committed) and `.env.local` (gitignored)
+
+### Custom Docker Compose (when needed)
+
+Use a custom `docker-compose.yml` when running services outside the Supabase stack (e.g., a custom AI agent service in Q4).
 
 - Use **specific version tags** for base images (`python:3.12-slim`, not `python:latest`)
 - Prefer slim/distroless base images to reduce attack surface
@@ -65,11 +84,24 @@ Rules:
 
 ## Environment Strategy
 
+### Full stack (standard — custom API + database)
+
 | Environment | Purpose | Data | Deploy method |
 |-------------|---------|------|---------------|
 | `dev` | Local development | Sample/seed data | `docker compose up` |
 | `staging` | Pre-production validation | Anonymized production copy | CI/CD auto-deploy |
 | `production` | Live | Real | CI/CD with approval gate |
+
+### Supabase SPA (LIFEY default — no custom API server)
+
+LIFEY's architecture (SPA → Supabase) means fewer environments:
+
+| Environment | Purpose | SPA | Supabase |
+|-------------|---------|-----|----------|
+| `dev` | Local development | `vite dev` | `supabase start` (local Docker) |
+| `production` | Live | Cloudflare Pages deploy | Supabase production project |
+
+No staging environment in Q3 — migrations are tested locally first via `supabase db reset`, then applied directly to production via `supabase db push`. A staging Supabase project can be added in Q4 if needed.
 
 ### Environment parity checklist
 
@@ -83,7 +115,25 @@ Rules:
 
 ## Deployment Topology
 
-### Single-server (early stage)
+### SPA + managed backend (LIFEY default — Q3)
+
+```
+[Client (browser / installed PWA)]
+        │ HTTPS
+        ▼
+[Cloudflare Pages CDN]
+  Serves: index.html, JS, CSS, assets
+  Fallback: /* → index.html (SPA routing)
+        │
+        ├── HTTPS ──► [Supabase PostgREST] ──► [PostgreSQL + RLS]
+        │
+        └── HTTPS ──► [Supabase Auth (GoTrue)] ──► JWT
+             WS ────► [Supabase Realtime] ──► pg_replication_slot
+```
+
+No app servers to deploy. No reverse proxy to configure. No Docker in production.
+
+### Single-server (custom API — Q4+ when AI agent service arrives)
 
 ```
 [Client] → [Load Balancer] → [App Server: API + Web]
