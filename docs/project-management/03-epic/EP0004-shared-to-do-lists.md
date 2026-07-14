@@ -3,6 +3,7 @@ title: "Shared To-Do Lists"
 status: Draft
 type: epic
 theme: Shared To-Do Lists
+epic_number: EP0004
 feature_area: "Task Management — task lists with items, assignees, due dates, and notifications"
 scope_boundary: "Covers task list and item CRUD scoped to households, member assignment, due dates, filtering/search, push notifications, and a defined AI agent interface. Does NOT include recurring tasks, subtasks, comments, or alternative views (kanban, calendar)."
 dependencies:
@@ -58,17 +59,17 @@ This epic connects to the **Shared To-Do Lists** roadmap theme: it is our first 
 
 ## User Stories
 
-> *Decompose the epic into sprint-sized stories. Story titles must use [[Wiki Link]] syntax to auto-link to story docs.*
+> *Decompose the epic into sprint-sized stories. Story names link to their story documents using relative `[text](path)` markdown links.*
 
-| Story | Status |
-|-------|--------|
-| Create and manage task lists | Draft |
-| Add, complete, and manage task items | Draft |
-| Assign task items to household members | Draft |
-| Set due dates on task items | Draft |
-| Filter and search task items | Draft |
-| Push notifications for task assignments and due dates | Draft |
-| AI agent integration interface | Draft |
+| # | Story | Status |
+|---|-------|--------|
+| ST0001 | [Create and Manage Task Lists](../04-story/EP0004-ST0001-create-and-manage-task-lists.md) | Draft |
+| ST0002 | [Add, Complete, and Manage Task Items](../04-story/EP0004-ST0002-add-complete-and-manage-task-items.md) | Draft |
+| ST0003 | [Assign Task Items to Household Members](../04-story/EP0004-ST0003-assign-task-items-to-household-members.md) | Draft |
+| ST0004 | [Set Due Dates on Task Items](../04-story/EP0004-ST0004-set-due-dates-on-task-items.md) | Draft |
+| ST0005 | [Filter and Search Task Items](../04-story/EP0004-ST0005-filter-and-search-task-items.md) | Draft |
+| ST0006 | [Push Notifications for Task Assignments and Due Dates](../04-story/EP0004-ST0006-push-notifications-for-task-assignments-and-due-dates.md) | Draft |
+| ST0007 | [AI Agent Integration Interface](../04-story/EP0004-ST0007-ai-agent-integration-interface.md) | Draft |
 
 ---
 

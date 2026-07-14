@@ -3,6 +3,7 @@ title: "Sign Up with Invite Code and Magic Link"
 status: Draft
 type: user_story
 epic: "User Authentication"
+story_number: ST0001
 ---
 
 ## Story
@@ -18,25 +19,30 @@ epic: "User Authentication"
 ### Step 1 — Invite code gates the entry
 
 ```gherkin
+@AC-001
 Given I open LIFEY for the first time
 When I see the welcome screen
 Then the only input visible is the invite code field
 And there is no email field yet
 
+@AC-002
 Given I am on the welcome screen
 When I enter a valid, unused invite code
 And I tap "Continue"
 Then the invite code is accepted
 And the email input appears for the next step
 
+@AC-003
 Given I am on the welcome screen
 When I enter an invalid invite code
 Then I see an error "Invalid invite code — check with the person who invited you"
 
+@AC-004
 Given I am on the welcome screen
 When I enter an expired invite code
 Then I see an error "This invite code has expired"
 
+@AC-005
 Given I am on the welcome screen
 When I enter an invite code that has already been used
 Then I see an error "This invite code has already been used"
@@ -45,12 +51,14 @@ Then I see an error "This invite code has already been used"
 ### Step 2 — Magic link sign-in
 
 ```gherkin
+@AC-006
 Given I have entered a valid invite code
 When I enter my email address
 And I tap "Send sign-in link"
 Then a magic link is sent to my email
 And I see a confirmation screen: "Check your inbox — the link expires in 10 minutes"
 
+@AC-007
 Given I am on the confirmation screen
 When I open my email and tap the magic link
 Then my browser opens the app
@@ -59,6 +67,7 @@ And a personal household is created for me
 And the invite code is marked as used
 And I am logged in and taken to the main app
 
+@AC-008
 Given I entered a valid invite code earlier
 When I try to sign up again with a different email on the same device
 Then I must enter the invite code again
@@ -67,6 +76,7 @@ Then I must enter the invite code again
 ### Step 3 — Existing user returns
 
 ```gherkin
+@AC-009
 Given I already have an account
 When I open LIFEY
 Then I see the email input directly (no invite code needed)

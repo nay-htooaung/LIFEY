@@ -3,6 +3,7 @@ title: "Switch Between Households"
 status: Draft
 type: user_story
 epic: "Mobile App Shell (SPA)"
+story_number: ST0003
 ---
 
 ## Story
@@ -16,25 +17,30 @@ epic: "Mobile App Shell (SPA)"
 ## Acceptance Criteria
 
 ```gherkin
+@AC-001
 Given I am a member of two or more households
 When I tap the household switcher
 Then I see a list of all my households
 And the current household is marked as active
 
+@AC-002
 Given I select a different household from the switcher
 When the switch completes
 Then the app displays data for the selected household
 And any previously cached data from the old household is cleared
 
+@AC-003
 Given I am a member of only one household
 When I look at the household switcher
 Then I see my current household name displayed
 And the switcher does not suggest switching (no expandable list)
 
+@AC-004
 Given I am on a feature screen (e.g., to-do lists) viewing Household A
 When I switch to Household B
 Then I see the to-do lists for Household B, not Household A
 
+@AC-005
 Given a household has been deleted or I was removed
 When I attempt to switch to it
 Then it no longer appears in the switcher

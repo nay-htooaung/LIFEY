@@ -4,6 +4,33 @@ A **container** for a large body of work that spans multiple sprints. Epics sit 
 
 ---
 
+## 0. Naming Convention
+
+Every epic gets a unique identifier `EPxxxx` (e.g., `EP0001`, `EP0002`).
+
+### File name
+```
+EPxxxx-<short-kebab-slug>.md
+```
+
+### Frontmatter
+The `epic_number` field is **required** in YAML frontmatter:
+```yaml
+title: "Mobile App Shell (SPA)"
+status: Draft
+type: epic
+theme: Shared Foundation
+epic_number: EP0001
+```
+
+### Numbering rules
+- `EP` prefix, zero-padded to 4 digits.
+- Numbers are assigned sequentially: EP0001, EP0002, EP0003…
+- Once assigned, an epic number is **never reused** — even if the epic is deleted or deprecated.
+- Epic numbers are referenced in story file names: `EPxxxx-STxxxx-<name>.md`.
+
+---
+
 ## 1. Definition
 
 An **epic** is a significant initiative that is too large to complete in a single sprint. It is decomposed into several **user stories** that each deliver incremental value.
@@ -49,7 +76,7 @@ Out-of-Scope:
 - Things explicitly NOT covered (to prevent scope creep).
 
 Key Stories:
-- [Link to story or short description] — [estimated size]
+- `[Story title](path/to/story.md)` — links to the story document using a relative file path
 ```
 
 ---

@@ -69,7 +69,7 @@ const HIERARCHY_RULES = {
     label: "Epic",
     icon: "▲",
     color: "#8b5cf6",
-    requiredFields: ["title", "status", "type", "theme"],
+    requiredFields: ["title", "status", "type", "theme", "epic_number"],
     parentField: null,  // themes are embedded in roadmap docs, not separate artifacts
     description: "Feature-bounded initiative",
   },
@@ -77,7 +77,7 @@ const HIERARCHY_RULES = {
     label: "User Story",
     icon: "●",
     color: "#10b981",
-    requiredFields: ["title", "status", "type", "epic"],
+    requiredFields: ["title", "status", "type", "epic", "story_number"],
     parentField: "epic",
     description: "Single user action or goal",
   },
@@ -128,7 +128,7 @@ function writeFile(filePath, content) {
 }
 
 function relativePath(absPath) {
-  return path.relative(ROOT, absPath);
+  return path.relative(ROOT, absPath).replace(/\\/g, "/");
 }
 
 function detectType(frontmatter, filePath) {
@@ -212,6 +212,11 @@ function buildDocumentMap(docs) {
     map.set(doc.filename.replace(/\.md$/, ""), doc);
     // Also map by title (case-insensitive)
     map.set(doc.title.toLowerCase(), doc);
+    // Map by relative path for resolving [text](path) links
+    map.set(doc.relativePath, doc);
+    // Also map by just the filename portion of the relative path
+    const filenameOnly = path.basename(doc.relativePath).replace(/\.md$/, "");
+    map.set(filenameOnly, doc);
   }
   return map;
 }
@@ -422,13 +427,139 @@ function validate(docs, docMap) {
     }
   }
 
-  return { errors, warnings };
+  // Acceptance Criteria validation for user stories
+  const acSummary = []; // { doc, storyId, total, exempt, missingExemptReason, gaps }
+  for (const doc of docs) {
+    if (doc.type !== "user_story") continue;
+
+    // Extract ACs from Gherkin blocks
+    const body = doc.body || "";
+    const criteria = extractAcceptanceCriteria(body);
+    doc._acCriteria = criteria;
+
+    if (criteria.length === 0) {
+      warnings.push({
+        doc: doc.id,
+        file: doc.relativePath,
+        message: `No @AC-NNN acceptance criteria found in Gherkin blocks`,
+        severity: "warning",
+      });
+      continue;
+    }
+
+    const entry = {
+      doc: doc.id,
+      storyId: doc.frontmatter.story_number || doc.id,
+      total: criteria.length,
+      exempt: criteria.filter((c) => c.isExempt).length,
+      missingExemptReason: [],
+      gaps: null,
+      duplicates: [],
+    };
+
+    // Check for duplicate AC IDs
+    const ids = criteria.map((c) => c.id);
+    const seen = new Set();
+    const duplicates = ids.filter((id) => {
+      if (seen.has(id)) return true;
+      seen.add(id);
+      return false;
+    });
+    if (duplicates.length > 0) {
+      entry.duplicates = [...new Set(duplicates)];
+      for (const dup of entry.duplicates) {
+        errors.push({
+          doc: doc.id,
+          file: doc.relativePath,
+          message: `Duplicate acceptance criteria ID: ${dup}`,
+          severity: "error",
+        });
+      }
+    }
+
+    // Check AC IDs are sequential (no gaps)
+    const numbers = criteria.map((c) => c.number).sort((a, b) => a - b);
+    if (numbers.length > 0) {
+      for (let i = 0; i < numbers.length; i++) {
+        if (numbers[i] !== i + 1) {
+          entry.gaps = `Expected AC-${String(i + 1).padStart(3, "0")}, found ${criteria.find((c) => c.number === numbers[i])?.id || "gap"}`;
+          errors.push({
+            doc: doc.id,
+            file: doc.relativePath,
+            message: `Non-sequential AC IDs: ${entry.gaps}`,
+            severity: "error",
+          });
+          break;
+        }
+      }
+    }
+
+    // Check @TestExempt has an # ExemptReason: comment
+    for (const crit of criteria) {
+      if (crit.isExempt && !crit.exemptReason) {
+        entry.missingExemptReason.push(crit.id);
+        errors.push({
+          doc: doc.id,
+          file: doc.relativePath,
+          message: `@TestExempt on ${crit.id} is missing an # ExemptReason: comment`,
+          severity: "error",
+        });
+      }
+    }
+
+    acSummary.push(entry);
+  }
+
+  // Store AC summary for rendering
+  if (typeof globalThis !== "undefined") globalThis.__acSummary = acSummary;
+  // Also attach to validation result for --validate-only output
+  const result = { errors, warnings };
+  if (acSummary.length > 0) result.acSummary = acSummary;
+
+  return result;
 }
 
 // ──────────────────────────────────────────────
-// Phase 4: Auto-Linking (wiki-style [[links]])
+// Phase 4: Auto-Linking (wiki-style [[links]] and [markdown links](path))
 // ──────────────────────────────────────────────
-// Single-page site — all links point to index.html hash routes
+// wiki-style [[Document Title]] → hash-based anchor links
+
+// ──────────────────────────────────────────────
+// Phase 3b: Acceptance Criteria Extraction & Validation
+// ──────────────────────────────────────────────
+
+/**
+ * Extract numbered acceptance criteria from a document body.
+ * Scans inside ```gherkin blocks for @AC-NNN tags.
+ * Returns an array of { id, number, isExempt, exemptReason }.
+ */
+function extractAcceptanceCriteria(body) {
+  const criteria = [];
+  const gherkinBlockRegex = /```gherkin\n([\s\S]*?)```/g;
+  let match;
+  while ((match = gherkinBlockRegex.exec(body)) !== null) {
+    const gherkinContent = match[1];
+    const lines = gherkinContent.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const acMatch = line.match(/^@AC-(\d{3})(\s+@TestExempt)?\s*$/);
+      if (acMatch) {
+        const number = parseInt(acMatch[1], 10);
+        const isExempt = !!acMatch[2];
+        let exemptReason = null;
+        // Check next line for ExemptReason comment
+        if (i + 1 < lines.length) {
+          const reasonMatch = lines[i + 1].match(/^#\s*ExemptReason:\s*(.+)$/);
+          if (reasonMatch) {
+            exemptReason = reasonMatch[1].trim();
+          }
+        }
+        criteria.push({ id: `AC-${acMatch[1]}`, number, isExempt, exemptReason });
+      }
+    }
+  }
+  return criteria;
+}
 
 function autoLink(content, docMap) {
   // Replace [[Document Title]] with hash-based anchor links
@@ -459,9 +590,9 @@ function preprocessEpicKeyStories(body, doc, docMap) {
   let found = false;
 
   const processed = sections.map((section) => {
-    // Only process the first "Key Stories" section
+    // Only process the first "User Stories" or "Key Stories" section
     if (found) return section;
-    if (!/^##\s*Key\s+Stories\b/i.test(section)) return section;
+    if (!/^##\s*(?:User|Key)\s+Stories\b/i.test(section)) return section;
     found = true;
 
     // Find the first markdown table in this section
@@ -477,16 +608,23 @@ function preprocessEpicKeyStories(body, doc, docMap) {
 
     if (lines.length < 3) return section; // header + separator + at least 1 data row
 
+    const headerRow = lines[0];
+    const headerParts = headerRow.split("|").filter(Boolean);
+    // Determine which column contains the story name by looking at headers
+    const hasHashCol = headerParts.length >= 1 && headerParts[0].trim() === "#";
+    const storyColIdx = hasHashCol ? 2 : 1;
+
     const updatedLines = lines.map((line, idx) => {
       // Skip header row and separator row
-      if (idx === 0) return line; // header: | Story | Size |
-      if (idx === 1) return line; // separator: | --- | --- |
+      if (idx === 0) return line;
+      if (idx === 1) return line;
 
-      // Data row — extract first cell content
+      // Data row — extract story name cell
       const parts = line.split("|");
-      if (parts.length < 3) return line; // malformed row
+      const minParts = hasHashCol ? 4 : 3;
+      if (parts.length < minParts) return line; // malformed row
 
-      const rawCell = parts[1]; // e.g. " Create task "
+      const rawCell = parts[storyColIdx];
       const cellText = rawCell.trim();
       if (!cellText) return line;
       if (cellText.startsWith("[[")) return line; // already linked
@@ -498,7 +636,7 @@ function preprocessEpicKeyStories(body, doc, docMap) {
         docMap.get(slugify(cellText));
 
       if (matchedDoc && matchedDoc.type === "user_story") {
-        parts[1] = ` [[${cellText}]] `;
+        parts[storyColIdx] = ` [[${cellText}]] `;
         return parts.join("|");
       }
       return line;
@@ -508,6 +646,34 @@ function preprocessEpicKeyStories(body, doc, docMap) {
   });
 
   return processed.join("");
+}
+
+/**
+ * Resolve relative markdown links [text](path/to/file.md) to hash anchors.
+ * Converts them to [text](#doc-slug) so they work in the single-page site
+ * while the raw markdown links work on GitHub.
+ */
+function resolveRelativeLinks(body, doc, docMap) {
+  // Match markdown links: [text](path) — but skip http://, https://, #, and data: URIs
+  return body.replace(
+    /\[([^\]]*)\]\(([^)]+)\)/g,
+    (match, text, href) => {
+      // Skip absolute URLs and hash-only references
+      if (/^(https?:\/\/|#|data:|mailto:)/i.test(href)) return match;
+
+      // Resolve relative path against the current doc's directory
+      const docDir = path.dirname(doc.filePath);
+      const resolved = path.resolve(docDir, href);
+      const relative = path.relative(ROOT, resolved).replace(/\\/g, "/");
+
+      // Look up the resolved path in the docMap
+      const linkedDoc = docMap.get(relative) || docMap.get(relative.replace(/\.md$/, ""));
+      if (linkedDoc) {
+        return `[${text}](#doc-${linkedDoc.id})`;
+      }
+      return match; // leave as-is if not found
+    }
+  );
 }
 
 // ──────────────────────────────────────────────
@@ -540,6 +706,9 @@ function renderDocArticle(doc, docMap) {
   // Preprocess epic bodies: auto-link story names in Key Stories tables
   let body = preprocessEpicKeyStories(doc.body, doc, docMap);
 
+  // Resolve relative [text](path.md) links to hash anchors
+  body = resolveRelativeLinks(body, doc, docMap);
+
   let rendered;
   try {
     rendered = marked.parse(body);
@@ -554,7 +723,7 @@ function renderDocArticle(doc, docMap) {
     created: "Created", quarter: "Quarter", theme: "Theme", epic: "Epic", story: "Story",
     size: "Size", feature_area: "Feature Area", scope_boundary: "Scope Boundary",
     story_points: "Story Points", category: "Category", assignee: "Assignee",
-    dependencies: "Dependencies",
+    dependencies: "Dependencies", epic_number: "Epic #", story_number: "Story #",
   };
   let metaRows = "";
   for (const [key, value] of Object.entries(doc.frontmatter)) {
@@ -727,6 +896,56 @@ function renderValidationPanel(validation) {
     </div>`;
   }
   const passCount = total === 0 ? "100%" : `${Math.round((1 - errors.length / total) * 100)}%`;
+
+  // AC Summary section
+  let acHTML = "";
+  if (validation.acSummary && validation.acSummary.length > 0) {
+    const totalACs = validation.acSummary.reduce((s, e) => s + e.total, 0);
+    const exemptACs = validation.acSummary.reduce((s, e) => s + e.exempt, 0);
+    const testableACs = totalACs - exemptACs;
+    let acRows = "";
+    for (const entry of validation.acSummary) {
+      const hasIssues = entry.gaps || entry.duplicates.length > 0 || entry.missingExemptReason.length > 0;
+      acRows += `<tr class="${hasIssues ? "ac-issue" : ""}">
+        <td><a href="#doc-${entry.doc}">${entry.storyId}</a></td>
+        <td>${entry.total}</td>
+        <td>${entry.exempt > 0 ? entry.exempt : "—"}</td>
+        <td>${entry.total - entry.exempt}</td>
+        <td>${entry.gaps ? `<span class="sev-badge error">gap</span> ${entry.gaps}` : "✅"}</td>
+        <td>${entry.duplicates.length > 0 ? `<span class="sev-badge error">dup</span> ${entry.duplicates.join(", ")}` : "✅"}</td>
+        <td>${entry.missingExemptReason.length > 0 ? `<span class="sev-badge error">missing</span> ${entry.missingExemptReason.join(", ")}` : "✅"}</td>
+      </tr>`;
+    }
+    acHTML = `<div style="margin-top:1.5rem; border-top:1px solid #334155; padding-top:1rem;">
+      <h3>📋 Acceptance Criteria Coverage</h3>
+      <div class="validation-summary">
+        <div class="validation-stat pass">
+          <div class="count">${totalACs}</div><div class="label">Total ACs</div>
+        </div>
+        <div class="validation-stat warn">
+          <div class="count">${exemptACs}</div><div class="label">Test-Exempt</div>
+        </div>
+        <div class="validation-stat pass">
+          <div class="count">${testableACs}</div><div class="label">Testable</div>
+        </div>
+      </div>
+      <table class="ac-summary-table">
+        <thead>
+          <tr>
+            <th>Story</th>
+            <th>Total</th>
+            <th>Exempt</th>
+            <th>Testable</th>
+            <th>Sequential</th>
+            <th>Duplicates</th>
+            <th>ExemptReason</th>
+          </tr>
+        </thead>
+        <tbody>${acRows}</tbody>
+      </table>
+    </div>`;
+  }
+
   return `<div id="validation-panel">
     <h2>🔍 Validation Report</h2>
     <div class="validation-summary">
@@ -740,6 +959,7 @@ function renderValidationPanel(validation) {
         <div class="count">${passCount}</div><div class="label">Pass Rate</div>
       </div>
     </div>
+    ${acHTML}
     ${itemsHTML ? `<div style="margin-top:1rem;">${itemsHTML}</div>` : '<p style="color:#34d399;font-size:0.9rem;">✅ All checks passed.</p>'}
   </div>`;
 }
@@ -1075,6 +1295,12 @@ function generateHTML(docs, graph, validation, docMap) {
     .validation-item .sev-badge { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; padding: 0.1rem 0.4rem; border-radius: 4px; flex-shrink: 0; }
     .validation-item .sev-badge.error { background: #ef444420; color: #ef4444; }
     .validation-item .sev-badge.warning { background: #f59e0b20; color: #f59e0b; }
+    .ac-summary-table { font-size: 0.8rem; margin-top: 0.75rem; }
+    .ac-summary-table th { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.03em; color: #6b7280; }
+    .ac-summary-table td, .ac-summary-table th { padding: 0.4rem 0.6rem; }
+    .ac-summary-table tr.ac-issue { background: #ef444408; }
+    .ac-summary-table .sev-badge { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; padding: 0.05rem 0.35rem; border-radius: 4px; }
+    .ac-summary-table .sev-badge.error { background: #ef444420; color: #ef4444; }
     .overview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
     .overview-card { background: #1a1d27; border: 1px solid #2a2d37; border-radius: 12px; padding: 1.25rem; text-align: center; cursor: pointer; transition: background 0.15s; display: block; text-decoration: none; }
     .overview-card:hover { background: #1e2130; }
@@ -1127,6 +1353,7 @@ function generateHTML(docs, graph, validation, docMap) {
   <div id="main">
     <div id="content-area">
       ${overviewHTML}
+      ${renderValidationPanel(validation)}
       ${listViews}
       ${detailViews}
     </div>
@@ -1315,6 +1542,14 @@ function build() {
   // Validate
   const validation = validate(docs, docMap);
   console.log(`  ✅ Validation: ${validation.errors.length} errors, ${validation.warnings.length} warnings`);
+  if (validation.acSummary && validation.acSummary.length > 0) {
+    const totalACs = validation.acSummary.reduce((s, e) => s + e.total, 0);
+    const exemptACs = validation.acSummary.reduce((s, e) => s + e.exempt, 0);
+    console.log(`  📋 Acceptance Criteria: ${totalACs} total, ${exemptACs} exempt`);
+    for (const entry of validation.acSummary) {
+      console.log(`     ${entry.storyId} (${entry.doc}): ${entry.total} ACs${entry.exempt > 0 ? `, ${entry.exempt} exempt` : ""}`);
+    }
+  }
 
   // Generate single-page HTML
   const html = generateHTML(docs, graph, validation, docMap);

@@ -3,6 +3,7 @@ title: "Navigate Between Features"
 status: Draft
 type: user_story
 epic: "Mobile App Shell (SPA)"
+story_number: ST0002
 ---
 
 ## Story
@@ -16,23 +17,28 @@ epic: "Mobile App Shell (SPA)"
 ## Acceptance Criteria
 
 ```gherkin
+@AC-001
 Given I am on any screen in the app
 When I look at the navigation menu
 Then I see links to all available features (to-do lists, expenses, settings, etc.)
 
+@AC-002
 Given I am on the to-do list screen
 When I tap "Expenses" in the navigation
 Then I am taken to the expense screen
 And the current household context is preserved
 
+@AC-003
 Given I am viewing a specific to-do list
 When I navigate to another feature and back
 Then I return to the same to-do list I was viewing
 
+@AC-004
 Given a feature is disabled for my household (via feature flags)
 When the navigation renders
 Then that feature link is hidden from the menu
 
+@AC-005
 Given I am on a screen that doesn't exist (404)
 When the router resolves the path
 Then I see a friendly "Page not found" message

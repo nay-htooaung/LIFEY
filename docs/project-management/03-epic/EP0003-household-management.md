@@ -3,6 +3,7 @@ title: "Household Management"
 status: Draft
 type: epic
 theme: Shared Foundation
+epic_number: EP0003
 feature_area: "Household CRUD & Membership — create, join, switch, leave, delete households"
 scope_boundary: "Covers creating shared households, generating and redeeming invite codes, switching between households, leaving, and admin deletion. Does NOT include role-based permissions, household customization, or archiving."
 dependencies:
@@ -50,17 +51,17 @@ This epic connects to the **Shared Foundation** roadmap theme: households are th
 
 ## User Stories
 
-> *Decompose the epic into sprint-sized stories. Story titles must use [[Wiki Link]] syntax to auto-link to story docs.*
+> *Decompose the epic into sprint-sized stories. Story names link to their story documents using relative `[text](path)` markdown links.*
 
-| Story | Status |
-|-------|--------|
-| Auto-create personal household on signup | Draft |
-| Create a new shared household | Draft |
-| Generate and share invite code | Draft |
-| Join household via invite code | Draft |
-| Household switcher UI | Draft |
-| Leave a shared household | Draft |
-| Delete a shared household (admin) | Draft |
+| # | Story | Status |
+|---|-------|--------|
+| ST0001 | [Auto-create personal household on signup](../04-story/EP0003-ST0001-auto-create-personal-household-on-signup.md) | Draft |
+| ST0002 | [Create a new shared household](../04-story/EP0003-ST0002-create-a-new-shared-household.md) | Draft |
+| ST0003 | [Generate and share invite code](../04-story/EP0003-ST0003-generate-and-share-invite-code.md) | Draft |
+| ST0004 | [Join household via invite code](../04-story/EP0003-ST0004-join-household-via-invite-code.md) | Draft |
+| ST0005 | [Household switcher UI](../04-story/EP0003-ST0005-household-switcher-ui.md) | Draft |
+| ST0006 | [Leave a shared household](../04-story/EP0003-ST0006-leave-a-shared-household.md) | Draft |
+| ST0007 | [Delete a shared household (admin)](../04-story/EP0003-ST0007-delete-a-shared-household-admin.md) | Draft |
 
 ---
 

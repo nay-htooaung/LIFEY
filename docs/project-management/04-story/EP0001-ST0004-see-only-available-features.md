@@ -3,6 +3,7 @@ title: "See Only Available Features"
 status: Draft
 type: user_story
 epic: "Mobile App Shell (SPA)"
+story_number: ST0004
 ---
 
 ## Story
@@ -16,24 +17,29 @@ epic: "Mobile App Shell (SPA)"
 ## Acceptance Criteria
 
 ```gherkin
+@AC-001
 Given a feature is enabled for my household (e.g., to-do lists)
 When the navigation renders
 Then I see a link to that feature
 
+@AC-002
 Given a feature is not yet available for my household
 When the navigation renders
 Then I do not see a link to that feature
 
+@AC-003
 Given a feature was previously available and is now disabled
 When the app loads or I refresh
 Then the feature link disappears from navigation
 And any in-progress screens for that feature show a "This feature is no longer available" message
 
+@AC-004
 Given I am an admin of the household
 When I look at the feature visibility
 Then I see the same available features as all other members
 (Feature flags are household-wide, not per-user)
 
+@AC-005
 Given a new feature is added to the system
 When it is toggled on for a household
 Then all members of that household see it on next load

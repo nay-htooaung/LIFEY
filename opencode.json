@@ -8,7 +8,10 @@
       "git *": "allow",
       "node *": "allow",
       "New-Item *": "allow",
-      "Select-String *": "allow"
+      "Select-String *": "allow",
+      "ForEach-Object *": "allow",
+      "Select-Object *": "allow",
+      "Get-Content *": "allow"
     },
     "edit": "allow",
     "read": "allow",

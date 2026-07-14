@@ -3,6 +3,7 @@ title: "Create and Manage Task Lists"
 status: Draft
 type: user_story
 epic: "Shared To-Do Lists"
+story_number: ST0001
 ---
 
 ## Story
@@ -16,30 +17,36 @@ epic: "Shared To-Do Lists"
 ## Acceptance Criteria
 
 ```gherkin
+@AC-001
 Given I am in a household (personal or shared)
 When I tap "New List"
 And I enter a name
 Then a new task list is created in the current household
 And I am taken to the empty list
 
+@AC-002
 Given I have a task list
 When I tap "Rename" on the list
 And I enter a new name
 Then the list name is updated
 
+@AC-003
 Given I have a task list
 When I delete the list
 Then the list and all its items are removed
 And I see a confirmation before the delete
 
+@AC-004
 Given I am in a personal household
 When I view my task lists
 Then I only see lists I created
 
+@AC-005
 Given I am in a shared household
 When I view task lists
 Then I see all lists created by any household member
 
+@AC-006
 Given I have an empty list "Groceries"
 When I open it
 Then I see "No items yet — add your first task"

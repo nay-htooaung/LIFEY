@@ -3,6 +3,7 @@ title: "Mobile App Shell (SPA)"
 status: Draft
 type: epic
 theme: Shared Foundation
+epic_number: EP0001
 feature_area: "App Infrastructure — Vite SPA project setup, PWA, navigation, UI components, feature flags"
 scope_boundary: "Covers the foundational scaffold: Vite project initialization, PWA manifest + service worker, React Router navigation shell, household switcher, reusable UI components, and feature-flag system. Does NOT include any feature-level business logic."
 dependencies:
@@ -62,14 +63,14 @@ This epic connects to the **Shared Foundation** roadmap theme: before we can bui
 
 ## User Stories
 
-> *Decompose the epic into sprint-sized stories. Story titles use [[Wiki Link]] syntax to auto-link to story docs.*
+> *Decompose the epic into sprint-sized stories. Story names link to their story documents using relative `[text](path)` markdown links.*
 
-| Story | Status | Ref |
-|-------|--------|-----|
-| Install LIFEY on home screen (PWA) | Draft | [[Install LIFEY on Home Screen (PWA)]] |
-| Navigate between features | Draft | [[Navigate Between Features]] |
-| Switch between households | Draft | [[Switch Between Households]] |
-| See only available features | Draft | [[See Only Available Features]] |
+| # | Story | Status |
+|---|-------|--------|
+| ST0001 | [Install LIFEY on Home Screen (PWA)](../04-story/EP0001-ST0001-install-lifey-on-home-screen.md) | Draft |
+| ST0002 | [Navigate Between Features](../04-story/EP0001-ST0002-navigate-between-features.md) | Draft |
+| ST0003 | [Switch Between Households](../04-story/EP0001-ST0003-switch-between-households.md) | Draft |
+| ST0004 | [See Only Available Features](../04-story/EP0001-ST0004-see-only-available-features.md) | Draft |
 
 **Note:** The original "Basic UI component library" has been folded into the PWA installability story as technical tasks (component primitives are built as needed). The four stories above are pure user-facing value — no developer-centric stories like "scaffold Vite" exist at the story level. All scaffolding work lives as acceptance criteria and tasks under these stories.
 

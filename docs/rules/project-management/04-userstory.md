@@ -4,6 +4,33 @@ This document defines the **user story** concept, its boundaries, usage, rules, 
 
 ---
 
+## 0. Naming Convention
+
+Every story gets a unique identifier `STxxxx` within its parent epic (e.g., `ST0001`, `ST0002`).
+
+### File name
+```
+EPxxxx-STxxxx-<short-kebab-slug>.md
+```
+
+### Frontmatter
+The `story_number` field is **required** in YAML frontmatter:
+```yaml
+title: "Sign Up with Invite Code and Magic Link"
+status: Draft
+type: user_story
+epic: "User Authentication"
+story_number: ST0001
+```
+
+### Numbering rules
+- `ST` prefix, zero-padded to 4 digits.
+- Numbers restart from `ST0001` per epic (e.g., EP0001 has ST0001–ST0004, EP0002 has ST0001–ST0004).
+- The full identifier `EPxxxx-STxxxx` is globally unique.
+- A story's `epic` field (in frontmatter) must match the parent epic's `title` field exactly.
+
+---
+
 ## 1. Definition
 
 A **user story** is the smallest unit of work in an Agile framework. It describes a feature from the end-user's perspective with the sole goal of delivering value to the user. It is **not** a requirements document — it is a placeholder for a conversation.
@@ -127,22 +154,103 @@ And my balance is updated by -$25
 
 ---
 
-## 7. Modern Best Practices
+## 7. Acceptance Criteria Numbering & Traceability
 
-### 7.1. Outcomes over Outputs
+Every acceptance criterion must have a unique ID so that E2E / scenario tests can be linked back to a specific criterion, and a script can verify that each criterion has a corresponding test.
+
+### 7.1. AC ID Format
+
+- **Format:** `AC-NNN` (zero-padded to 3 digits).
+- **Scope:** IDs are sequential within a single story (starting from `AC-001`).
+- **Globally unique path:** The combination `<story-id>/AC-NNN` (e.g., `EP0002-ST0001/AC-003`) is globally unique.
+- **Placement:** Add `@AC-NNN` as the first line of each Gherkin scenario inside the ` ```gherkin ` block.
+
+### 7.2. Test Exemption
+
+Some criteria cannot be automated due to platform constraints, third-party dependencies, or hardware requirements. Mark them with:
+
+- **`@TestExempt`** — placed after the AC ID tag on the same line.
+- **`# ExemptReason: <explanation>`** — on the next line, documents why.
+
+```
+@AC-003 @TestExempt
+# ExemptReason: Push notification permission prompts cannot be automated on mobile CI runners
+Given push notification permissions are denied
+When the system tries to send a notification
+Then the failure is silently logged
+```
+
+### 7.3. Example in a story
+
+```markdown
+## Acceptance Criteria
+
+```gherkin
+@AC-001
+Given I am in my personal household
+When I create a task item
+Then I am automatically assigned as the owner
+
+@AC-002
+Given I am in a shared household
+When I create a task item
+Then the item starts unassigned (no assignee)
+
+@AC-003 @TestExempt
+# ExemptReason: Push notification prompts require real device or OS-level mocking not available in CI
+Given push notification permissions are denied
+When the system tries to send a notification
+Then the failure is silently logged
+```
+```
+
+### 7.4. Script Traceability
+
+A verification script can:
+
+1. **Parse stories** — Extract all `@AC-NNN` tags from Gherkin blocks in story files. Record: story ID, AC ID, whether `@TestExempt` is present.
+2. **Parse tests** — Search test files for AC references (e.g., `AC-001` in test titles or `// @AC-001` comments).
+3. **Cross-reference** — Report:
+   - ACs without a matching test (missing coverage)
+   - Tests that reference a non-existent AC (orphaned test)
+   - Test-exempt ACs (expected to have no test)
+
+**Reference patterns for test files:**
+```
+// In Playwright / Vitest:
+test('@AC-001: Task item automatically assigned in personal household', ...)
+test('AC-002 — Assignee picker in shared household', ...)
+
+// Or in a test metadata comment:
+// Covers: @AC-001, @AC-002
+```
+
+### 7.5. Validation
+
+The documentation build script (`build-docs.js`) will validate:
+- AC IDs are sequential within each story (no gaps, no skips).
+- No duplicate `@AC-NNN` values within the same story.
+- `@TestExempt` tags are accompanied by an `# ExemptReason:` comment.
+- The total AC count is reported in the validation dashboard.
+
+---
+
+## 8. Modern Best Practices
+
+### 8.1. Outcomes over Outputs
 Focus on the **value delivered**, not the number of stories completed. Ask: "Will this story change user behavior?"
 
-### 7.2. Story Mapping
+### 8.2. Story Mapping
 Use **User Story Mapping** (Jeff Patton) to arrange stories on two axes:
 - **Horizontal**: user activities (walkthrough steps)
 - **Vertical**: priority (MVP → future iterations)
 
 This prevents building features nobody uses.
 
-### 7.3. Just-in-Time Refinement
+### 8.3. Just-in-Time Refinement
 Do not write all acceptance criteria upfront. Refine stories **2–3 days before sprint planning** — just enough to estimate and commit.
 
-### 7.4. Include Non-Functional Requirements as Constraints
+### 8.4. Include Non-Functional Requirements as Constraints
 Instead of a separate "performance story," attach constraints as acceptance criteria:
 ```
 Given the household has 10,000 expenses
@@ -150,15 +258,15 @@ When I load the expense list
 Then the page renders within 2 seconds
 ```
 
-### 7.5. Vertical Slicing
+### 8.5. Vertical Slicing
 Each story should cut across all layers (UI → API → DB), delivering a complete, usable feature slice — not a horizontal layer (e.g., "design the database schema" is not a user story).
 
-### 7.6. Continuous Backlog Grooming
+### 8.6. Continuous Backlog Grooming
 - Dedicate **10% of sprint capacity** to backlog refinement.
 - Remove stories that no longer align with product vision.
 - Regularly re-estimate and re-prioritize.
 
-### 7.7. Definition of Ready (DoR) vs. Definition of Done (DoD)
+### 8.7. Definition of Ready (DoR) vs. Definition of Done (DoD)
 
 | DoR (Ready for Sprint) | DoD (Ready for Release) |
 |------------------------|------------------------|
@@ -170,7 +278,7 @@ Each story should cut across all layers (UI → API → DB), delivering a comple
 
 ---
 
-## 8. Anti-Patterns to Avoid
+## 9. Anti-Patterns to Avoid
 
 | Anti-pattern | Why it's bad | Fix |
 |-------------|-------------|-----|
@@ -182,13 +290,15 @@ Each story should cut across all layers (UI → API → DB), delivering a comple
 
 ---
 
-## 9. Quick Reference Checklist
+## 10. Quick Reference Checklist
 
 Use this before promoting a story to sprint-ready:
 
 - [ ] Follows the "As a… I want… so that…" template
 - [ ] Delivers value to an end-user (not the system)
 - [ ] Fits in one sprint (2–3 days work)
+- [ ] Acceptance criteria written and numbered (@AC-NNN)
+- [ ] Test-exempt criteria documented with @TestExempt + ExemptReason
 - [ ] Acceptance criteria written (Given/When/Then)
 - [ ] INVEST-compliant (Independent, Negotiable, Valuable, Estimable, Small, Testable)
 - [ ] Dependencies identified and resolved

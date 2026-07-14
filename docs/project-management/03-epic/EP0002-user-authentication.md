@@ -3,6 +3,7 @@ title: "User Authentication"
 status: Draft
 type: epic
 theme: Shared Foundation
+epic_number: EP0002
 feature_area: "Authentication & Account Management — sign-up, login, session management, profile"
 scope_boundary: "Covers invite code + magic link authentication, session persistence, and basic profile editing. Does NOT include OAuth providers, MFA, or role-based permissions."
 dependencies:
@@ -69,14 +70,14 @@ This epic connects to the **Shared Foundation** roadmap theme: authentication is
 
 ## User Stories
 
-> *Decompose the epic into sprint-sized stories. Story titles must use [[Wiki Link]] syntax to auto-link to story docs.*
+> *Decompose the epic into sprint-sized stories. Story names link to their story documents using relative `[text](path)` markdown links.*
 
-| Story | Status |
-|-------|--------|
-| [[Sign Up with Invite Code and Magic Link]] | Draft |
-| [[Log In / Log Out]] | Draft |
-| [[Session Persistence]] | Draft |
-| [[Profile Management]] | Draft |
+| # | Story | Status |
+|---|-------|--------|
+| ST0001 | [Sign Up with Invite Code and Magic Link](../04-story/EP0002-ST0001-sign-up-with-invite-code-and-magic-link.md) | Draft |
+| ST0002 | [Log In / Log Out](../04-story/EP0002-ST0002-log-in-log-out.md) | Draft |
+| ST0003 | [Session Persistence](../04-story/EP0002-ST0003-session-persistence.md) | Draft |
+| ST0004 | [Profile Management](../04-story/EP0002-ST0004-profile-management.md) | Draft |
 
 ---
 

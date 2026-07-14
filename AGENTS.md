@@ -35,7 +35,12 @@ Direct build: `node scripts/build-docs.js` (with `--watch` flag for file watchin
 ## Artifact rules
 
 ### File naming
-Files live in subdirectories by type (`vision/`, `roadmap/`, `epic/`, `story/`). The `NN-` prefix is for ordering only — type is determined by the parent directory name. Type auto-detection prefers the `type` field in frontmatter, falling back to the directory name (`vision/` → vision, `roadmap/` → roadmap, `epic/` → epic, `story/` → user_story).
+Files live in subdirectories by type (`vision/`, `roadmap/`, `epic/`, `story/`). Each epic and story gets a unique identifier used in the file name:
+
+- **Epics**: `EPxxxx-<name>.md` (e.g., `EP0001-mobile-app-shell.md`)
+- **Stories**: `EPxxxx-STxxxx-<name>.md` (e.g., `EP0002-ST0001-sign-up-with-invite-code-and-magic-link.md`)
+
+Type is determined by the parent directory name. Type auto-detection prefers the `type` field in frontmatter, falling back to the directory name (`vision/` → vision, `roadmap/` → roadmap, `epic/` → epic, `story/` → user_story).
 
 ### YAML frontmatter required
 Every `.md` file must start with `---`-delimited YAML. Required fields per type:
@@ -44,8 +49,8 @@ Every `.md` file must start with `---`-delimited YAML. Required fields per type:
 |------|----------------|
 | vision | `title`, `status`, `type` |
 | roadmap | `title`, `status`, `type`, `quarter` |
-| epic | `title`, `status`, `type`, `theme` |
-| user_story | `title`, `status`, `type`, `epic` |
+| epic | `title`, `status`, `type`, `theme`, `epic_number` |
+| user_story | `title`, `status`, `type`, `epic`, `story_number` |
 
 Cross-references (`epic`, `story`) must match the target document's `title` field exactly — validation fails on mismatch.
 
@@ -53,7 +58,7 @@ Cross-references (`epic`, `story`) must match the target document's `title` fiel
 Build enforces: story → epic → roadmap theme → vision. Every story must be linked to an epic. A story without an `epic` field or an epic without a `theme` field matching the roadmap will fail validation.
 
 ### Build scan
-All `.md` files under `docs/project-management/` are scanned recursively, except the `templates/` subdirectory which is always skipped. Wiki-link syntax `[[Document Title]]` resolves to hash links; unresolved links render as red broken-link spans.
+All `.md` files under `docs/project-management/` are scanned recursively, except the `templates/` subdirectory which is always skipped. Markdown link syntax `[text](relative/path.md)` is used for cross-document references — these resolve to hash links in the generated single-page site while remaining functional as file links on GitHub.
 
 ## Subagent conventions
 
