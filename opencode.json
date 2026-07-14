@@ -7,7 +7,8 @@
       "gh *": "allow",
       "git *": "allow",
       "node *": "allow",
-      "New-Item *": "allow"
+      "New-Item *": "allow",
+      "Select-String *": "allow"
     },
     "edit": "allow",
     "read": "allow",
