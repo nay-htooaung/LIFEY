@@ -1,5 +1,7 @@
 // Story: EP0001-ST0001 — Install LIFEY on Home Screen (PWA)
 
+import fs from "fs";
+import path from "path";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -35,6 +37,21 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe("@AC-005: Service worker update", () => {
+    it("configures vite-plugin-pwa with autoUpdate register type", () => {
+      // Read the vite config file to verify autoUpdate setting.
+      // registerType: "autoUpdate" makes the service worker call
+      // skipWaiting() and clientsClaim(), so updates apply immediately
+      // in the background and take effect on next visit.
+      const configContent = fs.readFileSync(
+        path.resolve(process.cwd(), "vite.config.ts"),
+        "utf-8",
+      );
+
+      expect(configContent).toContain('registerType: "autoUpdate"');
+    });
   });
 
   describe("@AC-004: Unsupported browser — no install prompt", () => {
