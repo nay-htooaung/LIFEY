@@ -38,19 +38,22 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
   });
 
   describe("@AC-002: Standalone mode and main app screen", () => {
-    it("shows the main app screen at the root route", () => {
+    it("shows the main app screen with tagline at the root route", () => {
       window.history.pushState({}, "", "/");
       render(<App />);
 
-      // The main app screen should be displayed
-      expect(screen.getByText(/lifey/i)).toBeInTheDocument();
+      // The main app screen should display the tagline (unique to HomePage)
+      expect(
+        screen.getByText("Your life together, simplified."),
+      ).toBeInTheDocument();
     });
 
-    it("detects standalone display mode", () => {
+    it("has an app shell with a header containing the app name", () => {
       render(<App />);
 
       // The app shell layout should include a header with the app name
-      expect(screen.getByRole("heading", { name: /lifey/i })).toBeInTheDocument();
+      const headers = screen.getAllByRole("heading", { name: /lifey/i });
+      expect(headers.length).toBeGreaterThan(0);
     });
   });
 

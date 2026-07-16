@@ -1,14 +1,47 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
+import { HomePage } from "./pages/HomePage";
+
+function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-neutral-950 text-neutral-50">
+      <header className="border-b border-neutral-800 px-4 py-3">
+        <h1 className="text-lg font-bold text-purple-400">LIFEY</h1>
+      </header>
+      <main>{children}</main>
+      <PwaInstallPrompt />
+    </div>
+  );
+}
 
 function App() {
   return (
     <BrowserRouter>
-      <PwaInstallPrompt />
       <Routes>
-        <Route path="/login" element={<div>Login Page Placeholder</div>} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<div>404 — Page Not Found</div>} />
+        <Route
+          path="/"
+          element={
+            <AppShell>
+              <HomePage />
+            </AppShell>
+          }
+        />
+        <Route
+          path="/login"
+          element={
+            <AppShell>
+              <div>Login Page Placeholder</div>
+            </AppShell>
+          }
+        />
+        <Route
+          path="*"
+          element={
+            <AppShell>
+              <div>404 — Page Not Found</div>
+            </AppShell>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
