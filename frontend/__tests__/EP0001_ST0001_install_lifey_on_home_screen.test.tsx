@@ -37,6 +37,65 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
     vi.restoreAllMocks();
   });
 
+  describe("@AC-003: Offline indicator", () => {
+    beforeEach(() => {
+      // Ensure we start in online state
+      Object.defineProperty(navigator, "onLine", {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+    });
+
+    it("shows an offline indicator when the browser goes offline", () => {
+      render(<App />);
+
+      // Initially no offline indicator
+      expect(screen.queryByText(/offline/i)).not.toBeInTheDocument();
+
+      // Simulate going offline
+      Object.defineProperty(navigator, "onLine", {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      act(() => {
+        window.dispatchEvent(new Event("offline"));
+      });
+
+      // The offline indicator should now be visible
+      expect(screen.getByText(/you are offline/i)).toBeInTheDocument();
+    });
+
+    it("hides the offline indicator when coming back online", () => {
+      render(<App />);
+
+      // Go offline
+      Object.defineProperty(navigator, "onLine", {
+        value: false,
+        writable: true,
+        configurable: true,
+      });
+      act(() => {
+        window.dispatchEvent(new Event("offline"));
+      });
+
+      expect(screen.getByText(/you are offline/i)).toBeInTheDocument();
+
+      // Come back online
+      Object.defineProperty(navigator, "onLine", {
+        value: true,
+        writable: true,
+        configurable: true,
+      });
+      act(() => {
+        window.dispatchEvent(new Event("online"));
+      });
+
+      expect(screen.queryByText(/you are offline/i)).not.toBeInTheDocument();
+    });
+  });
+
   describe("@AC-002: Standalone mode and main app screen", () => {
     it("shows the main app screen with tagline at the root route", () => {
       window.history.pushState({}, "", "/");
