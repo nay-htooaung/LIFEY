@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect } from 'react';
 
 /**
  * Interface for the non-standard BeforeInstallPromptEvent.
@@ -7,7 +7,7 @@ import { useState, useCallback, useEffect } from "react";
  */
 interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
-  readonly userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
   prompt(): Promise<void>;
 }
 
@@ -20,8 +20,7 @@ interface BeforeInstallPromptEvent extends Event {
  * - `install`: function to trigger the browser install prompt
  */
 export function useInstallPrompt() {
-  const [promptEvent, setPromptEvent] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     const handler = (event: Event) => {
@@ -30,10 +29,10 @@ export function useInstallPrompt() {
       setPromptEvent(event as unknown as BeforeInstallPromptEvent);
     };
 
-    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener('beforeinstallprompt', handler);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener('beforeinstallprompt', handler);
     };
   }, []);
 

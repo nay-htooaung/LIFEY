@@ -255,6 +255,8 @@
 #     11826f52dbb643be al(h,x(c),y(c),pad(16)) s(fill,hug) f[(13e31728405309ca,#7C3AED)] rd(12) "Frame 274"
 #       008b31f0f7497a39 t("Continue",Inter,16,sb,align(l)) f[(eff3c73c16abaa7c,#FFFFFF)] "Text 138"
 #   1c6fe7229f12af2d fr s(fill,8) f[] "Frame 275"
+# b55d3df9229156e5 al(v,x(c),y(c)) p(3440,0) s(512,512) f[(9f1bbc8c6e9d9644,#7C3AED)] rd(96) "PWA Icon 512"
+#   6680ba2a3afa065c t("L",Inter, sans-serif,16,heavy,align(c)) f[(701bb2cea9f5d5ca,#FFFFFF)] "L"
 version: 4
 canvas:
   background:
@@ -5290,3 +5292,45 @@ elements:
     layout:
       width: fill
       fixedHeight: 8.0
+  - id: b55d3df9229156e5
+    type: parent
+    name: PWA Icon 512
+    corners:
+      - [3440.0, 0.0]
+      - [3952.0, 0.0]
+      - [3952.0, 512.0]
+      - [3440.0, 512.0]
+    fills:
+      - id: 9f1bbc8c6e9d9644
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [96.0, 96.0, 96.0, 96.0]
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 512.0
+      fixedHeight: 512.0
+  - id: 6680ba2a3afa065c
+    type: text
+    name: L
+    parent: b55d3df9229156e5
+    corners:
+      - [251.67, 245.5]
+      - [260.33, 245.5]
+      - [260.33, 266.5]
+      - [251.67, 266.5]
+    fills:
+      - id: 701bb2cea9f5d5ca
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: L
+      font: "Inter, sans-serif"
+      size: 16.0
+      weight: heavy
+      alignment: center
+    layout:
+      width: hug
+      height: hug

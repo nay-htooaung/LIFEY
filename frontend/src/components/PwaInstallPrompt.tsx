@@ -1,4 +1,4 @@
-import { useInstallPrompt } from "../hooks/useInstallPrompt";
+import { useInstallPrompt } from '../hooks/useInstallPrompt';
 
 /**
  * PWA install prompt component.

@@ -1,7 +1,7 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { PwaInstallPrompt } from "./components/PwaInstallPrompt";
-import { OfflineIndicator } from "./components/OfflineIndicator";
-import { HomePage } from "./pages/HomePage";
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { PwaInstallPrompt } from './components/PwaInstallPrompt';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { HomePage } from './pages/HomePage';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   return (
