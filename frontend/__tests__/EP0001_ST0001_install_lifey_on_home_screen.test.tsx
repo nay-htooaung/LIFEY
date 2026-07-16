@@ -37,6 +37,26 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
     vi.restoreAllMocks();
   });
 
+  describe("@AC-004: Unsupported browser — no install prompt", () => {
+    it("does not show an install prompt on unsupported browsers", () => {
+      render(<App />);
+
+      // No install prompt should be shown (beforeinstallprompt never fires)
+      expect(
+        screen.queryByRole("button", { name: /install lifey/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    it("still renders the full app on unsupported browsers", () => {
+      render(<App />);
+
+      // The app shell still renders normally
+      expect(
+        screen.getByText("Your life together, simplified."),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe("@AC-003: Offline indicator", () => {
     beforeEach(() => {
       // Ensure we start in online state
