@@ -9,8 +9,8 @@ story_number: ST0002
 ## Story
 
 **As a** returning user,  
-**I want** to log in with a magic link and log out when I'm done,  
-**so that** I can access my data securely without remembering a password.
+**I want** to log in with my email and password and log out when I'm done,  
+**so that** I can access my data securely without needing to click a link in my email.
 
 ---
 
@@ -22,28 +22,29 @@ story_number: ST0002
 @AC-001
 Given I already have an account
 When I open LIFEY
-Then I see an email field directly (no invite code asked)
-And the button says "Send sign-in link"
+Then I see an email field and a password field directly (no invite code asked)
+And the button says "Log In"
+And there is a "Forgot password?" link below the password field
 
 @AC-002
 Given I am on the login screen
-When I enter my registered email
-And I tap "Send sign-in link"
-Then a magic link is sent to my email
-And I see a confirmation screen: "Check your inbox — the link expires in 10 minutes"
+When I enter my registered email and correct password
+And I tap "Log In"
+Then I am authenticated
+And I am taken to the main app
 
 @AC-003
-Given I am on the confirmation screen
-When I open my email and tap the magic link
-Then my browser opens the app
-And I am logged in and taken to the main app
+Given I am on the login screen
+When I enter an email that is not registered
+And I tap "Log In"
+Then I see an error "Invalid email or password"
+(Same message for both wrong password and unregistered email — prevents email enumeration)
 
 @AC-004
 Given I am on the login screen
-When I enter an email that is not registered
-And I tap "Send sign-in link"
-Then I see a confirmation screen: "If an account exists for this email, you'll receive a sign-in link"
-(Same message for both registered and unregistered emails — prevents email enumeration)
+When I enter my registered email and an incorrect password
+And I tap "Log In"
+Then I see an error "Invalid email or password"
 ```
 
 ### Log out
@@ -60,7 +61,7 @@ And the invite code step is not shown again
 @AC-006
 Given I am logged out
 When I open the app
-Then I see the email input directly (skip invite code)
+Then I see the email and password fields directly (skip invite code)
 ```
 
 ### Session
@@ -75,6 +76,21 @@ Then I am still logged in (session persisted)
 Given I am logged in
 When I return after more than 7 days of inactivity
 Then I am prompted to log in again
+```
+
+### Password field UX
+
+```gherkin
+@AC-009
+Given I am on the login screen
+When I type my password
+Then the password characters are masked by default
+And there is a toggle (eye icon) to show/hide the password
+
+@AC-010
+Given I am on the login screen
+When I tap "Forgot password?"
+Then I am taken to the forgot password flow
 ```
 
 ---
@@ -98,3 +114,4 @@ Then I am prompted to log in again
 |------|---------|--------|--------|
 | 2026-07-12 | 1.0 | Project Manager | Initial draft (email + password login) |
 | 2026-07-14 | 2.0 | Tech Lead | Revised for magic link — password removed, "Send sign-in link" flow, anti-enumeration messaging |
+| 2026-07-14 | 3.0 | Project Manager | Revised for password — email + password login restored, "Forgot password?" link added, password visibility toggle |

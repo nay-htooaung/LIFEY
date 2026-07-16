@@ -128,6 +128,23 @@ create table public.invite_codes (
 create index idx_invite_codes_household on public.invite_codes(household_id);
 ```
 
+### password_reset_codes
+
+Stores password reset codes for the code-based forgot password flow. Codes are 6 digits, hashed, with expiry and rate limiting. Used by the `send-reset-code` Supabase Edge Function.
+
+```sql
+create table public.password_reset_codes (
+    id            uuid primary key default gen_random_uuid(),
+    email         text not null,
+    code_hash     text not null,
+    expires_at    timestamptz not null,
+    attempts      int not null default 0,
+    created_at    timestamptz not null default now()
+);
+
+create index idx_password_reset_codes_email on public.password_reset_codes(email);
+```
+
 ### task_lists
 
 Containers that hold task items. The list's access scope is determined by which household it belongs to:
@@ -522,12 +539,13 @@ When applying to a fresh Supabase project:
 2. Create `households` table
 3. Create `household_memberships` table
 4. Create `invite_codes` table
-5. Create `task_lists` table
-6. Create `task_items` table
-7. Create `task_assignees` table
-8. Create `household_feature_flags` table + trigger
-9. Create `set_updated_at` function and apply triggers
-10. Create helper functions (`is_household_member`, `is_household_admin`)
-11. Enable RLS and apply policies
+5. Create `password_reset_codes` table
+6. Create `task_lists` table
+7. Create `task_items` table
+8. Create `task_assignees` table
+9. Create `household_feature_flags` table + trigger
+10. Create `set_updated_at` function and apply triggers
+11. Create helper functions (`is_household_member`, `is_household_admin`)
+12. Enable RLS and apply policies
 
 All SQL should be written as a single migration file per table, with an accompanying rollback script.
