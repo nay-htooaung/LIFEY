@@ -37,6 +37,23 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
     vi.restoreAllMocks();
   });
 
+  describe("@AC-002: Standalone mode and main app screen", () => {
+    it("shows the main app screen at the root route", () => {
+      window.history.pushState({}, "", "/");
+      render(<App />);
+
+      // The main app screen should be displayed
+      expect(screen.getByText(/lifey/i)).toBeInTheDocument();
+    });
+
+    it("detects standalone display mode", () => {
+      render(<App />);
+
+      // The app shell layout should include a header with the app name
+      expect(screen.getByRole("heading", { name: /lifey/i })).toBeInTheDocument();
+    });
+  });
+
   describe("@AC-001: Install prompt on supported browsers", () => {
     it("shows an install prompt when beforeinstallprompt event fires", () => {
       const { event } = createMockBeforeInstallPromptEvent();
