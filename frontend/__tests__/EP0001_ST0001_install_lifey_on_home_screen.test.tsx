@@ -1,7 +1,7 @@
 // Story: EP0001-ST0001 — Install LIFEY on Home Screen (PWA)
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../src/App";
 
@@ -49,7 +49,9 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
       ).not.toBeInTheDocument();
 
       // Fire the beforeinstallprompt event (simulates supported browser)
-      window.dispatchEvent(event);
+      act(() => {
+        window.dispatchEvent(event);
+      });
 
       // The install prompt button should now be visible
       expect(
@@ -62,7 +64,9 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
       const { event, mockPrompt } = createMockBeforeInstallPromptEvent();
 
       render(<App />);
-      window.dispatchEvent(event);
+      act(() => {
+        window.dispatchEvent(event);
+      });
 
       const installButton = screen.getByRole("button", {
         name: /install lifey/i,
