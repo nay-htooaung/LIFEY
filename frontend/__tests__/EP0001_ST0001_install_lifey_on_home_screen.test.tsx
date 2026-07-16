@@ -2,7 +2,7 @@
 
 import fs from "fs";
 import path from "path";
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, test, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, act } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../src/App";
@@ -31,7 +31,6 @@ function createMockBeforeInstallPromptEvent() {
 
 describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
   beforeEach(() => {
-    // Ensure we start with a clean window event listeners
     vi.restoreAllMocks();
   });
 
@@ -39,38 +38,63 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
     vi.restoreAllMocks();
   });
 
-  describe("@AC-005: Service worker update", () => {
-    it("configures vite-plugin-pwa with autoUpdate register type", () => {
-      // Read the vite config file to verify autoUpdate setting.
-      // registerType: "autoUpdate" makes the service worker call
-      // skipWaiting() and clientsClaim(), so updates apply immediately
-      // in the background and take effect on next visit.
-      const configContent = fs.readFileSync(
-        path.resolve(process.cwd(), "vite.config.ts"),
-        "utf-8",
-      );
+  describe("@AC-001: Install prompt on supported browsers", () => {
+    test("test_ac_001_shows_install_prompt_on_supported_browser", () => {
+      const { event } = createMockBeforeInstallPromptEvent();
 
-      expect(configContent).toContain('registerType: "autoUpdate"');
+      render(<App />);
+
+      // Before the event, no install prompt should be shown
+      expect(
+        screen.queryByRole("button", { name: /install/i }),
+      ).not.toBeInTheDocument();
+
+      // Fire the beforeinstallprompt event (simulates supported browser)
+      act(() => {
+        window.dispatchEvent(event);
+      });
+
+      // The install prompt button should now be visible
+      expect(
+        screen.getByRole("button", { name: /install lifey/i }),
+      ).toBeInTheDocument();
+    });
+
+    test("test_ac_001_calls_prompt_when_install_button_clicked", async () => {
+      const user = userEvent.setup();
+      const { event, mockPrompt } = createMockBeforeInstallPromptEvent();
+
+      render(<App />);
+      act(() => {
+        window.dispatchEvent(event);
+      });
+
+      const installButton = screen.getByRole("button", {
+        name: /install lifey/i,
+      });
+      await user.click(installButton);
+
+      expect(mockPrompt).toHaveBeenCalledTimes(1);
     });
   });
 
-  describe("@AC-004: Unsupported browser — no install prompt", () => {
-    it("does not show an install prompt on unsupported browsers", () => {
+  describe("@AC-002: Standalone mode and main app screen", () => {
+    test("test_ac_002_shows_main_app_screen_with_tagline", () => {
+      window.history.pushState({}, "", "/");
       render(<App />);
 
-      // No install prompt should be shown (beforeinstallprompt never fires)
-      expect(
-        screen.queryByRole("button", { name: /install lifey/i }),
-      ).not.toBeInTheDocument();
-    });
-
-    it("still renders the full app on unsupported browsers", () => {
-      render(<App />);
-
-      // The app shell still renders normally
+      // The main app screen should display the tagline (unique to HomePage)
       expect(
         screen.getByText("Your life together, simplified."),
       ).toBeInTheDocument();
+    });
+
+    test("test_ac_002_has_app_shell_with_header", () => {
+      render(<App />);
+
+      // The app shell layout should include a header with the app name
+      const headers = screen.getAllByRole("heading", { name: /lifey/i });
+      expect(headers.length).toBeGreaterThan(0);
     });
   });
 
@@ -84,7 +108,7 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
       });
     });
 
-    it("shows an offline indicator when the browser goes offline", () => {
+    test("test_ac_003_shows_offline_indicator_when_offline", () => {
       render(<App />);
 
       // Initially no offline indicator
@@ -104,7 +128,7 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
       expect(screen.getByText(/you are offline/i)).toBeInTheDocument();
     });
 
-    it("hides the offline indicator when coming back online", () => {
+    test("test_ac_003_hides_offline_indicator_when_back_online", () => {
       render(<App />);
 
       // Go offline
@@ -133,63 +157,38 @@ describe("EP0001-ST0001: Install LIFEY on Home Screen", () => {
     });
   });
 
-  describe("@AC-002: Standalone mode and main app screen", () => {
-    it("shows the main app screen with tagline at the root route", () => {
-      window.history.pushState({}, "", "/");
+  describe("@AC-004: Unsupported browser — no install prompt", () => {
+    test("test_ac_004_no_install_prompt_on_unsupported_browser", () => {
       render(<App />);
 
-      // The main app screen should display the tagline (unique to HomePage)
+      // No install prompt should be shown (beforeinstallprompt never fires)
+      expect(
+        screen.queryByRole("button", { name: /install lifey/i }),
+      ).not.toBeInTheDocument();
+    });
+
+    test("test_ac_004_app_renders_on_unsupported_browser", () => {
+      render(<App />);
+
+      // The app shell still renders normally
       expect(
         screen.getByText("Your life together, simplified."),
       ).toBeInTheDocument();
     });
-
-    it("has an app shell with a header containing the app name", () => {
-      render(<App />);
-
-      // The app shell layout should include a header with the app name
-      const headers = screen.getAllByRole("heading", { name: /lifey/i });
-      expect(headers.length).toBeGreaterThan(0);
-    });
   });
 
-  describe("@AC-001: Install prompt on supported browsers", () => {
-    it("shows an install prompt when beforeinstallprompt event fires", () => {
-      const { event } = createMockBeforeInstallPromptEvent();
+  describe("@AC-005: Service worker update", () => {
+    test("test_ac_005_configures_vite_plugin_pwa_auto_update", () => {
+      // Read the vite config file to verify autoUpdate setting.
+      // registerType: "autoUpdate" makes the service worker call
+      // skipWaiting() and clientsClaim(), so updates apply immediately
+      // in the background and take effect on next visit.
+      const configContent = fs.readFileSync(
+        path.resolve(process.cwd(), "vite.config.ts"),
+        "utf-8",
+      );
 
-      render(<App />);
-
-      // Before the event, no install prompt should be shown
-      expect(
-        screen.queryByRole("button", { name: /install/i }),
-      ).not.toBeInTheDocument();
-
-      // Fire the beforeinstallprompt event (simulates supported browser)
-      act(() => {
-        window.dispatchEvent(event);
-      });
-
-      // The install prompt button should now be visible
-      expect(
-        screen.getByRole("button", { name: /install lifey/i }),
-      ).toBeInTheDocument();
-    });
-
-    it("calls prompt() when the install button is clicked", async () => {
-      const user = userEvent.setup();
-      const { event, mockPrompt } = createMockBeforeInstallPromptEvent();
-
-      render(<App />);
-      act(() => {
-        window.dispatchEvent(event);
-      });
-
-      const installButton = screen.getByRole("button", {
-        name: /install lifey/i,
-      });
-      await user.click(installButton);
-
-      expect(mockPrompt).toHaveBeenCalledTimes(1);
+      expect(configContent).toContain('registerType: "autoUpdate"');
     });
   });
 });
