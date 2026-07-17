@@ -3,22 +3,20 @@ title: "[Short, action-oriented story title]"
 status: Draft
 type: user_story
 epic: "[Parent Epic Title — must match an epic doc's title exactly]"
+story_number: STxxxx
 ---
 
 > **Instructions:** Replace all `[bracketed]` placeholders with your content.
-> The completed file should be saved as `docs/project-management/XX-story-your-story-name.md`.
+> The completed file should be saved as `docs/project-management/04-story/EPxxxx-STxxxx-<short-kebab-slug>.md`.
+> Story numbering: ST prefix, zero-padded to 4 digits, restarts from ST0001 per epic.
 
 ---
 
-# [Story Title]
+## Story
 
-## User Story
-
-```text
-As a [role],
-I want [goal / action]
-so that [benefit / reason].
-```
+**As a** [role],  
+**I want** [goal / action],  
+**so that** [benefit / reason].
 
 ### ✅ Example
 
@@ -32,11 +30,12 @@ so that the system automatically splits the bill on each due date without manual
 
 ## Acceptance Criteria
 
-> *Gherkin-style (Given / When / Then). Each scenario tests one behavior.*
+> *Gherkin-style (Given / When / Then). Each scenario tests one behavior. Number each AC with `@AC-NNN` for test traceability.*
 
 ### Scenario: [Happy path — scenario name]
 
 ```gherkin
+@AC-001
 Given [precondition]
 When  [action]
 Then  [expected result]
@@ -45,6 +44,7 @@ Then  [expected result]
 ### Scenario: [Edge case — scenario name]
 
 ```gherkin
+@AC-002
 Given [precondition]
 When  [action]
 Then  [expected result]
@@ -53,6 +53,7 @@ Then  [expected result]
 ### Scenario: [Error path — scenario name]
 
 ```gherkin
+@AC-003
 Given [precondition]
 When  [action]
 Then  [expected result]
@@ -61,6 +62,7 @@ Then  [expected result]
 ### ✅ Example: Successful bill template creation
 
 ```gherkin
+@AC-001
 Given I am logged in as a household member with "admin" role
 When I create a recurring bill template for "$100 monthly rent" split evenly among 3 members
 Then the template is saved with recurring schedule "monthly"
@@ -68,18 +70,10 @@ And each member's share is calculated as "$33.33"
 And a confirmation message is shown
 ```
 
-### ✅ Example: Edit pending auto-split before due date
-
-```gherkin
-Given I have a recurring bill template with a pending auto-split due in 3 days
-When I edit the split percentages
-Then the updated split is recalculated
-And all members are notified of the change
-```
-
 ### ✅ Example: Invalid amount entered
 
 ```gherkin
+@AC-002
 Given I am on the "create recurring bill" form
 When I enter an amount of "$0"
 Then I see a validation error "Amount must be greater than $0"
@@ -88,23 +82,16 @@ And the form is not submitted
 
 ---
 
-## Definition of Ready (DoR) — Ready for Sprint
+## INVEST Checklist
 
-- [ ] Clear title & description
-- [ ] Acceptance criteria written (Gherkin)
-- [ ] Estimated by the team (story points or t-shirt)
-- [ ] Attached to a parent epic via `epic` field
-- [ ] Title matches a [[Wiki Link]] in the parent epic
-- [ ] Dependencies identified and resolved
+- [ ] **I**ndependent — can be developed, tested, and shipped in any order
+- [ ] **N**egotiable — details are open to change through conversation
+- [ ] **V**aluable — delivers concrete value to the end-user or business
+- [ ] **E**stimable — the team can roughly estimate effort
+- [ ] **S**mall — fits within one sprint (ideally 2–3 days of work)
+- [ ] **T**estable — has clear acceptance criteria that can be verified
 
-## Definition of Done (DoD) — Ready for Release
-
-- [ ] Code merged to main
-- [ ] Tests pass (unit + integration)
-- [ ] Peer-reviewed
-- [ ] Deployed to staging
-- [ ] Acceptance criteria verified by QA
-- [ ] No P0/P1 bugs
+**Size:** [XS / S / M / L]
 
 ---
 

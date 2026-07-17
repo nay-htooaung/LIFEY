@@ -54,9 +54,9 @@ flowchart TD
 ### Authentication flow
 
 ```
-Member → React Shell → invite code gate → enter email → magic link sent
-                     → Click magic link → Supabase Auth authenticates
-                     → Returns JWT token (stored in IndexedDB via persistQueryClient)
+Member → React Shell → invite code gate → enter email + password → sign-up/log-in
+                     → Supabase Auth authenticates (password-based)
+                     → Returns JWT token (stored in IndexedDB by Supabase GoTrue)
                      → Token attached to all subsequent requests
                      → RLS policies enforce per-household data isolation
 ```

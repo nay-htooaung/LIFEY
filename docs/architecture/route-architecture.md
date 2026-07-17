@@ -1,7 +1,7 @@
 # Route Architecture — LIFEY SPA
 
 > **Audience:** Developers
-> **Last updated:** 2026-07-14
+> **Last updated:** 2026-07-14 (password auth)
 > **Related decisions:** [ADR-0002](../adr/0002-installable-spa-architecture.md), [ADR-0004](../adr/0004-state-management-and-offline-strategy.md), [ADR-0006](../adr/0006-authentication-flow.md)
 
 ---
@@ -18,7 +18,8 @@ This document defines the route tree structure for the LIFEY SPA. It covers rout
 /                          → redirect to /household/:activeId/tasks  (logged in)
                              redirect to /login                        (logged out)
 
-/login                     → email input → magic link sent → confirmation
+/login                     → email + password login (or invite code → sign-up)
+/forgot-password           → email input → 6-digit code → new password
 
 /household/:householdId
   /tasks                   → task list view (story 09–15)
@@ -44,6 +45,7 @@ Wraps the entire app. Reads the Supabase session from Zustand `useAuthStore`. If
 ```
 <AuthGate>
   ├── /login                ← no session → show login
+  ├── /forgot-password      ← no session → password reset flow
   └── <AppShell>            ← has session → show app
 ```
 
@@ -118,6 +120,10 @@ const router = createBrowserRouter([
       {
         path: "/login",
         element: <LoginPage />,
+      },
+      {
+        path: "/forgot-password",
+        element: <ForgotPasswordPage />,
       },
       {
         element: <AppShell />,

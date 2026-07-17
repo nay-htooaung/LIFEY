@@ -16,6 +16,7 @@ Before designing, verify:
 - [ ] Read `.opencode/frontend-session.md` — current session context
 - [ ] Check existing canvases for related screens
 - [ ] Check `docs/design/Lifey/*.design` for exported screen snapshots
+- [ ] Check `docs/design/Lifey/Components/*.design` for reusable component patterns
 - [ ] Read `docs/design/Styles/default.styles` for canonical design tokens
 - [ ] Load Brilliant knowledge (≥6 keys for DSL work)
 - [ ] Confirm brief with user
@@ -28,8 +29,7 @@ The `docs/design/` directory contains the project's design source of truth:
 |------|----------|-----------|
 | `docs/design/Styles/default.styles` | LIFEY design system tokens (colors, fonts, spacing, shadows) | ✅ Yes — update tokens here |
 | `docs/design/Assets/` | Image assets (icons, logos, exported screenshots) | ✅ Yes — add assets here |
-| `docs/design/Lifey/Auth.design` | Auth canvas blueprint (5 screens) | ❌ Never edit — Brilliant-managed |
-| `docs/design/Lifey/Profile.design` | Profile canvas blueprint | ❌ Never edit — Brilliant-managed |
+| `docs/design/Lifey.design` | Single canvas: 8 screens + 11 component masters | ❌ Never edit — Brilliant-managed |
 | `docs/design/Canvas.design` | Scratch canvas config | ❌ Never edit — Brilliant-managed |
 | `docs/design/.brilliant/` | Brilliant internal data | ❌ Never edit — Brilliant-managed |
 
@@ -40,12 +40,12 @@ The `docs/design/` directory contains the project's design source of truth:
 ### Creating screens (default path)
 
 ```python
-# Phone mockup template
+# Screen template — app UI only, no phone chrome
 # Use $tokens from docs/design/Styles/default.styles when possible
 brilliant_create_html(
   canvasId="Lifey/<Folder>",
-  html="""<div style="... 390px, 844px, #0D0D1F ..." id="lifey-<name>">
-    ...status bar, nav, content, buttons, home indicator...
+  html="""<div style="width:390px;height:844px;background:#0D0D1F;border-radius:40px;overflow:hidden;display:flex;flex-direction:column;padding:0 24px;">
+    ...nav, header, content, buttons — no status bar or home indicator...
   </div>"""
 )
 ```
@@ -58,6 +58,10 @@ brilliant_create_modify_elements(
   elements="<element-id> <new-prop>"
 )
 ```
+
+### Using component instances
+
+All screens and component masters live on the **same canvas** (`Lifey`), so `inst()` always works. Screens are positioned on the left, component masters on the right (p(1760,0)), grouped by category (Inputs, Buttons, Navigation, Feedback).
 
 ### Validating layout
 
@@ -73,12 +77,14 @@ brilliant_lookup(scope: ["Lifey/<Folder>", "<element-id>"], format: "blueprint")
 ## Design Review Checklist
 
 - [ ] Outer frame: `s(390,844)` with `clip`
-- [ ] No content overflows parent width (max 342px)
+- [ ] Checked `Lifey/Components/*` first for reusable patterns before building from scratch
+- [ ] No phone chrome — no status bar (9:41, signal, battery), no home indicator, no device mockups
+- [ ] No content overflows parent width (max 342px inside 24px side padding)
 - [ ] Fill spacers actually push content (not collapsed in hug parent)
 - [ ] Text that wraps has `s(fill,hug)`
 - [ ] Buttons at bottom of screen (pushed by fill spacer)
-- [ ] Color contrast: secondary text at 0.5 opacity minimum
-- [ ] Consistent padding: 40px top, 24px sides
+- [ ] Color contrast: secondary text at `#9CA3AF` or above
+- [ ] Consistent padding: 24px sides, content starts naturally from top
 - [ ] Frame has a descriptive name (not "Frame 1")
 - [ ] Session file updated with new screen
 - [ ] Token values match `docs/design/Styles/default.styles`

@@ -3,6 +3,7 @@ title: "[Short, descriptive epic name]"
 status: Draft
 type: epic
 theme: "[Roadmap Theme this epic belongs to]"
+epic_number: EPxxxx
 feature_area: "[Feature domain — e.g., Receipt Scanning, Invites, Payments]"
 scope_boundary: "[One sentence defining what's in and out of scope]"
 dependencies:
@@ -11,7 +12,8 @@ dependencies:
 ---
 
 > **Instructions:** Replace all `[bracketed]` placeholders with your content.
-> The completed file should be saved as `docs/project-management/XX-epic-your-epic-name.md`.
+> The completed file should be saved as `docs/project-management/03-epic/EPxxxx-<short-kebab-slug>.md`.
+> Follow numbering rules: EP prefix, zero-padded to 4 digits, assigned sequentially, never reused.
 
 ---
 
@@ -44,13 +46,13 @@ dependencies:
 
 ## User Stories
 
-> *Decompose the epic into sprint-sized stories. Story titles must use [[Wiki Link]] syntax to auto-link to story docs.*
+> *Decompose the epic into sprint-sized stories. Story names link to their story documents using relative `[text](path)` markdown links.*
 
-| Story | Status |
-|-------|--------|
-| [[Story Title — must match a story doc's title exactly]] | Draft |
-| [[Another Story Title]] | Draft |
-| TBD | — |
+| # | Story | Status |
+|---|-------|--------|
+| ST0001 | [Story Title](../04-story/EPxxxx-ST0001-<short-kebab-slug>.md) | Draft |
+| ST0002 | [Another Story Title](../04-story/EPxxxx-ST0002-<short-kebab-slug>.md) | Draft |
+| TBD | — | — |
 
 ---
 

@@ -16,9 +16,10 @@ export default defineConfig({
         name: "LIFEY",
         short_name: "LIFEY",
         description: "Household management for your everyday life",
-        theme_color: "#ffffff",
-        background_color: "#ffffff",
+        theme_color: "#0D0D1F",
+        background_color: "#0D0D1F",
         display: "standalone",
+        display_override: ["standalone"],
         scope: "/",
         start_url: "/",
         icons: [

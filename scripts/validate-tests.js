@@ -36,12 +36,13 @@ const STORY_DIR = path.join(ROOT, "docs/project-management/04-story");
 const EPIC_DIR = path.join(ROOT, "docs/project-management/03-epic");
 const TEST_SEARCH_DIRS = [
   path.join(ROOT, "backend/tests"),
+  path.join(ROOT, "frontend/__tests__"),
   path.join(ROOT, "frontend/src"),
 ];
 
 // Supported test file patterns (glob-friendly)
 const TEST_FILE_PATTERN = /^EP(\d{4})_ST(\d{4})_.+\.(test|spec)\.\w+$/i;
-const AC_FUNC_PATTERN = /(?:def|function|it\(|test)\s+test_ac_(\d{3})(?:_|\)|\b)/gi;
+const AC_FUNC_PATTERN = /(?:def |function |it\(["']?|test\s+|test\(["']?)test_ac_(\d{3})(?:_|\)|\b|["'])/gi;
 const STORY_HEADER_PATTERN = /Story:\s*(EP\d{4}-ST\d{4})\s*—\s*(.+)/i;
 const AC_TAG_PATTERN = /@AC-(\d{3})/g;
 const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?/;

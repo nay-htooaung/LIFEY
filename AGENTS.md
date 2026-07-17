@@ -1,35 +1,37 @@
 # LIFEY — Agent Guide
 
-This repo manages **project artifacts** (vision → roadmap → epics → stories → tasks) for the LIFEY household management platform. There is **no application code** — the `backend/` and `frontend/` dirs in CI don't exist yet. The only executable code is `scripts/build-docs.js` (~1100 lines), which parses `.md` files and generates `docs/dist/index.html`.
+This repo manages **project artifacts** (vision → roadmap → epics → stories → tasks) and a **React SPA frontend** for the LIFEY household management platform. The `backend/` dir is a placeholder (Q4 2026 — Python/FastAPI). There is no custom backend for Q3 — the SPA talks directly to Supabase.
+
+pnpm workspace (`pnpm-workspace.yaml`) with a single package: `frontend/`.
 
 ## Commands
 
-| Command | What it does |
-|---------|-------------|
-| `mise build-doc` | Parse → validate → generate `docs/dist/index.html` |
-| `mise build-doc-watch` | Same, re-runs on file changes |
-| `mise validate-doc` | Parse + validate docs only (exits 1 on errors, no HTML output) |
-| `mise deps` | Install npm packages via pnpm (auto-runs before tasks) |
-
-Fastest validation: `node scripts/build-docs.js --validate-only`
-Direct build: `node scripts/build-docs.js` (with `--watch` flag for file watching)
-Convert any markdown: `mise run convert-md path/to/file.md`
-
-## Test Validation
-
-| Command | What it does |
-|---------|-------------|
-| `mise validate-tests` or `mise vt` | Show usage (needs `--story`, `--epic`, or `--all`) |
-| `mise vts -- EP0004-ST0001` | Validate one story (checks all ACs have tests) |
-| `mise vte -- EP0004` | Validate an epic (checks all stories in the epic) |
-| `mise vta` | Validate all stories across all epics |
-| `node scripts/validate-tests.js --all --json` | Machine-readable JSON output |
-| `node scripts/validate-tests.js --story EP0004-ST0001 --run` | Also execute the tests
+| Category | Command | What it does |
+|----------|---------|-------------|
+| Docs | `mise build-doc` | Parse → validate → generate `docs/dist/index.html` |
+| Docs | `mise build-doc-watch` | Same, re-runs on file changes |
+| Docs | `mise validate-doc` | Parse + validate docs only (exits 1 on error) |
+| Docs | `mise run convert-md path/to/file.md` | Convert .md to .docx + .pdf |
+| Frontend | `mise dev` | Start Vite dev server (HTTP on localhost) — `pnpm --filter lifey-frontend dev` |
+| Frontend | `mise build` | `tsc --noEmit && vite build` (production) |
+| Frontend | `mise test` | `vitest run` via pnpm workspace filter |
+| Frontend | `mise lint` | ESLint with `typescript-eslint` type-checked rules |
+| Frontend | `mise format` | Prettier with `prettier-plugin-tailwindcss` |
+| Frontend | `mise typecheck` | `tsc --noEmit` |
+| Tests | `mise vt`, `mise vts -- EP0004-ST0001`, `mise vte -- EP0004`, `mise vta` | Validate story/AC test coverage |
+| Tests | `mise vts -- EP0004-ST0001 --run` | Validate + execute story tests |
 
 ## Project layout
 
 | Path | Purpose |
 |------|---------|
+| `frontend/` | React 19 + Vite 6 + TypeScript SPA (pnpm workspace package `lifey-frontend`) |
+| `frontend/src/features/` | Feature modules: `auth/`, `household/`, `tasks/` (scaffolded, mostly empty) |
+| `frontend/src/components/ui/` | Reusable UI primitives (empty — to be built) |
+| `frontend/src/lib/` | `supabase.ts` (Supabase client), `utils.ts` (`cn()` via clsx + tailwind-merge) |
+| `frontend/src/stores/`, `hooks/`, `types/` | Zustand stores, custom hooks, TS types (all empty) |
+| `frontend/__tests__/` | Vitest tests (jsdom, @testing-library/react, `@/` alias) |
+| `frontend/.env.example` | Supabase env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
 | `docs/project-management/01-vision/` | Product vision documents |
 | `docs/project-management/02-roadmap/` | Roadmap documents |
 | `docs/project-management/03-epic/` | Epic documents |
@@ -38,15 +40,13 @@ Convert any markdown: `mise run convert-md path/to/file.md`
 | `docs/rules/project-management/` | Convention rules (01–04) — **read before editing that artifact type** |
 | `docs/rules/frontend-design/` | Design conventions — screen standards, tokens, Brilliant workflow |
 | `docs/adr/` | Architecture Decision Records (created/maintained by tech-lead) |
-| `docs/architecture/` | Tech radar, tech debt log, architecture conventions |
+| `docs/architecture/` | Tech radar, tech debt log, route architecture, data model, service worker strategy |
 | `docs/design/` | Brilliant design exports + design system tokens |
-| `docs/diagrams/` | C4 model architecture diagrams |
+| `docs/design/Styles/default.styles` | **Dark-first, purple-primary** design tokens (editable) |
 | `scripts/build-docs.js` | Single HTML site generator (Node.js, ~1100 lines) |
-| `docs/dist/` | Build output (gitignored) |
-| `.opencode/agents/` | Agent defs (`project-manager`, `opencode-manager`, `tech-lead`, `frontend-designer`) |
-| `.opencode/skills/` | Skill definitions loaded on-demand by agents (e.g., `tdd-dev-workflow`, `frontend-design`) |
-| `.opencode/agents/dev-agent.md` | TDD implementation agent — writes tests + code for stories |
-| `.opencode/frontend-session.md` | Live Brilliant session context — session ID, canvas paths, screen refs |
+| `scripts/validate-tests.js` | Validates test coverage matches story acceptance criteria |
+| `.opencode/agents/` | Agent defs (`project-manager`, `tech-lead`, `dev-agent`, `frontend-designer`, etc.) |
+| `.opencode/skills/` | Skill definitions loaded on-demand by agents
 
 ## Artifact rules
 
@@ -97,6 +97,6 @@ All `.md` files under `docs/project-management/` are scanned recursively, except
 - **review-agent** — Gate between dev-agent implementation and merge. Reviews branches against ADRs, code conventions, story criteria, and scope boundaries. Produces a structured report before the user merges.
 - **frontend-designer** — UI/UX designer using Brilliant to create mobile-first screens. Story-driven — reads stories and generates polished designs on `Lifey/` canvases. Proposes design tokens and component patterns; tech-lead reviews via ADRs. Maintains `docs/rules/frontend-design/` and reads session context from `.opencode/frontend-session.md`. **Never manually edit `.design` files or `.brilliant/` in `docs/design/`** — they are Brilliant-managed exports. Edit `docs/design/Styles/default.styles` for token changes.
 
-## CI (aspirational)
+## CI
 
-`.github/workflows/ci.yml` runs ruff, mypy, eslint, prettier, tsc, pytest, vitest, and Docker Compose, but **none of these tools or directories exist in the repo yet**. The CI file is a template for future use.
+`.github/workflows/ci.yml` runs frontend lint (ESLint), format check (Prettier), typecheck (tsc), test (vitest), and build (vite) via pnpm on push/PR to `main`. Backend CI (ruff, mypy, pytest) is commented out — unblock when backend/ is built in Q4.
