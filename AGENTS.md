@@ -12,7 +12,7 @@ pnpm workspace (`pnpm-workspace.yaml`) with a single package: `frontend/`.
 | Docs | `mise build-doc-watch` | Same, re-runs on file changes |
 | Docs | `mise validate-doc` | Parse + validate docs only (exits 1 on error) |
 | Docs | `mise run convert-md path/to/file.md` | Convert .md to .docx + .pdf |
-| Frontend | `mise dev` | Start Vite dev server (`pnpm --filter lifey-frontend dev`) |
+| Frontend | `mise dev` | Start Vite dev server (HTTP on localhost) — `pnpm --filter lifey-frontend dev` |
 | Frontend | `mise build` | `tsc --noEmit && vite build` (production) |
 | Frontend | `mise test` | `vitest run` via pnpm workspace filter |
 | Frontend | `mise lint` | ESLint with `typescript-eslint` type-checked rules |

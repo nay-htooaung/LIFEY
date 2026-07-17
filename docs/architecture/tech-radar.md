@@ -50,6 +50,7 @@ A living inventory of every technology used in the LIFEY project. Each entry has
 |-----------|------|---------|-----|
 | **Supabase CLI** | Adopt | Local dev — `supabase start`, migrations, seed data | [ADR-0005](../adr/0005-supabase-local-development.md) |
 | **Docker Desktop (WSL2)** | Adopt | Container runtime for the local Supabase stack | [ADR-0005](../adr/0005-supabase-local-development.md) |
+| **@vitejs/plugin-basic-ssl** | Hold | Removed — self-signed certs blocked SW on Chrome Android, tunnel tools required accounts. Too much friction for dev workflow. | [ADR-0012](../adr/0012-https-dev-server-for-pwa-testing.md) |
 
 ## Backend & Infrastructure
 
@@ -96,3 +97,5 @@ A living inventory of every technology used in the LIFEY project. Each entry has
 | 2026-07-14 | Added Supabase Edge Functions as Assess, Web Push API as Trial | Per [ADR-0011](../adr/0011-push-notification-strategy.md) — push notification strategy finalised |
 | 2026-07-14 | Moved Supabase Auth (Magic Link) to Hold, Email+Password from Hold to Adopt | Per auth flow change — magic link replaced by password auth for improved PWA UX, auto-confirm sign-up, code-based password reset |
 | 2026-07-14 | Moved Supabase Edge Functions from Assess to Trial | Now used in Q3 for password reset code delivery (ST0005), not just Q4 push notifications |
+| 2026-07-16 | Added @vitejs/plugin-basic-ssl as Adopt | Per [ADR-0012](../adr/0012-https-dev-server-for-pwa-testing.md) — HTTPS dev server for mobile PWA testing |
+| 2026-07-17 | Moved @vitejs/plugin-basic-ssl to Hold | Self-signed certs blocked SW on Chrome Android; tunnel tools required accounts. PWA testing on desktop localhost only. |

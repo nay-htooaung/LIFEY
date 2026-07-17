@@ -1,3 +1,22 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    /* Full viewport height; dvh adapts to dynamic toolbars and PWA standalone */
+    min-height: 100dvh;
+  }
+
+  body {
+    /* Prevent scroll bounce that can show white edges in standalone mode */
+    overscroll-behavior: none;
+    /* Respect safe areas for notched phones and home indicator */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}

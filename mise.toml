@@ -58,7 +58,7 @@ alias = "vta"
 # ------------------------------------------------------------------
 
 [tasks.dev]
-description = "Start the Vite dev server for the frontend SPA"
+description = "Start the Vite dev server for the frontend SPA (HTTP on localhost)"
 run = "pnpm --filter lifey-frontend dev"
 
 [tasks.build]
