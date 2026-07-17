@@ -535,7 +535,7 @@ function validate(docs, docMap) {
  */
 function extractAcceptanceCriteria(body) {
   const criteria = [];
-  const gherkinBlockRegex = /```gherkin\n([\s\S]*?)```/g;
+  const gherkinBlockRegex = /```gherkin\r?\n([\s\S]*?)```/g;
   let match;
   while ((match = gherkinBlockRegex.exec(body)) !== null) {
     const gherkinContent = match[1];

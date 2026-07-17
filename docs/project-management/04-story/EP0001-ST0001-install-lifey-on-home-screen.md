@@ -1,6 +1,6 @@
 ---
 title: "Install LIFEY on Home Screen (PWA)"
-status: Draft
+status: Done
 type: user_story
 epic: "Mobile App Shell (SPA)"
 story_number: ST0001
