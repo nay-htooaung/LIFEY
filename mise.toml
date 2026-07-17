@@ -13,9 +13,6 @@ ANDROID_HOME = "{{env.LOCALAPPDATA}}/Android/Sdk"
 ANDROID_SDK_ROOT = "{{env.LOCALAPPDATA}}/Android/Sdk"
 JAVA_HOME = "{{config_root}}/.mise/installs/java/corretto-17.0.19.10.1"
 
-[deps.pnpm]
-auto = true
-
 [tasks.build-doc]
 description = "Parse .md artifacts → validate → generate docs/dist/index.html"
 run = "pnpm run build-doc"
