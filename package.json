@@ -22,8 +22,5 @@
     "html-to-docx": "^1.8.0",
     "marked": "^14.0.0",
     "pdfkit": "^0.15.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
   }
 }
