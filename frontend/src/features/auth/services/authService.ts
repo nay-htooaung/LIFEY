@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import type { PostgrestError } from '@supabase/supabase-js';
 
 export interface InviteCodeRecord {
   id: string;
@@ -16,17 +17,23 @@ export interface InviteCodeValidation {
   record?: InviteCodeRecord;
 }
 
+interface HouseholdRow {
+  id: string;
+  name: string;
+  created_by: string;
+}
+
 /**
  * Validates an invite code by querying the invite_codes table.
  * Returns { valid: true, record } if the code exists, is not expired,
  * and has not been used. Otherwise returns { valid: false, error }.
  */
 export async function validateInviteCode(code: string): Promise<InviteCodeValidation> {
-  const { data, error } = await supabase
+  const { data, error } = (await supabase
     .from('invite_codes')
     .select('*')
     .eq('code', code.toUpperCase().trim())
-    .maybeSingle();
+    .maybeSingle()) as { data: InviteCodeRecord | null; error: PostgrestError | null };
 
   if (error || !data) {
     return {
@@ -35,10 +42,8 @@ export async function validateInviteCode(code: string): Promise<InviteCodeValida
     };
   }
 
-  const record = data as InviteCodeRecord;
-
   // Check if expired
-  if (record.expires_at && new Date(record.expires_at) < new Date()) {
+  if (data.expires_at && new Date(data.expires_at) < new Date()) {
     return {
       valid: false,
       error: 'This invite code has expired',
@@ -46,14 +51,14 @@ export async function validateInviteCode(code: string): Promise<InviteCodeValida
   }
 
   // Check if already used
-  if (record.used_by || record.used_at) {
+  if (data.used_by || data.used_at) {
     return {
       valid: false,
       error: 'This invite code has already been used',
     };
   }
 
-  return { valid: true, record };
+  return { valid: true, record: data };
 }
 
 export interface SignUpResult {
@@ -94,15 +99,17 @@ export async function signUpWithInviteCode(
     return { success: false, error: 'Failed to create account. Please try again.' };
   }
 
+  const userId = authData.user.id;
+
   // 2. Create personal household
-  const { data: householdData, error: householdError } = await supabase
+  const { data: householdData, error: householdError } = (await supabase
     .from('households')
     .insert({
       name: 'My Home',
-      created_by: authData.user.id,
+      created_by: userId,
     })
     .select()
-    .single();
+    .single()) as { data: HouseholdRow | null; error: PostgrestError | null };
 
   if (householdError || !householdData) {
     return { success: false, error: 'Failed to create household. Please try again.' };
@@ -111,7 +118,7 @@ export async function signUpWithInviteCode(
   // 3. Add user as admin member of personal household
   const { error: membershipError } = await supabase.from('household_memberships').insert({
     household_id: householdData.id,
-    profile_id: authData.user.id,
+    profile_id: userId,
     role: 'admin',
   });
 
@@ -120,28 +127,26 @@ export async function signUpWithInviteCode(
   }
 
   // 4. Look up the invite code record to get household_id
-  const { data: inviteData } = await supabase
+  const { data: inviteData } = (await supabase
     .from('invite_codes')
     .select('*')
     .eq('code', inviteCode.toUpperCase().trim())
-    .maybeSingle();
-
-  const inviteRecord = inviteData as InviteCodeRecord | null;
+    .maybeSingle()) as { data: InviteCodeRecord | null; error: PostgrestError | null };
 
   // 5. Mark invite code as used
   await supabase
     .from('invite_codes')
     .update({
-      used_by: authData.user.id,
+      used_by: userId,
       used_at: new Date().toISOString(),
     })
     .eq('code', inviteCode.toUpperCase().trim());
 
   // 6. If invite code is linked to a shared household, add user as member
-  if (inviteRecord?.household_id) {
+  if (inviteData?.household_id) {
     await supabase.from('household_memberships').insert({
-      household_id: inviteRecord.household_id,
-      profile_id: authData.user.id,
+      household_id: inviteData.household_id,
+      profile_id: userId,
       role: 'member',
     });
   }

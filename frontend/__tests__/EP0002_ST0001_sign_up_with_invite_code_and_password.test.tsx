@@ -482,4 +482,42 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
       });
     });
   });
+
+  describe('@AC-012: Re-entering on same device requires invite code again', () => {
+    test('test_ac_012_reentry_requires_invite_code', async () => {
+      // Simulate: after a successful sign-up, the store resets so the
+      // user must enter the invite code again on the next visit.
+
+      // First, set the store to a state that would be after sign-up
+      useAuthStore.getState().setPhase('account_created');
+
+      // Reset — simulates navigating back to login (e.g., new page load)
+      useAuthStore.getState().reset();
+
+      // Mock a valid invite code for the subsequent check
+      mockInviteCodeLookup({
+        id: 'code-10',
+        code: 'FRESH',
+        household_id: null,
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+      });
+
+      render(<App />);
+
+      // The welcome screen with invite code input should show
+      expect(screen.getByPlaceholderText(/invite code/i)).toBeInTheDocument();
+
+      // No sign-up form fields should be visible
+      expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
+
+      // User can enter a new invite code to start fresh
+      await userEvent.setup().type(screen.getByPlaceholderText(/invite code/i), 'FRESH');
+      await userEvent.setup().click(screen.getByRole('button', { name: /continue/i }));
+
+      // Should transition to sign-up form
+      expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+    });
+  });
 });

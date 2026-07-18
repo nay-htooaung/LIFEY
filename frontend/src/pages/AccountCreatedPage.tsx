@@ -13,7 +13,7 @@ export function AccountCreatedPage() {
 
     // Redirect to home after 2.5 seconds
     const redirectTimeout = setTimeout(() => {
-      navigate('/');
+      void navigate('/');
     }, 2500);
 
     return () => {

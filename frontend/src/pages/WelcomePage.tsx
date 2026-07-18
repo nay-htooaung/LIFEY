@@ -86,7 +86,7 @@ export function WelcomePage() {
 
       {/* Continue button */}
       <button
-        onClick={handleContinue}
+        onClick={() => { void handleContinue(); }}
         disabled={loading}
         className="mt-8 flex h-[52px] w-full items-center justify-center rounded-xl bg-purple-600 text-base text-white transition-opacity hover:opacity-90 disabled:opacity-50"
       >
