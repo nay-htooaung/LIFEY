@@ -284,6 +284,52 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
     });
   });
 
+  describe('@AC-009: Email already registered shows error', () => {
+    test('test_ac_009_email_already_registered_shows_error', async () => {
+      const user = userEvent.setup();
+
+      // Mock a valid invite code
+      mockInviteCodeLookup({
+        id: 'code-7',
+        code: 'EXISTS',
+        household_id: null,
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+      });
+
+      // Mock Supabase signUp to return "already registered" error
+      mockSignUp.mockResolvedValue({
+        data: { user: null, session: null },
+        error: new Error('User already registered'),
+      });
+
+      render(<App />);
+
+      // Enter valid invite code
+      await user.type(screen.getByPlaceholderText(/invite code/i), 'EXISTS');
+      await user.click(screen.getByRole('button', { name: /continue/i }));
+
+      // Fill in form
+      await user.type(screen.getByPlaceholderText(/email/i), 'exists@example.com');
+      await user.type(screen.getByPlaceholderText(/^password$/i), 'password123');
+      await user.type(screen.getByPlaceholderText(/confirm password/i), 'password123');
+
+      // Click Create Account
+      await user.click(screen.getByRole('button', { name: /create account/i }));
+
+      // Should see the email exists error
+      expect(
+        screen.getByText(
+          'An account with this email already exists — please log in instead',
+        ),
+      ).toBeInTheDocument();
+
+      // Should still be on the sign-up form (not redirected)
+      expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+    });
+  });
+
   describe('@AC-006: Valid sign-up creates account and authenticates', () => {
     test('test_ac_006_valid_sign_up_creates_account', async () => {
       const user = userEvent.setup();
