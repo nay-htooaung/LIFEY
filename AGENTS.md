@@ -31,7 +31,7 @@ pnpm workspace (`pnpm-workspace.yaml`) with a single package: `frontend/`.
 | `frontend/src/lib/` | `supabase.ts` (Supabase client), `utils.ts` (`cn()` via clsx + tailwind-merge) |
 | `frontend/src/stores/`, `hooks/`, `types/` | Zustand stores, custom hooks, TS types (all empty) |
 | `frontend/__tests__/` | Vitest tests (jsdom, @testing-library/react, `@/` alias) |
-| `frontend/.env.example` | Supabase env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` |
+| `frontend/.env.example` | Supabase env vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` |
 | `docs/project-management/01-vision/` | Product vision documents |
 | `docs/project-management/02-roadmap/` | Roadmap documents |
 | `docs/project-management/03-epic/` | Epic documents |
