@@ -210,6 +210,44 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
     });
   });
 
+  describe('@AC-007: Password too short shows error', () => {
+    test('test_ac_007_password_too_short_shows_error', async () => {
+      const user = userEvent.setup();
+
+      // Mock a valid invite code
+      mockInviteCodeLookup({
+        id: 'code-5',
+        code: 'SHORT',
+        household_id: null,
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+      });
+
+      render(<App />);
+
+      // Enter valid invite code
+      await user.type(screen.getByPlaceholderText(/invite code/i), 'SHORT');
+      await user.click(screen.getByRole('button', { name: /continue/i }));
+
+      // Fill in form with short password
+      await user.type(screen.getByPlaceholderText(/email/i), 'test@example.com');
+      await user.type(screen.getByPlaceholderText(/^password$/i), '1234567'); // 7 chars
+      await user.type(screen.getByPlaceholderText(/confirm password/i), '1234567');
+
+      // Click Create Account
+      await user.click(screen.getByRole('button', { name: /create account/i }));
+
+      // Should see the password too short error
+      expect(
+        screen.getByText('Password must be at least 8 characters'),
+      ).toBeInTheDocument();
+
+      // Should NOT have called signUp
+      expect(mockSignUp).not.toHaveBeenCalled();
+    });
+  });
+
   describe('@AC-006: Valid sign-up creates account and authenticates', () => {
     test('test_ac_006_valid_sign_up_creates_account', async () => {
       const user = userEvent.setup();
