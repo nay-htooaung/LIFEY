@@ -123,4 +123,34 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
       expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
     });
   });
+
+  describe('@AC-004: Expired invite code shows error', () => {
+    test('test_ac_004_expired_code_shows_error', async () => {
+      const user = userEvent.setup();
+
+      // Mock: code found but expired (yesterday)
+      mockInviteCodeLookup({
+        id: 'code-2',
+        code: 'EXPIRED',
+        household_id: null,
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() - 86400000).toISOString(), // yesterday
+      });
+
+      render(<App />);
+
+      const input = screen.getByPlaceholderText(/invite code/i);
+      await user.type(input, 'EXPIRED');
+
+      const continueButton = screen.getByRole('button', { name: /continue/i });
+      await user.click(continueButton);
+
+      // Should see the expired error
+      expect(screen.getByText('This invite code has expired')).toBeInTheDocument();
+
+      // Should still be on the welcome screen
+      expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
+    });
+  });
 });
