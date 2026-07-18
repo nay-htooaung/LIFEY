@@ -9,7 +9,7 @@
 create type public.item_status as enum ('pending', 'completed');
 
 -- ============================================================
--- 2. HELPER FUNCTIONS (safe to create before tables — lazily evaluated)
+-- 2. INDEPENDENT TRIGGER FUNCTION (no table dependencies)
 -- ============================================================
 
 -- Auto-update updated_at timestamp
@@ -22,37 +22,6 @@ begin
     new.updated_at = now();
     return new;
 end;
-$$;
-
--- Check if the requesting user is a household member
-create or replace function public.is_household_member(household_id uuid)
-returns boolean
-language sql
-stable
-security definer set search_path = ''
-as $$
-    select exists (
-        select 1
-        from public.household_memberships
-        where household_memberships.household_id = is_household_member.household_id
-          and household_memberships.profile_id = auth.uid()
-    );
-$$;
-
--- Check if the requesting user is a household admin
-create or replace function public.is_household_admin(household_id uuid)
-returns boolean
-language sql
-stable
-security definer set search_path = ''
-as $$
-    select exists (
-        select 1
-        from public.household_memberships
-        where household_memberships.household_id = is_household_admin.household_id
-          and household_memberships.profile_id = auth.uid()
-          and household_memberships.role = 'admin'
-    );
 $$;
 
 -- ============================================================
@@ -174,8 +143,43 @@ create index if not exists idx_task_assignees_task on public.task_assignees(task
 create index if not exists idx_task_assignees_profile on public.task_assignees(profile_id);
 
 -- ============================================================
--- 4. TRIGGER FUNCTIONS (safe to create after tables — only called by triggers)
+-- 4. TABLE-DEPENDENT FUNCTIONS (tables already exist)
 -- ============================================================
+
+-- Check if the requesting user is a household member
+create or replace function public.is_household_member(household_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer set search_path = ''
+as $$
+begin
+    return (select exists (
+        select 1
+        from public.household_memberships
+        where household_memberships.household_id = is_household_member.household_id
+          and household_memberships.profile_id = auth.uid()
+    ));
+end;
+$$;
+
+-- Check if the requesting user is a household admin
+create or replace function public.is_household_admin(household_id uuid)
+returns boolean
+language plpgsql
+stable
+security definer set search_path = ''
+as $$
+begin
+    return (select exists (
+        select 1
+        from public.household_memberships
+        where household_memberships.household_id = is_household_admin.household_id
+          and household_memberships.profile_id = auth.uid()
+          and household_memberships.role = 'admin'
+    ));
+end;
+$$;
 
 -- Auto-create profile on user sign-up
 create or replace function public.handle_new_user()
