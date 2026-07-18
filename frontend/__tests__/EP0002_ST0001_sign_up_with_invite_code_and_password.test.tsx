@@ -5,30 +5,46 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
 
-// Mock the supabase client before any imports
+// Mock the supabase client — use vi.hoisted to avoid hoisting issues
+const { mockFromTable, mockSignUp } = vi.hoisted(() => ({
+  mockFromTable: vi.fn(),
+  mockSignUp: vi.fn(),
+}));
+
 vi.mock('../src/lib/supabase', () => ({
   supabase: {
     auth: {
-      signUp: vi.fn(),
+      signUp: mockSignUp,
       getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
       onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
     },
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(),
-          maybeSingle: vi.fn(),
-        })),
-        maybeSingle: vi.fn(),
-      })),
-      insert: vi.fn(),
-      update: vi.fn(() => ({
-        eq: vi.fn(),
-      })),
-    })),
+    from: mockFromTable,
     rpc: vi.fn(),
   },
 }));
+
+/**
+ * Helper: mock invite_codes table to return a specific result.
+ * Passing `null` simulates "code not found".
+ */
+function mockInviteCodeLookup(result: Record<string, unknown> | null) {
+  mockFromTable.mockImplementation((table: string) => {
+    if (table === 'invite_codes') {
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn().mockResolvedValue({ data: result, error: null }),
+          })),
+        })),
+      };
+    }
+    return {
+      select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn() })) })),
+      insert: vi.fn(),
+      update: vi.fn(() => ({ eq: vi.fn() })),
+    };
+  });
+}
 
 describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
   beforeEach(() => {
@@ -47,6 +63,37 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
       expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
       expect(screen.queryByPlaceholderText(/^password$/i)).not.toBeInTheDocument();
       expect(screen.queryByPlaceholderText(/confirm password/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('@AC-002: Valid invite code transitions to sign-up form', () => {
+    test('test_ac_002_valid_code_shows_sign_up_form', async () => {
+      const user = userEvent.setup();
+
+      // Mock a valid, unused, non-expired invite code
+      mockInviteCodeLookup({
+        id: 'code-1',
+        code: 'VALID-CODE',
+        household_id: null,
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() + 86400000).toISOString(), // tomorrow
+      });
+
+      render(<App />);
+
+      // Enter a valid code
+      const input = screen.getByPlaceholderText(/invite code/i);
+      await user.type(input, 'VALID-CODE');
+
+      // Click Continue
+      const continueButton = screen.getByRole('button', { name: /continue/i });
+      await user.click(continueButton);
+
+      // Now the sign-up form should appear with email, password, confirm
+      expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+      const passwordFields = screen.getAllByPlaceholderText(/password/i);
+      expect(passwordFields.length).toBeGreaterThanOrEqual(1);
     });
   });
 });

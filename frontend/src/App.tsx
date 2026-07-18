@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { PwaInstallPrompt } from './components/PwaInstallPrompt';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { HomePage } from './pages/HomePage';
-import { WelcomePage } from './pages/WelcomePage';
+import { LoginPage } from './pages/LoginPage';
 
 function AppShell({ children }: { children: React.ReactNode }) {
   return (
@@ -31,7 +31,7 @@ function App() {
         />
         <Route
           path="/login"
-          element={<WelcomePage />}
+          element={<LoginPage />}
         />
         <Route
           path="*"

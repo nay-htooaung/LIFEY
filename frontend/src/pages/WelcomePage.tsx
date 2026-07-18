@@ -1,20 +1,33 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/features/auth/stores/authStore';
+import { validateInviteCode } from '@/features/auth/services/authService';
 
 export function WelcomePage() {
   const [code, setCode] = useState('');
-  const { error, loading, acceptInviteCode, setError } = useAuthStore();
+  const { error, loading, acceptInviteCode, setError, setLoading } = useAuthStore();
 
-  const handleContinue = () => {
-    // For AC-001: just showing the UI. Validation will be added in later ACs.
-    // For now, any non-empty code transitions to sign-up.
+  const handleContinue = async () => {
     if (!code.trim()) {
       setError('Please enter an invite code');
       return;
     }
-    // Will be replaced with actual API call in AC-002+ 
-    acceptInviteCode(code.trim());
+
+    setError(null);
+    setLoading(true);
+
+    try {
+      const result = await validateInviteCode(code.trim());
+      if (result.valid) {
+        acceptInviteCode(code.trim());
+      } else {
+        setError(result.error || 'Invalid invite code');
+      }
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
