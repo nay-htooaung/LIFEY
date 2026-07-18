@@ -58,7 +58,7 @@ export function SignUpPage({ onBack }: SignUpPageProps) {
   };
 
   return (
-    <div className="flex min-h-dvh min-w-[390px] flex-col bg-surface px-6 text-neutral-50">
+    <div className="flex min-h-dvh w-full min-w-[390px] flex-col bg-surface px-6 text-neutral-50">
       {/* Top spacer */}
       <div className="flex-1" />
 
