@@ -79,18 +79,41 @@ Netlify is a close second and would be fine — but Cloudflare's edge network is
 
 ### Neutral
 - The team needs a Cloudflare account (free, no credit card required for Pages)
-- `_redirects` and `_headers` files live in the repo root
+- `_redirects` and `_headers` files live in `frontend/public/` — Vite copies them to the build output automatically
 - Custom domain setup requires updating nameservers to Cloudflare (or using a CNAME)
 - PR preview URLs are `branchname.project.pages.dev` — shareable but not guessable
 
 ## Configuration
 
-### `_redirects` (SPA fallback)
+### Environment variables (set in Cloudflare Pages dashboard)
+
+| Variable | Value | Purpose |
+|----------|-------|---------|
+| `VITE_SUPABASE_URL` | Supabase project URL | Backend API endpoint |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable key | Client-side API key (see [ADR-0013](../adr/0013-supabase-publishable-api-keys.md)) |
+| `NODE_VERSION` | `26.5.0` | Node.js runtime version for builds |
+| `PNPM_VERSION` | `11.13.1` | pnpm version for builds |
+
+### Build configuration
+
+| Setting | Value |
+|---------|-------|
+| Build command | `pnpm --filter lifey-frontend build` |
+| Output directory | `frontend/dist/` |
+| Root directory | (leave blank — repo root) |
+
+### Static files
+
+The `_redirects` and `_headers` files live in `frontend/public/` — Vite copies them into the build output automatically.
+
+#### `frontend/public/_redirects` (SPA fallback)
 ```
 /*    /index.html    200
 ```
 
-### `_headers` (PWA caching)
+> **⚠️ Known issue:** Cloudflare Pages flags this rule as an "infinite loop detected" warning in the dashboard. The SPA fallback works correctly — the warning is a heuristic. If it becomes problematic, enable Cloudflare's native SPA mode (Settings → SPA) and remove the `_redirects` rule.
+
+#### `frontend/public/_headers` (PWA caching)
 ```
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
@@ -103,16 +126,17 @@ Netlify is a close second and would be fine — but Cloudflare's edge network is
 ```
 
 ### `wrangler.toml` (optional — only if we add Workers later)
-```
+```toml
 name = "lifey"
-pages_build_output_dir = "dist"
+pages_build_output_dir = "frontend/dist"
 ```
 
 ## Compliance
 
-- The production domain must serve over HTTPS (Cloudflare auto-provisions)
-- All PR branches automatically get `branchname.lifey.pages.dev` preview URLs
-- The production `main` branch deploys to the custom domain
-- Build command: `npm run build` (CI runs lint + type-check before building)
-- Output directory: `dist/`
+- Production domain: `https://lifey-172.pages.dev` (custom domain TBD)
+- All pushes to `main` trigger an automatic production deploy via the Git-connected Cloudflare Pages project
+- PR branches get unique preview URLs at `branchname.lifey-172.pages.dev`
+- HTTPS is auto-provisioned by Cloudflare
+- Build uses `pnpm` (the monorepo package manager) with the workspace filter, not `npm`
+- All environment variables must be set in Cloudflare Pages (project → Settings → Environment variables)
 - No server-side code in the Pages deployment — Supabase handles all backend logic

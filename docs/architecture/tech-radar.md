@@ -59,6 +59,7 @@ A living inventory of every technology used in the LIFEY project. Each entry has
 | **Supabase** | Adopt | Hosted PostgreSQL, auth, real-time, storage | [ADR-0001](../adr/0001-foundational-tech-stack.md) |
 | **PostgreSQL** | Adopt | Relational database | [ADR-0001](../adr/0001-foundational-tech-stack.md) |
 | **Row Level Security** | Adopt | Multi-tenant data isolation | [ADR-0001](../adr/0001-foundational-tech-stack.md) |
+| **Supabase Publishable Key** | Adopt | Client-side API key — replaces legacy anon key | [ADR-0013](../adr/0013-supabase-publishable-api-keys.md) |
 | **Cloudflare Pages** | Adopt | Static host — global CDN, SPA fallback, PWA headers, deploy previews | [ADR-0007](../adr/0007-deploy-host.md) |
 
 ## Deferred / Future
@@ -76,6 +77,7 @@ A living inventory of every technology used in the LIFEY project. Each entry has
 | **Flutter** | Hold | Cross-platform alternative | Evaluated and not chosen |
 | **OAuth (Google/Apple)** | Assess | Alternative sign-in method — deferred to Q4 due to PWA redirect complexity | [ADR-0006](../adr/0006-authentication-flow.md) |
 | **Netlify** | Hold | Static host — evaluated but Cloudflare Pages chosen for faster CDN and unlimited requests | [ADR-0007](../adr/0007-deploy-host.md) |
+| **Supabase Legacy Anon Key** | Hold | Deprecated key naming — replaced by publishable key (see [ADR-0013](../adr/0013-supabase-publishable-api-keys.md)) | [ADR-0013](../adr/0013-supabase-publishable-api-keys.md) |
 | **Firebase** | Hold | BaaS — rejected due to NoSQL lock-in | — |
 
 ## Decision History
@@ -99,3 +101,5 @@ A living inventory of every technology used in the LIFEY project. Each entry has
 | 2026-07-14 | Moved Supabase Edge Functions from Assess to Trial | Now used in Q3 for password reset code delivery (ST0005), not just Q4 push notifications |
 | 2026-07-16 | Added @vitejs/plugin-basic-ssl as Adopt | Per [ADR-0012](../adr/0012-https-dev-server-for-pwa-testing.md) — HTTPS dev server for mobile PWA testing |
 | 2026-07-17 | Moved @vitejs/plugin-basic-ssl to Hold | Self-signed certs blocked SW on Chrome Android; tunnel tools required accounts. PWA testing on desktop localhost only. |
+| 2026-07-18 | Added Supabase Publishable Key as Adopt, Legacy Anon Key as Hold | Per [ADR-0013](../adr/0013-supabase-publishable-api-keys.md) — adopted Supabase's new publishable key naming to replace legacy anon key |
+| 2026-07-18 | Updated Cloudflare Pages entry | ADR-0007 refreshed with actual deployment config (build command, output dir, env vars, domain) |

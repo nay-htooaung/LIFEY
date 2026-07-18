@@ -41,7 +41,7 @@ Services:
 | Studio | 54323 | Web UI — table browser, SQL editor, RLS tester |
 
 ### Option B: Remote Supabase dev project
-Create a free Supabase project on supabase.com and point the development SPA at its URL + anon key. All queries hit the cloud.
+Create a free Supabase project on supabase.com and point the development SPA at its URL + publishable key (see [ADR-0013](../adr/0013-supabase-publishable-api-keys.md)). All queries hit the cloud.
 
 ### Option C: Docker Compose from scratch
 Write a custom `docker-compose.yml` with `postgres`, `postgrest`, `gotrue`, and `realtime` images. Maintain the config manually.
