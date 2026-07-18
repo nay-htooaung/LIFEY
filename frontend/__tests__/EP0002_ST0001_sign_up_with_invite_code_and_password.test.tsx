@@ -24,11 +24,15 @@ vi.mock('../src/lib/supabase', () => ({
   },
 }));
 
+// Track the current invite code record for lookups during sign-up
+let currentInviteRecord: Record<string, unknown> | null = null;
+
 /**
  * Helper: mock invite_codes table to return a specific result.
  * Passing `null` simulates "code not found".
  */
 function mockInviteCodeLookup(result: Record<string, unknown> | null) {
+  currentInviteRecord = result;
   mockFromTable.mockImplementation((table: string) => {
     if (table === 'invite_codes') {
       return {
@@ -37,6 +41,26 @@ function mockInviteCodeLookup(result: Record<string, unknown> | null) {
             maybeSingle: vi.fn().mockResolvedValue({ data: result, error: null }),
           })),
         })),
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ error: null }),
+        })),
+      };
+    }
+    if (table === 'households') {
+      return {
+        insert: vi.fn(() => ({
+          select: vi.fn(() => ({
+            single: vi.fn().mockResolvedValue({
+              data: { id: 'household-1', name: 'My Home', created_by: 'new-user' },
+              error: null,
+            }),
+          })),
+        })),
+      };
+    }
+    if (table === 'household_memberships') {
+      return {
+        insert: vi.fn().mockResolvedValue({ error: null }),
       };
     }
     return {
@@ -183,6 +207,56 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
 
       // Should still be on the welcome screen
       expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
+    });
+  });
+
+  describe('@AC-006: Valid sign-up creates account and authenticates', () => {
+    test('test_ac_006_valid_sign_up_creates_account', async () => {
+      const user = userEvent.setup();
+
+      // Mock a valid invite code
+      mockInviteCodeLookup({
+        id: 'code-4',
+        code: 'SIGNUP',
+        household_id: null,
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+      });
+
+      // Mock successful sign-up
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: 'new-user' }, session: { access_token: 'test-token' } },
+        error: null,
+      });
+
+      render(<App />);
+
+      // Enter valid invite code
+      const codeInput = screen.getByPlaceholderText(/invite code/i);
+      await user.type(codeInput, 'SIGNUP');
+      await user.click(screen.getByRole('button', { name: /continue/i }));
+
+      // Should now see the sign-up form
+      expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
+
+      // Fill in sign-up form
+      await user.type(screen.getByPlaceholderText(/email/i), 'test@example.com');
+      await user.type(screen.getByPlaceholderText(/^password$/i), 'password123');
+      await user.type(screen.getByPlaceholderText(/confirm password/i), 'password123');
+
+      // Click Create Account
+      await user.click(screen.getByRole('button', { name: /create account/i }));
+
+      // Should see the account created screen
+      expect(screen.getByText('Account created!')).toBeInTheDocument();
+
+      // Verify supabase.auth.signUp was called with correct args
+      expect(mockSignUp).toHaveBeenCalledWith({
+        email: 'test@example.com',
+        password: 'password123',
+        options: { data: { invite_code: 'SIGNUP' } },
+      });
     });
   });
 });
