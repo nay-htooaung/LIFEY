@@ -24,15 +24,20 @@ vi.mock('../src/lib/supabase', () => ({
   },
 }));
 
-// Track the current invite code record for lookups during sign-up
-let currentInviteRecord: Record<string, unknown> | null = null;
+// Track calls for assertions
+let householdMembershipInserts: Array<Record<string, unknown>> = [];
+let householdInserts: Array<Record<string, unknown>> = [];
+let inviteCodeUpdates: Array<Record<string, unknown>> = [];
 
 /**
  * Helper: mock invite_codes table to return a specific result.
  * Passing `null` simulates "code not found".
  */
 function mockInviteCodeLookup(result: Record<string, unknown> | null) {
-  currentInviteRecord = result;
+  householdMembershipInserts = [];
+  householdInserts = [];
+  inviteCodeUpdates = [];
+
   mockFromTable.mockImplementation((table: string) => {
     if (table === 'invite_codes') {
       return {
@@ -41,26 +46,35 @@ function mockInviteCodeLookup(result: Record<string, unknown> | null) {
             maybeSingle: vi.fn().mockResolvedValue({ data: result, error: null }),
           })),
         })),
-        update: vi.fn(() => ({
-          eq: vi.fn().mockResolvedValue({ error: null }),
-        })),
+        update: vi.fn((data: Record<string, unknown>) => {
+          inviteCodeUpdates.push(data);
+          return {
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          };
+        }),
       };
     }
     if (table === 'households') {
       return {
-        insert: vi.fn(() => ({
-          select: vi.fn(() => ({
-            single: vi.fn().mockResolvedValue({
-              data: { id: 'household-1', name: 'My Home', created_by: 'new-user' },
-              error: null,
-            }),
-          })),
-        })),
+        insert: vi.fn((data: Record<string, unknown>) => {
+          householdInserts.push(data);
+          return {
+            select: vi.fn(() => ({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 'household-1', name: 'My Home', created_by: 'new-user' },
+                error: null,
+              }),
+            })),
+          };
+        }),
       };
     }
     if (table === 'household_memberships') {
       return {
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        insert: vi.fn((data: Record<string, unknown>) => {
+          householdMembershipInserts.push(data);
+          return { error: null };
+        }),
       };
     }
     return {
@@ -376,6 +390,95 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
         email: 'test@example.com',
         password: 'password123',
         options: { data: { invite_code: 'SIGNUP' } },
+      });
+    });
+  });
+
+  describe('@AC-010: Account creation completes with household and code marked used', () => {
+    test('test_ac_010_completes_household_and_marks_code_used', async () => {
+      const user = userEvent.setup();
+
+      // Mock a valid invite code
+      mockInviteCodeLookup({
+        id: 'code-8',
+        code: 'COMPLETE',
+        household_id: null,
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+      });
+
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: 'new-user' }, session: { access_token: 'test-token' } },
+        error: null,
+      });
+
+      render(<App />);
+
+      // Complete sign-up flow
+      await user.type(screen.getByPlaceholderText(/invite code/i), 'COMPLETE');
+      await user.click(screen.getByRole('button', { name: /continue/i }));
+      await user.type(screen.getByPlaceholderText(/email/i), 'complete@example.com');
+      await user.type(screen.getByPlaceholderText(/^password$/i), 'password123');
+      await user.type(screen.getByPlaceholderText(/confirm password/i), 'password123');
+      await user.click(screen.getByRole('button', { name: /create account/i }));
+
+      // Personal household was created
+      expect(householdInserts.length).toBeGreaterThanOrEqual(1);
+
+      // Invite code was marked as used
+      expect(inviteCodeUpdates.length).toBeGreaterThanOrEqual(1);
+      expect(inviteCodeUpdates[0]).toHaveProperty('used_by', 'new-user');
+
+      // User was added as admin to their personal household
+      expect(householdMembershipInserts.length).toBeGreaterThanOrEqual(1);
+      expect(householdMembershipInserts[0]).toMatchObject({
+        role: 'admin',
+        profile_id: 'new-user',
+      });
+    });
+  });
+
+  describe('@AC-011: Invite code linked to shared household adds user as member', () => {
+    test('test_ac_011_linked_code_adds_to_shared_household', async () => {
+      const user = userEvent.setup();
+
+      // Mock an invite code linked to a shared household
+      mockInviteCodeLookup({
+        id: 'code-9',
+        code: 'SHARED',
+        household_id: 'shared-household-1',
+        used_by: null,
+        used_at: null,
+        expires_at: new Date(Date.now() + 86400000).toISOString(),
+      });
+
+      mockSignUp.mockResolvedValue({
+        data: { user: { id: 'shared-user' }, session: { access_token: 'test-token' } },
+        error: null,
+      });
+
+      render(<App />);
+
+      // Complete sign-up flow
+      await user.type(screen.getByPlaceholderText(/invite code/i), 'SHARED');
+      await user.click(screen.getByRole('button', { name: /continue/i }));
+      await user.type(screen.getByPlaceholderText(/email/i), 'shared@example.com');
+      await user.type(screen.getByPlaceholderText(/^password$/i), 'password123');
+      await user.type(screen.getByPlaceholderText(/confirm password/i), 'password123');
+      await user.click(screen.getByRole('button', { name: /create account/i }));
+
+      // Should see account created
+      expect(screen.getByText('Account created!')).toBeInTheDocument();
+
+      // Should have a membership for the shared household
+      const sharedMembership = householdMembershipInserts.find(
+        (m) => m.household_id === 'shared-household-1',
+      );
+      expect(sharedMembership).toBeTruthy();
+      expect(sharedMembership).toMatchObject({
+        role: 'member',
+        profile_id: 'shared-user',
       });
     });
   });
