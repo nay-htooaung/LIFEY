@@ -4,6 +4,7 @@ import { describe, test, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../src/App';
+import { useAuthStore } from '../src/features/auth/stores/authStore';
 
 // Mock the supabase client — use vi.hoisted to avoid hoisting issues
 const { mockFromTable, mockSignUp } = vi.hoisted(() => ({
@@ -49,6 +50,7 @@ function mockInviteCodeLookup(result: Record<string, unknown> | null) {
 describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    useAuthStore.getState().reset();
     window.history.pushState({}, '', '/login');
   });
 
@@ -94,6 +96,31 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
       expect(screen.getByPlaceholderText(/email/i)).toBeInTheDocument();
       const passwordFields = screen.getAllByPlaceholderText(/password/i);
       expect(passwordFields.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('@AC-003: Invalid invite code shows error', () => {
+    test('test_ac_003_invalid_code_shows_error', async () => {
+      const user = userEvent.setup();
+
+      // Mock: code not found in database
+      mockInviteCodeLookup(null);
+
+      render(<App />);
+
+      const input = screen.getByPlaceholderText(/invite code/i);
+      await user.type(input, 'BAD-CODE');
+
+      const continueButton = screen.getByRole('button', { name: /continue/i });
+      await user.click(continueButton);
+
+      // Should see the error message
+      expect(
+        screen.getByText('Invalid invite code — check with the person who invited you'),
+      ).toBeInTheDocument();
+
+      // Should still be on the welcome screen (no sign-up form)
+      expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
     });
   });
 });
