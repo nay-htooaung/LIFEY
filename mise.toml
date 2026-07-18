@@ -81,3 +81,17 @@ run = "pnpm --filter lifey-frontend format:check"
 [tasks.typecheck]
 description = "Type-check frontend with tsc --noEmit"
 run = "pnpm --filter lifey-frontend typecheck"
+
+# ------------------------------------------------------------------
+# Admin database scripts (require supabase CLI linked to project)
+# ------------------------------------------------------------------
+
+[tasks.gen-invite]
+description = "Generate invite code(s) for a household"
+run = "node scripts/gen-invite.mjs"
+alias = "gi"
+
+[tasks.revoke-invite]
+description = "Revoke invite code(s) by code, household, or --all"
+run = "node scripts/revoke-invite.mjs"
+alias = "ri"
