@@ -53,6 +53,9 @@ Before starting, verify these conditions hold. If any fail, stop and tell the us
 | Architecture decisions (start here) | `docs/architecture/tech-radar.md` — then follow ADR links |
 | Individual ADRs | `docs/adr/` |
 | Codebase conventions | Existing files in `backend/` and `frontend/` |
+| Frontend design standards (screen layout, spacing, tokens) | `docs/rules/frontend-design/` |
+| Design system tokens (colors, fonts, spacing) | `docs/design/Styles/default.styles` |
+| **Brilliant screen designs — check before implementing UI** | **Use `init` on the `Lifey` canvas (`docs/design/Lifey.design`) to discover existing screen designs. Export or lookup the relevant screen to get exact layout, colors, spacing, and component structure.** |
 | TDD workflow contract | `tdd-dev-workflow` skill (load it) |
 
 ---
@@ -66,8 +69,18 @@ Before starting, verify these conditions hold. If any fail, stop and tell the us
 2. Read the parent epic → understand scope boundary, dependencies, and
    out-of-scope items. If implementing would cross the scope boundary, flag it.
 3. Read all accepted ADRs → understand the tech stack, patterns, and constraints.
-4. Load the `tdd-dev-workflow` skill.
-5. **G1 — Human checkpoint: confirm scope.**
+4. **Check existing Brilliant designs** on the `Lifey` canvas
+   (`docs/design/Lifey.design`). Call `init` to discover screen frames,
+   then lookup or export the relevant screen(s) the story touches. These
+   designs define the exact layout, colors, spacing, typography, and
+   component structure — implement them faithfully in React/Tailwind. If
+   the story's screen doesn't exist yet on the canvas, flag to the user
+   that the frontend-designer needs to design it first.
+5. **Read the frontend design standards** at `docs/rules/frontend-design/`
+   to understand screen layout conventions (mobile-first 390×844, spacing
+   patterns, button styles, etc.).
+6. Load the `tdd-dev-workflow` skill.
+7. **G1 — Human checkpoint: confirm scope.**
    Present to the user:
    > "Ready to implement EPxxxx-STxxxx (Story Title).
    > [N] acceptance criteria: AC-001 through AC-NNN.
@@ -206,3 +219,9 @@ write a minimal fixture or factory first, then the new test.
    story's tests. A passing subset does not prove a clean merge.
 9. **When in doubt about a codebase convention, examine existing code.**
    Do not invent new patterns. If no precedent exists, flag it to the user.
+10. **Implement UI faithfully from Brilliant designs.** Before building any
+    frontend component, export or lookup the corresponding screen from the
+    `Lifey` canvas. Match the layout, spacing, colors, typography, and
+    component hierarchy exactly. Do not invent layouts or styling — the
+    frontend-designer owns the visual design. If a design is missing, flag
+    to the user instead of guessing.

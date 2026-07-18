@@ -35,3 +35,4 @@ postgres_data/
 # Generated build output
 docs/dist/
 
+.playwright-mcp/

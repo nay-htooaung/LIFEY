@@ -32,6 +32,15 @@ Rules:
 - One AC per RED → GREEN → REFACTOR cycle. Do not batch multiple ACs.
 - After each GREEN phase, demo the passing test to the user before proceeding.
 
+### Before implementing UI components
+
+Before writing any frontend code, check existing Brilliant designs:
+1. Call `init` on the `Lifey` canvas (`docs/design/Lifey.design`)
+2. Look up relevant screen frames by name (e.g. "Welcome Screen", "Sign Up Screen")
+3. Export or blueprint the design to get exact layout, colors, spacing, typography
+4. Implement the React component to match the design faithfully
+5. If the screen doesn't exist yet, flag to the user — don't guess the design
+
 ---
 
 ## Test Mapping Convention — Traceability Chain
@@ -219,4 +228,5 @@ When precedents conflict, ask the user which to follow.
 |-----------|--------|
 | Architectural decision missing | Pause → delegate to `tech-lead` via `task` → wait for ADR → confirm with user |
 | Config file modification needed | Pause → propose to `tech-lead` → wait for confirmation before editing |
+| Screen design missing on Brilliant canvas | Flag to user — ask if frontend-designer should create the design first |
 | Pre-merge review | Delegate to `review-agent` via `task` — provide story ref and branch name |

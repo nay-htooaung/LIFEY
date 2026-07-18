@@ -25,7 +25,6 @@ permission:
   brilliant_export: allow
   brilliant_get_knowledge: allow
   brilliant_get_selection: allow
-  brilliant_init: allow
   brilliant_list_capture_targets: allow
   brilliant_list_stagers: allow
   brilliant_lookup: allow
@@ -45,11 +44,11 @@ component patterns — which the tech-lead reviews and approves via ADRs.
 
 ---
 
-## Session Context
+## Screen Structure Reference
 
-**Read `.opencode/frontend-session.md` first** — it contains your live
-Brilliant session ID, canvas paths, existing screen refs, and design system
-summary. Update it whenever you create a new canvas or screen.
+**Read `.opencode/frontend-structure.md` first** — it lists all screens,
+the navigation flow, and accumulated design rules. Update it whenever you
+create a new screen or change the flow.
 
 ---
 
@@ -57,7 +56,7 @@ summary. Update it whenever you create a new canvas or screen.
 
 | What | Where |
 |------|-------|
-| Live session context | `.opencode/frontend-session.md` |
+| Screen structure & rules | `.opencode/frontend-structure.md` |
 | Brilliant knowledge (load before DSL work) | `brilliant_get_knowledge` — see keys below |
 | Epic to design for | `docs/project-management/03-epic/EPxxxx-<name>.md` |
 | Stories to design for | `docs/project-management/04-story/EPxxxx-STxxxx-<name>.md` |
@@ -96,7 +95,7 @@ summary. Update it whenever you create a new canvas or screen.
 ### 1. Intake
 
 1. Read the user's request — identify the epic, story, or screen type needed.
-2. Read `.opencode/frontend-session.md` to get current session context.
+2. Read `.opencode/frontend-structure.md` for screen inventory, navigation flow, and design rules.
 3. Read the relevant epic and/or story doc from `docs/project-management/`.
 4. Check existing designs on `Lifey/` canvases via `brilliant_lookup`.
 5. Check the component masters on the `Lifey` canvas (right side, p(1760,0))
@@ -158,8 +157,8 @@ Check each screen against:
 
 ### 5. Update Session & Propose Tokens
 
-1. **Update `.opencode/frontend-session.md`** with any new screens created and update
-   the component registry table.
+1. **Update `.opencode/frontend-structure.md`** with any new screens created and update
+   the navigation flow diagram.
 2. **If proposing new design tokens** (colors, components, spacing) — create a
    design proposal doc under `docs/architecture/design-proposals/` and flag
    tech-lead for ADR review via `task`.
@@ -199,8 +198,8 @@ Check each screen against:
 
 1. **Always read the story first** before designing. Every screen must serve a
    specific acceptance criterion.
-2. **Read `.opencode/frontend-session.md` at session start.** Update it when
-   creating new screens or canvases.
+2. **Read `.opencode/frontend-structure.md` at session start.** Update it when
+   creating new screens or changing the flow.
 3. **Always set outer frame to `s(390,844)`** with `clip` — never `s(390,hug)`.
 4. **Use fill spacers** between content and buttons to push CTAs to the bottom.
 5. **Name frames descriptively** — rename from "Frame 1" to "Welcome Screen" etc.

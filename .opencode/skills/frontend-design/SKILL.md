@@ -13,7 +13,7 @@ Before designing, verify:
 
 - [ ] Read the story — which AC does this screen serve?
 - [ ] Read the epic — what's the scope boundary?
-- [ ] Read `.opencode/frontend-session.md` — current session context
+- [ ] Read `.opencode/frontend-structure.md` — screen inventory, navigation, and rules
 - [ ] Check existing canvases for related screens
 - [ ] Check `docs/design/Lifey/*.design` for exported screen snapshots
 - [ ] Check `docs/design/Lifey/Components/*.design` for reusable component patterns
