@@ -24,20 +24,15 @@ vi.mock('../src/lib/supabase', () => ({
   },
 }));
 
-// Track calls for assertions
-let householdMembershipInserts: Array<Record<string, unknown>> = [];
-let householdInserts: Array<Record<string, unknown>> = [];
-let inviteCodeUpdates: Array<Record<string, unknown>> = [];
-
 /**
  * Helper: mock invite_codes table to return a specific result.
  * Passing `null` simulates "code not found".
+ *
+ * NOTE: The handle_new_user() database trigger now handles personal household
+ * creation and invite code consumption. The frontend only calls
+ * supabase.auth.signUp() and the validation step below.
  */
 function mockInviteCodeLookup(result: Record<string, unknown> | null) {
-  householdMembershipInserts = [];
-  householdInserts = [];
-  inviteCodeUpdates = [];
-
   mockFromTable.mockImplementation((table: string) => {
     if (table === 'invite_codes') {
       return {
@@ -46,35 +41,6 @@ function mockInviteCodeLookup(result: Record<string, unknown> | null) {
             maybeSingle: vi.fn().mockResolvedValue({ data: result, error: null }),
           })),
         })),
-        update: vi.fn((data: Record<string, unknown>) => {
-          inviteCodeUpdates.push(data);
-          return {
-            eq: vi.fn().mockResolvedValue({ error: null }),
-          };
-        }),
-      };
-    }
-    if (table === 'households') {
-      return {
-        insert: vi.fn((data: Record<string, unknown>) => {
-          householdInserts.push(data);
-          return {
-            select: vi.fn(() => ({
-              single: vi.fn().mockResolvedValue({
-                data: { id: 'household-1', name: 'My Home', created_by: 'new-user' },
-                error: null,
-              }),
-            })),
-          };
-        }),
-      };
-    }
-    if (table === 'household_memberships') {
-      return {
-        insert: vi.fn((data: Record<string, unknown>) => {
-          householdMembershipInserts.push(data);
-          return { error: null };
-        }),
       };
     }
     return {
@@ -423,19 +389,13 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
       await user.type(screen.getByPlaceholderText(/confirm password/i), 'password123');
       await user.click(screen.getByRole('button', { name: /create account/i }));
 
-      // Personal household was created
-      expect(householdInserts.length).toBeGreaterThanOrEqual(1);
+      // Account creation succeeded
+      expect(screen.getByText('Account created!')).toBeInTheDocument();
 
-      // Invite code was marked as used
-      expect(inviteCodeUpdates.length).toBeGreaterThanOrEqual(1);
-      expect(inviteCodeUpdates[0]).toHaveProperty('used_by', 'new-user');
-
-      // User was added as admin to their personal household
-      expect(householdMembershipInserts.length).toBeGreaterThanOrEqual(1);
-      expect(householdMembershipInserts[0]).toMatchObject({
-        role: 'admin',
-        profile_id: 'new-user',
-      });
+      // Note: Personal household creation, invite code consumption, and
+      // membership setup are handled by the handle_new_user() database
+      // trigger — not by frontend code. These are verified via integration/
+      // e2e tests against the live database.
     });
   });
 
@@ -471,15 +431,8 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
       // Should see account created
       expect(screen.getByText('Account created!')).toBeInTheDocument();
 
-      // Should have a membership for the shared household
-      const sharedMembership = householdMembershipInserts.find(
-        (m) => m.household_id === 'shared-household-1',
-      );
-      expect(sharedMembership).toBeTruthy();
-      expect(sharedMembership).toMatchObject({
-        role: 'member',
-        profile_id: 'shared-user',
-      });
+      // Note: Shared household membership is handled by the
+      // handle_new_user() database trigger — not by frontend code.
     });
   });
 

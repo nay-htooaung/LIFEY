@@ -17,12 +17,6 @@ export interface InviteCodeValidation {
   record?: InviteCodeRecord;
 }
 
-interface HouseholdRow {
-  id: string;
-  name: string;
-  created_by: string;
-}
-
 /**
  * Validates an invite code by querying the invite_codes table.
  * Returns { valid: true, record } if the code exists, is not expired,
@@ -99,57 +93,8 @@ export async function signUpWithInviteCode(
     return { success: false, error: 'Failed to create account. Please try again.' };
   }
 
-  const userId = authData.user.id;
-
-  // 2. Create personal household
-  const { data: householdData, error: householdError } = (await supabase
-    .from('households')
-    .insert({
-      name: 'My Home',
-      created_by: userId,
-    })
-    .select()
-    .single()) as { data: HouseholdRow | null; error: PostgrestError | null };
-
-  if (householdError || !householdData) {
-    return { success: false, error: 'Failed to create household. Please try again.' };
-  }
-
-  // 3. Add user as admin member of personal household
-  const { error: membershipError } = await supabase.from('household_memberships').insert({
-    household_id: householdData.id,
-    profile_id: userId,
-    role: 'admin',
-  });
-
-  if (membershipError) {
-    return { success: false, error: 'Failed to set up household membership.' };
-  }
-
-  // 4. Look up the invite code record to get household_id
-  const { data: inviteData } = (await supabase
-    .from('invite_codes')
-    .select('*')
-    .eq('code', inviteCode.toUpperCase().trim())
-    .maybeSingle()) as { data: InviteCodeRecord | null; error: PostgrestError | null };
-
-  // 5. Mark invite code as used
-  await supabase
-    .from('invite_codes')
-    .update({
-      used_by: userId,
-      used_at: new Date().toISOString(),
-    })
-    .eq('code', inviteCode.toUpperCase().trim());
-
-  // 6. If invite code is linked to a shared household, add user as member
-  if (inviteData?.household_id) {
-    await supabase.from('household_memberships').insert({
-      household_id: inviteData.household_id,
-      profile_id: userId,
-      role: 'member',
-    });
-  }
-
+  // Everything else (profile, personal household, invite code consumption,
+  // shared household joining) is handled by the handle_new_user() database
+  // trigger on auth.users insert.
   return { success: true };
 }
