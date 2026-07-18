@@ -23,7 +23,7 @@ export function AccountCreatedPage() {
   }, [navigate]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#0D0D1F] px-6 text-neutral-50">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-surface px-6 text-neutral-50">
       {/* Top spacer */}
       <div className="flex-1" />
 
@@ -44,7 +44,7 @@ export function AccountCreatedPage() {
 
       {/* Account created text */}
       <div className="flex flex-col items-center gap-2">
-        <h1 className="text-[28px] font-bold text-white">Account created!</h1>
+        <h1 className="text-2.5xl font-bold text-white">Account created!</h1>
         <p className="text-center text-base leading-relaxed text-neutral-400">
           Welcome to LIFEY
         </p>

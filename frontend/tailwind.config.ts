@@ -18,6 +18,20 @@ const config: Config = {
           900: "#0c4a6e",
           950: "#082f49",
         },
+        surface: {
+          DEFAULT: "#0D0D1F",
+          container: "#1C1C30",
+        },
+        outline: {
+          DEFAULT: "#2D2D45",
+        },
+      },
+      fontSize: {
+        "2.5xl": ["28px", { lineHeight: "1.2" }],
+      },
+      borderRadius: {
+        "10px": "10px",
+        "20px": "20px",
       },
     },
   },

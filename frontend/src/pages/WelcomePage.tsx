@@ -31,7 +31,7 @@ export function WelcomePage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0D0D1F] px-6 text-neutral-50">
+    <div className="flex min-h-screen flex-col bg-surface px-6 text-neutral-50">
       {/* Top spacer */}
       <div className="flex-1" />
 
@@ -40,7 +40,7 @@ export function WelcomePage() {
         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-600 to-pink-500">
           <span className="text-2xl font-bold text-white">L</span>
         </div>
-        <h1 className="text-[28px] font-bold tracking-tight text-purple-300">LIFEY</h1>
+        <h1 className="text-2.5xl font-bold tracking-tight text-purple-300">LIFEY</h1>
       </div>
 
       {/* Spacer */}
@@ -48,7 +48,7 @@ export function WelcomePage() {
 
       {/* Join section */}
       <div className="flex flex-col items-center gap-2">
-        <h2 className="text-[28px] font-bold text-white">Join LIFEY</h2>
+        <h2 className="text-2.5xl font-bold text-white">Join LIFEY</h2>
         <p className="text-center text-base leading-relaxed text-neutral-400">
           Enter your invite code to
           <br />
@@ -73,7 +73,7 @@ export function WelcomePage() {
             setCode(e.target.value);
             if (error) setError(null);
           }}
-          className="h-12 w-full rounded-[10px] border border-[#2D2D45] bg-[#1C1C30] px-4 text-white placeholder-neutral-500 outline-none transition-colors focus:border-purple-500"
+          className="h-12 w-full rounded-10px border border-outline bg-surface-container px-4 text-white placeholder-neutral-500 outline-none transition-colors focus:border-purple-500"
         />
       </div>
 
