@@ -1,3 +1,261 @@
+# Syntax: {id} {type}[(...)] [p(x,y)] [s(w,h)] [f[(id,spec),...]] [st[(id,color,w(N)),...]]
+#   [rd(n)] [o(n)] [rot(n)] [skew(x,y)] [flip(h,v)] [clip] ["name"]
+# Types: r, c, l, fr, gr, t(content,family,size,weight,align), al(dir,x(...),y(...),g(n),pad(...)), v(...), inst(ref)
+# Fill: f[(id,#hex)] | f[(id,solid(#hex,o(N)))] | f[(id,linear(angle,stop(#hex,pos),...))]
+# Stroke: st[(id,#hex,w(N),cap(start,end),pos(p))]
+#
+# 0d10a8d165cbfeac al(v,pad(0,24)) p(0,0) s(390,844) f[(5d1458b6c7b268d7,#0D0D1F)] rd(40) clip "Welcome Screen"
+#   82d51ce76d1af49e fr s(fill,fill) f[] "Frame 2"
+#   0428309190860da6 al(v,x(c),g(8)) s(fill,hug) f[] "Frame 3"
+#     3b1508d69993a701 al(h,x(c),y(c)) s(56,56) f[(b45e3fd45c3c69fc,linear(135,#7C3AED,#EC4899))] rd(16) "Frame 4"
+#       0616ac86685ad683 al(h,x(c),y(c)) s(hug,hug) f[] "Frame 5"
+#         e7506f6b65bdb0d5 t("L",Inter,24,b,align(l)) f[(844cc62c5c34a17d,#FFFFFF)] "Text 1"
+#         1791245333635c3e t("i",Inter,24,b,align(l)) f[(d224a43431650d76,solid(#FFFFFF,o(0.90)))] "Text 2"
+#     86c084efeb50d626 t("LIFEY",Inter,28,b,align(l),ls(-1px)) f[(610f51635230c9d8,#A78BFA)] "Text 3"
+#   cc3791d289de65d8 fr s(fill,40) f[] "Frame 6"
+#   9ebb89941ef7c34d al(v,x(c),g(8)) s(fill,hug) f[] "Frame 7"
+#     0f88dcdb50dd1f0f t("Join LIFEY",Inter,28,b,align(l)) f[(e3b5ea9fe47c99cd,#FFFFFF)] "Text 4"
+#     d41bdb065132a73a t("Enter your invite code to\ncreate an account",Inter,16,r,align(l),lh(1.50)) f[(72988cda24abd3dc,#9CA3AF)] "Text 5"
+#   2abfa4c9db82efc2 fr s(fill,32) f[] "Frame 8"
+#   962d6554c119b824 al(v,g(6)) s(fill,hug) f[] "Frame 9"
+#     50e61b316ddf1a95 t("Invite Code",Inter,14,m,align(l)) s(fill,hug) f[(5b20db5be69e9ce8,#FFFFFF)] "Text 6"
+#     c20454c555ad3f31 fr s(fill,48) f[(8a64f6b3b392d239,#1C1C30)] st[(9b1eb28bdc1d3248,#2D2D45,w(1))] rd(10) "Frame 10"
+#   d6216bce1650d6c9 fr s(fill,24) f[] "Frame 11"
+#   8c4c79cf52da3a38 fr s(fill,16) f[] "Frame 13"
+#   d419b5399e64451f al(h,x(c),y(c)) s(fill,52) f[(f628ca9efde63f78,#7C3AED)] rd(12) "Frame 14"
+#     e6e38219e370baac t("Continue",Inter,16,r,align(l)) f[(8ae8c9a4b601ffa6,#FFFFFF)] "Text 8"
+#   6b48ab7766078d4f fr s(fill,fill) f[] "Frame 15"
+#   7acc87914956556f al(h,x(c),y(c),g(4),pad(0,0,32,0)) s(fill,hug) f[] "Frame 16"
+#     40d282650a647c40 t("Already have an account?",Inter,14,r,align(l)) f[(d8c894658f4bbef2,#9CA3AF)] "Text 9"
+#     628cbc5a12adaa8a t("Log In",Inter,14,sb,align(l)) f[(516286d7ea66b704,#A78BFA)] "Text 10"
+# 6617087e25a20f1c al(v,pad(0,24)) p(0,960) s(390,844) f[(d4594b9ba1fa0b0e,#0D0D1F)] rd(40) clip "Sign-Up Screen"
+#   b62112def003c4bb fr s(fill,hug) f[] "Frame 18"
+#   8df59f516c2ea220 al(h,y(c),g(12),pad(12,0)) s(fill,hug) f[] "Frame 19"
+#     4f4c39728e8de1c4 al(h,x(c),y(c)) s(36,36) f[(45017f829882f540,#1C1C30)] rd(10) "Frame 20"
+#       abd054ff824571ce v() path:d(M4.5,9L0,4.5L4.5,0) s(4.50,9) f[] st[(b23d2a9d9757571a,#9CA3AF,w(2))] "Path"
+#     cec1c8cd7b1df21f al(h,y(c),g(8),pad(6,14)) s(hug,hug) f[(0c1142579d1857a3,#1C1C30)] rd(20) "Frame 21"
+#       9b47e9a59650d0db v() path:d(M9.34,0L2.92,6.42L0,3.5) s(9.34,6.42) f[] st[(85798deb12cf77a7,#10B981,w(2.50))] "Path"
+#       0c034fe704d24082 t("Code accepted",Inter,13,r,align(l)) f[(b4f7e1c5f58faf52,#9CA3AF)] "Text 11"
+#   60a0f3f31a6a154f fr s(fill,8) f[] "Frame 22"
+#   7a93d56ca9fc7d55 al(v,g(6)) s(fill,hug) f[] "Frame 23"
+#     714874d84c3361ed t("Create your account",Inter,28,b,align(l)) s(fill,hug) f[(b7b331f0ddd676f7,#FFFFFF)] "Text 12"
+#     eb93697a41122829 t("Set up your email and password to get started",Inter,15,r,align(l),lh(1.50)) s(fill,hug) f[(860edb6d893a996d,#9CA3AF)] "Text 13"
+#   3c4251154bdd7016 fr s(fill,32) f[] "Frame 24"
+#   92bad5447de13b9b al(v,g(6)) s(fill,hug) f[] "Frame 25"
+#     569ff9520837a927 t("Email",Inter,14,m,align(l)) s(fill,hug) f[(76983e120802f525,#FFFFFF)] "Text 14"
+#     e104177b440405e8 fr s(fill,48) f[(162c504254085a34,#1C1C30)] st[(e52008ec87e1b331,#2D2D45,w(1))] rd(10) "Frame 26"
+#   33d95df3e9436d02 fr s(fill,20) f[] "Frame 27"
+#   fb25614dae9b10f7 al(v,g(6)) s(fill,hug) f[] "Frame 28"
+#     019ae7d320731c27 t("Password",Inter,14,m,align(l)) s(fill,hug) f[(ae477a865a591392,#FFFFFF)] "Text 15"
+#     87000ac462852e07 fr s(fill,hug) f[] "Frame 29"
+#       5b5a783f9f11f5e4 fr p(0,0) s(fill,48) f[(82dce96fab839c61,#1C1C30)] st[(6dace93fcea6fc99,#2D2D45,w(1))] rd(10) "Frame 30"
+#       2d6fd143615bb794 al(h,x(c),y(c)) p(306,0) s(24,24) f[] "Frame 31"
+#         df13637bfd9910c8 fr s(hug,hug) f[] "SVG"
+#           c797f22056302925 v() path:d(M0,6.67C0,6.67,3.34,0,9.17,0C15,0,18.33,6.67,18.33,6.67C18.33,6.67,15,13.33,9.17,13.33C3.34,13.33,0,6.67,0,6.67Z) p(0,0) s(18.33,13.33) f[] st[(d45a245f069af777,#9CA3AF,w(1.50))] "Path"
+#           3469fdc629e366e1 c p(6.67,4.17) s(5,5) f[] st[(a3ad9eae277b3e08,#9CA3AF,w(1.50))] "Ellipse"
+#   d7bcb429d60db9a0 fr s(fill,20) f[] "Frame 32"
+#   9d57f374c2cd9cb8 al(v,g(6)) s(fill,hug) f[] "Frame 33"
+#     c13a3481ca43f3b7 t("Confirm Password",Inter,14,m,align(l)) s(fill,hug) f[(d942e6baa287065b,#FFFFFF)] "Text 16"
+#     7e1f16948aa2c57b fr s(fill,hug) f[] "Frame 34"
+#       e4f5b0814b4b92fb fr p(0,0) s(fill,48) f[(6a73fe6b457e64c5,#1C1C30)] st[(b2fee68a6ab4f543,#2D2D45,w(1))] rd(10) "Frame 35"
+#   5ee43335a3125f5f fr s(fill,8) f[] "Frame 36"
+#   5757e479f3608e67 fr s(fill,8) f[] "Frame 38"
+#   5395ec261722be51 fr s(fill,8) f[] "Frame 40"
+#   d8799c320006ba7a fr s(fill,8) f[] "Frame 42"
+#   e3d5aa810eb0286f fr s(fill,fill) f[] "Frame 43"
+#   c1a561a1985ef5cc al(h,x(c),y(c)) s(fill,52) f[(1f6ba10ad49d2cf3,#7C3AED)] rd(12) "Frame 44"
+#     a868d07d3e144afa t("Create Account",Inter,16,r,align(l)) f[(add0ea3093c0931b,#FFFFFF)] "Text 20"
+#   6b4b5b35a5815a3b fr s(fill,16) f[] "Frame 45"
+#   3e1cdfc436a43ffb al(h,x(c),y(c),pad(0,0,32,0)) s(fill,hug) f[] "Frame 46"
+#     c61832d58da06b9f t("By signing up, you agree to our\nTerms of Service and Privacy Policy",Inter,12,r,align(l),lh(1.40)) f[(db0a13843c25274b,#6B7280)] "Text 21"
+# e78b27178ece3f3d al(v,pad(0,24)) p(0,1920) s(390,844) f[(fd841ec21a06df4d,#0D0D1F)] rd(40) clip "Account Created Screen"
+#   3635a659e2fa5f54 fr s(fill,fill) f[] "Frame 48"
+#   f8093d86eddb0d35 al(v,x(c)) s(fill,hug) f[] "Frame 49"
+#     d188ed1be7afc4db al(h,x(c),y(c)) s(80,80) f[(20b51e484ef778d9,linear(135,#10B981,#10B981))] st[(4da7c59cfe4b47ba,solid(#10B981,o(0.30)),w(2))] rd(40) "Frame 50"
+#       caf2d8baa8fb4acb v() path:d(M24,0L7.5,16.5L0,9) s(24,16.50) f[] st[(fb855bdd661e6f45,#10B981,w(3))] "Path"
+#   2fab807b070a1c5b fr s(fill,32) f[] "Frame 51"
+#   1ca7f74fde72d093 al(v,x(c),g(8)) s(fill,hug) f[] "Frame 52"
+#     0df667b0ce30f49d t("Account created!",Inter,28,b,align(l)) f[(9c8d13ac4f1e2be6,#FFFFFF)] "Text 22"
+#     f16f0bbda295e98e t("Welcome to LIFEY",Inter,16,r,align(l),lh(1.50)) f[(236883eef17dd769,#9CA3AF)] "Text 23"
+#   b8e188ad5f7238ba fr s(fill,48) f[] "Frame 53"
+#   8b16be7e743ad335 al(v,x(c),g(16)) s(fill,hug) f[] "Frame 54"
+#     9b1db60ab1d77b5f al(h,y(c),g(8)) s(hug,hug) f[] "Frame 55"
+#       0e8dfe8ec2526e3a fr s(8,8) f[(1ad8da313e1ab21b,#7C3AED)] rd(4) o(0.40) "Frame 56"
+#       0c13ce6c67e9496a fr s(8,8) f[(f094d4ff1f76302f,#7C3AED)] rd(4) o(0.70) "Frame 57"
+#       d843b478fa858c42 fr s(8,8) f[(ade391b274d9f8e6,#7C3AED)] rd(4) "Frame 58"
+#     57a73d78228193ec t("Taking you to the app...",Inter,14,r,align(l)) f[(7166a8d0fa2ac5c4,#6B7280)] "Text 24"
+#   cccf61b7fd9cfa78 fr s(fill,fill) f[] "Frame 59"
+# e171a600c2b5d89a al(v,pad(0,24)) p(430,0) s(390,844) f[(bc292bfcf4aa39e1,#0D0D1F)] rd(40) clip "Welcome - Invalid Code Error"
+#   d0719f87cbdfdfcf fr s(fill,fill) f[] "Frame 61"
+#   246d42b54f0e38c9 al(v,x(c),g(8)) s(fill,hug) f[] "Frame 62"
+#     515ebf2ed425a980 al(h,x(c),y(c)) s(56,56) f[(0f97dea9c176ce83,linear(135,#7C3AED,#EC4899))] rd(16) "Frame 63"
+#       5d0bb4e1133837f5 t("L",Inter,24,b,align(l)) f[(f197a2f5a6966644,#FFFFFF)] "Text 25"
+#     32b14408493186b5 t("LIFEY",Inter,28,b,align(l),ls(-1px)) f[(3081467199753130,#A78BFA)] "Text 26"
+#   666d3ccc60ac4086 fr s(fill,40) f[] "Frame 64"
+#   1a3ec68f1781a65a al(v,x(c),g(8)) s(fill,hug) f[] "Frame 65"
+#     77e6196c8e33b674 t("Join LIFEY",Inter,28,b,align(l)) f[(72753e5cbde0f7a8,#FFFFFF)] "Text 27"
+#     ed36637a98334c9d t("Enter your invite code to\ncreate an account",Inter,16,r,align(l),lh(1.50)) f[(3a8de84c2231adec,#9CA3AF)] "Text 28"
+#   d70a69daf915ee6c fr s(fill,32) f[] "Frame 66"
+#   1a0d37c703b178ff al(v,g(6)) s(fill,hug) f[] "Frame 67"
+#     48aee109359a3b0c t("Invite Code",Inter,14,m,align(l)) s(fill,hug) f[(c820e49e42917346,#FFFFFF)] "Text 29"
+#     ef4573d9eb0c5057 fr s(fill,48) f[(f82c9b7bf6c2731f,#1C1C30)] st[(749a8154c92aa998,#EF4444,w(1))] rd(10) "Frame 68"
+#   2217bb0457a387f4 fr s(fill,12) f[] "Frame 69"
+#   a47c57be112961a2 al(h,y(c),g(6)) s(fill,hug) f[] "Frame 70"
+#     a123bdbc45d7a209 t("Invalid invite code — check with the person who invited you",Inter,13,r,align(l),lh(1.40)) s(fill,hug) f[(f6e96face6e73790,#EF4444)] "Text 30"
+#   d7ca44b5129bbe35 fr s(fill,16) f[] "Frame 71"
+#   ff0b9e315cf7e082 al(h,x(c),y(c)) s(fill,52) f[(a4e070f1beccda84,#7C3AED)] rd(12) o(0.50) "Frame 72"
+#     e078a76b7d71cbdc t("Continue",Inter,16,r,align(l)) f[(7bc84765b37ee4aa,#FFFFFF)] "Text 31"
+#   601ed5f142978f45 fr s(fill,fill) f[] "Frame 73"
+#   9a1cdede02d1c085 al(h,x(c),y(c),g(4),pad(0,0,32,0)) s(fill,hug) f[] "Frame 74"
+#     45975860c8bd172a t("Already have an account?",Inter,14,r,align(l)) f[(cd06abef6e80ef81,#9CA3AF)] "Text 32"
+#     934f77e4aab24d8a t("Log In",Inter,14,sb,align(l)) f[(7b4a0c84c0ce901d,#A78BFA)] "Text 33"
+# bd9697cee94acf6c al(v,pad(0,24)) p(860,0) s(390,844) f[(91800ed95bdd4880,#0D0D1F)] rd(40) clip "Welcome - Expired Code Error"
+#   6346ca9491e7b9cf fr s(fill,fill) f[] "Frame 76"
+#   241ddc659d76d650 al(v,x(c),g(8)) s(fill,hug) f[] "Frame 77"
+#     5e4820e72ffd262a al(h,x(c),y(c)) s(56,56) f[(f58e956bd5224f15,linear(135,#7C3AED,#EC4899))] rd(16) "Frame 78"
+#       b9e54ed469ae5cbf t("L",Inter,24,b,align(l)) f[(54c80608bcfd549f,#FFFFFF)] "Text 34"
+#     640205548f6197b1 t("LIFEY",Inter,28,b,align(l),ls(-1px)) f[(1a50e7d2fb485120,#A78BFA)] "Text 35"
+#   b8517f224ecf8f7f fr s(fill,40) f[] "Frame 79"
+#   7c2e219ee0c13f57 al(v,x(c),g(8)) s(fill,hug) f[] "Frame 80"
+#     171d7ed0a45f2f6f t("Join LIFEY",Inter,28,b,align(l)) f[(5a52656f02a7df94,#FFFFFF)] "Text 36"
+#     4ddd7c679e2b05fb t("Enter your invite code to\ncreate an account",Inter,16,r,align(l),lh(1.50)) f[(f48f25347b0e0dcd,#9CA3AF)] "Text 37"
+#   5cfa0a02e5befb1f fr s(fill,32) f[] "Frame 81"
+#   3b0cc4e5c20148f6 al(v,g(6)) s(fill,hug) f[] "Frame 82"
+#     a8189b2b98eafebd t("Invite Code",Inter,14,m,align(l)) s(fill,hug) f[(b5fcb75551a04666,#FFFFFF)] "Text 38"
+#     b6cc9a1495ea8c4f fr s(fill,48) f[(ffe842bf11498521,#1C1C30)] st[(de80b1817d51b5f6,#EF4444,w(1))] rd(10) "Frame 83"
+#   5f7f5f065fdc85d9 fr s(fill,12) f[] "Frame 84"
+#   15f5ad377a8afda1 al(h,y(c),g(6)) s(fill,hug) f[] "Frame 85"
+#     7ec707358cd51e7d t("This invite code has expired",Inter,13,r,align(l),lh(1.40)) s(fill,hug) f[(7e33145da13de003,#EF4444)] "Text 39"
+#   fbc653fc7e01b576 fr s(fill,16) f[] "Frame 86"
+#   fc3a980b647398c3 al(h,x(c),y(c)) s(fill,52) f[(8373450bfd020352,#7C3AED)] rd(12) o(0.50) "Frame 87"
+#     63bfb6cf69f2c0aa t("Continue",Inter,16,r,align(l)) f[(77f4dd26351a59bf,#FFFFFF)] "Text 40"
+#   9c7c37fc8bc63a33 fr s(fill,fill) f[] "Frame 88"
+#   2fe724e0b291bf0b al(h,x(c),y(c),g(4),pad(0,0,32,0)) s(fill,hug) f[] "Frame 89"
+#     84306f44a03c343c t("Already have an account?",Inter,14,r,align(l)) f[(aa45d526da9c4dcb,#9CA3AF)] "Text 41"
+#     3dd329b9e03519b9 t("Log In",Inter,14,sb,align(l)) f[(0b289ccd647b57a7,#A78BFA)] "Text 42"
+# 77b2be292367e8e1 al(v,pad(0,24)) p(1290,0) s(390,844) f[(5cf59b5b895fa9c1,#0D0D1F)] rd(40) clip "Welcome - Used Code Error"
+#   e0146221e51aa21c fr s(fill,fill) f[] "Frame 91"
+#   897cab8b7bc773a5 al(v,x(c),g(8)) s(fill,hug) f[] "Frame 92"
+#     5898222164c3f544 al(h,x(c),y(c)) s(56,56) f[(02a6df09bbf5a168,linear(135,#7C3AED,#EC4899))] rd(16) "Frame 93"
+#       c747648677332b34 t("L",Inter,24,b,align(l)) f[(a7eb203b36232870,#FFFFFF)] "Text 43"
+#     7063d656d3e0341c t("LIFEY",Inter,28,b,align(l),ls(-1px)) f[(b4f0994a7c559e71,#A78BFA)] "Text 44"
+#   c8048dc253bf86ad fr s(fill,40) f[] "Frame 94"
+#   446ea5405bbd2e85 al(v,x(c),g(8)) s(fill,hug) f[] "Frame 95"
+#     7af959e990640ee3 t("Join LIFEY",Inter,28,b,align(l)) f[(536f4fc40b972ad8,#FFFFFF)] "Text 45"
+#     16e131badf4cdf58 t("Enter your invite code to\ncreate an account",Inter,16,r,align(l),lh(1.50)) f[(d8e791e0782f03e6,#9CA3AF)] "Text 46"
+#   c2e72faebaf2e906 fr s(fill,32) f[] "Frame 96"
+#   1f5b22fd5d66f6e6 al(v,g(6)) s(fill,hug) f[] "Frame 97"
+#     387866592e98699e t("Invite Code",Inter,14,m,align(l)) s(fill,hug) f[(4b67ff1fa80e92fc,#FFFFFF)] "Text 47"
+#     b83150adc081cd4c fr s(fill,48) f[(b185cf95a20c278d,#1C1C30)] st[(11451f938d9b6ede,#EF4444,w(1))] rd(10) "Frame 98"
+#   9f4efe61fc0e6570 fr s(fill,12) f[] "Frame 99"
+#   8fc9318cc88b0087 al(h,y(c),g(6)) s(fill,hug) f[] "Frame 100"
+#     f7106b249f705550 t("This invite code has already been used",Inter,13,r,align(l),lh(1.40)) s(fill,hug) f[(811b51227627b30a,#EF4444)] "Text 48"
+#   d855ca0881e5abf6 fr s(fill,16) f[] "Frame 101"
+#   795e8b0b33d7e6f1 al(h,x(c),y(c)) s(fill,52) f[(99f04efbbb927832,#7C3AED)] rd(12) o(0.50) "Frame 102"
+#     6820ee54529f73b2 t("Continue",Inter,16,r,align(l)) f[(00a54d5eeebf20a2,#FFFFFF)] "Text 49"
+#   8fca1b5883d86a29 fr s(fill,fill) f[] "Frame 103"
+#   b36c2eb94f83a7a5 al(h,x(c),y(c),g(4),pad(0,0,32,0)) s(fill,hug) f[] "Frame 104"
+#     f82af9b9b844aeef t("Already have an account?",Inter,14,r,align(l)) f[(7e394ab12bd8d69e,#9CA3AF)] "Text 50"
+#     15aab26e21f24ae1 t("Log In",Inter,14,sb,align(l)) f[(5f11164459d114d1,#A78BFA)] "Text 51"
+# 4fc1d85b061bc5a1 al(v,pad(0,24)) p(430,960) s(390,844) f[(9b3fb97a1e611497,#0D0D1F)] rd(40) clip "Sign-Up - Password Too Short Error"
+#   c7198a52249d771c fr s(fill,hug) f[] "Frame 106"
+#   881908d514091768 al(h,y(c),g(12),pad(12,0)) s(fill,hug) f[] "Frame 107"
+#     aa6d1e27d860b99d al(h,x(c),y(c)) s(36,36) f[(a4b37623a5e6ec2d,#1C1C30)] rd(10) "Frame 108"
+#       7b0f2e3fc3a388e6 v() path:d(M4.5,9L0,4.5L4.5,0) s(4.50,9) f[] st[(5ed35e870a2b88f1,#9CA3AF,w(2))] "Path"
+#     1ccf7904665a086a al(h,y(c),g(8),pad(6,14)) s(hug,hug) f[(077db8f4c1e9755f,#1C1C30)] rd(20) "Frame 109"
+#       dfd757a60dd48ed5 v() path:d(M9.34,0L2.92,6.42L0,3.5) s(9.34,6.42) f[] st[(124874c259953295,#10B981,w(2.50))] "Path"
+#       1b46c7722d518f92 t("Code accepted",Inter,13,r,align(l)) f[(8fa1ab07db918dd5,#9CA3AF)] "Text 52"
+#   77788cd77a092096 fr s(fill,8) f[] "Frame 110"
+#   67d22a4b2fa9ef25 al(v,g(6)) s(fill,hug) f[] "Frame 111"
+#     560cc095ad8a79c3 t("Create your account",Inter,28,b,align(l)) s(fill,hug) f[(225ce8515ed4b11d,#FFFFFF)] "Text 53"
+#     319c8a4754c67a89 t("Set up your email and password to get started",Inter,15,r,align(l),lh(1.50)) s(fill,hug) f[(bc5d1923c01c6a50,#9CA3AF)] "Text 54"
+#   8149393eef3baef1 fr s(fill,32) f[] "Frame 112"
+#   0042d843ff2da49e al(v,g(6)) s(fill,hug) f[] "Frame 113"
+#     f478e4408c5892d2 t("Email",Inter,14,m,align(l)) s(fill,hug) f[(d9b0a2ed2bd4596c,#FFFFFF)] "Text 55"
+#     c7f91b383243bb82 fr s(fill,48) f[(ab936d17f86ddbe5,#1C1C30)] st[(953ac551170087d9,#2D2D45,w(1))] rd(10) "Frame 114"
+#   e621546000914190 fr s(fill,20) f[] "Frame 115"
+#   bd4e65a235b585a0 al(v,g(6)) s(fill,hug) f[] "Frame 116"
+#     5dfdea15de109557 t("Password",Inter,14,m,align(l)) s(fill,hug) f[(da650682212d225d,#FFFFFF)] "Text 56"
+#     3fa1a522b37e2fdb fr s(fill,48) f[(fe291b7054c4c9b6,#1C1C30)] st[(a1cbb5be62eacd97,#EF4444,w(1))] rd(10) "Frame 117"
+#   8f5562055ae7aa14 fr s(fill,8) f[] "Frame 118"
+#   ad7590a22da5a4a8 al(h,g(6)) s(fill,hug) f[] "Frame 119"
+#     cb166a4463543559 t("Password must be at least 8 characters",Inter,13,r,align(l),lh(1.40)) f[(35aea8e141f1411e,#EF4444)] "Text 57"
+#   2c76da5a5e85fa74 fr s(fill,12) f[] "Frame 120"
+#   2dc3d60baab64afb al(v,g(6)) s(fill,hug) f[] "Frame 121"
+#     bf24618c074ae8dd t("Confirm Password",Inter,14,m,align(l)) s(fill,hug) f[(2fdd21ad85311205,#FFFFFF)] "Text 58"
+#     d921d4dcdf906b46 fr s(fill,48) f[(4daf3d50eaec2b9c,#1C1C30)] st[(abd7c4c67c5f7deb,#2D2D45,w(1))] rd(10) "Frame 122"
+#   7c54c5dc71be3c55 fr s(fill,20) f[] "Frame 123"
+#   c6e2e460195ed1b0 fr s(fill,fill) f[] "Frame 124"
+#   559e651116b29562 al(h,x(c),y(c)) s(fill,52) f[(55a6a45e28874b9d,#7C3AED)] rd(12) o(0.50) "Frame 125"
+#     7ee35324df6a3a06 t("Create Account",Inter,16,r,align(l)) f[(81f27f66aa26682c,#FFFFFF)] "Text 59"
+#   415bfee722219293 al(h,x(c),y(c),pad(0,0,32,0)) s(fill,hug) f[] "Frame 126"
+#     6348a8706e9a75ab t("By signing up, you agree to our\nTerms of Service and Privacy Policy",Inter,12,r,align(l),lh(1.40)) f[(0506b3fa03d348ee,#6B7280)] "Text 60"
+# bf066d27faca6182 al(v,pad(0,24)) p(860,960) s(390,844) f[(a3d90df7ddebf198,#0D0D1F)] rd(40) clip "Sign-Up - Passwords Match Error"
+#   016f1ea5ea914bfd fr s(fill,hug) f[] "Frame 128"
+#   035632efdb4955fb al(h,y(c),g(12),pad(12,0)) s(fill,hug) f[] "Frame 129"
+#     deb1863f1a6c0157 al(h,x(c),y(c)) s(36,36) f[(d15e4d1ab0ff4ecb,#1C1C30)] rd(10) "Frame 130"
+#       29e560e13fad6cbb v() path:d(M4.5,9L0,4.5L4.5,0) s(4.50,9) f[] st[(39f038f1c76a0bb1,#9CA3AF,w(2))] "Path"
+#     deff6b8923dab951 al(h,y(c),g(8),pad(6,14)) s(hug,hug) f[(4444293507779707,#1C1C30)] rd(20) "Frame 131"
+#       41df1cfd3a45636f v() path:d(M9.34,0L2.92,6.42L0,3.5) s(9.34,6.42) f[] st[(b9115b30be2b457a,#10B981,w(2.50))] "Path"
+#       28eae02a8c3abff7 t("Code accepted",Inter,13,r,align(l)) f[(c4a52e76bce4d79b,#9CA3AF)] "Text 61"
+#   15a3413a9e00577d fr s(fill,8) f[] "Frame 132"
+#   a000092e4a87d897 al(v,g(6)) s(fill,hug) f[] "Frame 133"
+#     6257e296a5464061 t("Create your account",Inter,28,b,align(l)) s(fill,hug) f[(57ae2284bca13fa8,#FFFFFF)] "Text 62"
+#     64a49f2493d0f752 t("Set up your email and password to get started",Inter,15,r,align(l),lh(1.50)) s(fill,hug) f[(3c8714d114e6d9b5,#9CA3AF)] "Text 63"
+#   67929c111f442c73 fr s(fill,32) f[] "Frame 134"
+#   2f74619c0dc644c6 al(v,g(6)) s(fill,hug) f[] "Frame 135"
+#     b2f853f9f66b6cb3 t("Email",Inter,14,m,align(l)) s(fill,hug) f[(b9ffc6af84e3f664,#FFFFFF)] "Text 64"
+#     b7a22b9089f3b5ab fr s(fill,48) f[(98782b5bc71d03e7,#1C1C30)] st[(a37e2155f5549921,#2D2D45,w(1))] rd(10) "Frame 136"
+#   9b27ef79146fc0cb fr s(fill,20) f[] "Frame 137"
+#   979cd06cbb867736 al(v,g(6)) s(fill,hug) f[] "Frame 138"
+#     551c9fe71b95ecd0 t("Password",Inter,14,m,align(l)) s(fill,hug) f[(ccfc92486fa1bb3c,#FFFFFF)] "Text 65"
+#     363f9d7519e9c64f fr s(fill,48) f[(c9136bf8e7ffd1dd,#1C1C30)] st[(cc568f321948b035,#2D2D45,w(1))] rd(10) "Frame 139"
+#   c51680133ccefce9 fr s(fill,8) f[] "Frame 140"
+#   8f0c9b124240b161 al(v,g(6)) s(fill,hug) f[] "Frame 141"
+#     935c6442ed61c998 t("Confirm Password",Inter,14,m,align(l)) s(fill,hug) f[(09388a8d21175948,#FFFFFF)] "Text 66"
+#     52430ed879370f87 fr s(fill,48) f[(45c8630ed9299776,#1C1C30)] st[(d479325869917f70,#EF4444,w(1))] rd(10) "Frame 142"
+#   7c0e995f5ce2a732 fr s(fill,8) f[] "Frame 143"
+#   9d3a69deb07af44f al(h,g(6)) s(fill,hug) f[] "Frame 144"
+#     19eb76af007b77da t("Passwords do not match",Inter,13,r,align(l),lh(1.40)) f[(f56fdffe46ed9c3f,#EF4444)] "Text 67"
+#   d7904aa5a6929b2f fr s(fill,12) f[] "Frame 145"
+#   521e0995efff9f5c fr s(fill,fill) f[] "Frame 146"
+#   deb69d44e4301b91 al(h,x(c),y(c)) s(fill,52) f[(eee939d1d9cb6d8a,#7C3AED)] rd(12) o(0.50) "Frame 147"
+#     733f19553869ceaf t("Create Account",Inter,16,r,align(l)) f[(6a1e2b183b12ff57,#FFFFFF)] "Text 68"
+#   396ffa15427cbbcb al(h,x(c),y(c),pad(0,0,32,0)) s(fill,hug) f[] "Frame 148"
+#     e116cc86f1b15f1a t("By signing up, you agree to our\nTerms of Service and Privacy Policy",Inter,12,r,align(l),lh(1.40)) f[(750e2602b9c51821,#6B7280)] "Text 69"
+# 9416e64f30174cc7 al(v,pad(0,24)) p(1290,960) s(390,844) f[(5a8d639ca0de04ec,#0D0D1F)] rd(40) clip "Sign-Up - Email Exists Error"
+#   f557659019a132aa fr s(fill,hug) f[] "Frame 150"
+#   a208cb2e2a442911 al(h,y(c),g(12),pad(12,0)) s(fill,hug) f[] "Frame 151"
+#     2243f4615fe6a947 al(h,x(c),y(c)) s(36,36) f[(18b74b4aa8d36c8f,#1C1C30)] rd(10) "Frame 152"
+#       755892dea9f407ea v() path:d(M4.5,9L0,4.5L4.5,0) s(4.50,9) f[] st[(9cf62fbcaa1afc26,#9CA3AF,w(2))] "Path"
+#     3b90dde29237db6b al(h,y(c),g(8),pad(6,14)) s(hug,hug) f[(a15fc94876b4b2d5,#1C1C30)] rd(20) "Frame 153"
+#       1d6d331e5dfecda8 v() path:d(M9.34,0L2.92,6.42L0,3.5) s(9.34,6.42) f[] st[(9d6c2a4f92593969,#10B981,w(2.50))] "Path"
+#       6750b40d20737e05 t("Code accepted",Inter,13,r,align(l)) f[(258331df03414226,#9CA3AF)] "Text 70"
+#   891054a7d0fbcc53 fr s(fill,8) f[] "Frame 154"
+#   7f97bba4f65fc356 al(v,g(6)) s(fill,hug) f[] "Frame 155"
+#     a050e79edf5495ac t("Create your account",Inter,28,b,align(l)) s(fill,hug) f[(d74f3c1d3bc06da0,#FFFFFF)] "Text 71"
+#     457edf4d8cf63d56 t("Set up your email and password to get started",Inter,15,r,align(l),lh(1.50)) s(fill,hug) f[(9b88619813bd93c8,#9CA3AF)] "Text 72"
+#   237d053738ef8017 fr s(fill,32) f[] "Frame 156"
+#   4dddcc37186ad45f al(v,g(6)) s(fill,hug) f[] "Frame 157"
+#     fcaff591047faddf t("Email",Inter,14,m,align(l)) s(fill,hug) f[(f8984a473f6dd907,#FFFFFF)] "Text 73"
+#     1a5b8f2929720b3b fr s(fill,48) f[(53f1bd5a566b6cfe,#1C1C30)] st[(cda92e5c67b8177b,#EF4444,w(1))] rd(10) "Frame 158"
+#   307698598fe29a59 fr s(fill,8) f[] "Frame 159"
+#   8d298b6abb0158d2 al(h,g(6)) s(fill,hug) f[] "Frame 160"
+#     4289708d93162011 t("An account with this email already exists — please log in instead",Inter,13,r,align(l),lh(1.40)) s(fill,hug) f[(81ea6aedb4f13105,#EF4444)] "Text 74"
+#   eee60a684aeede4d fr s(fill,12) f[] "Frame 161"
+#   251dd9987fb2bdd9 al(v,g(6)) s(fill,hug) f[] "Frame 162"
+#     a961bb9a1aaf9c35 t("Password",Inter,14,m,align(l)) s(fill,hug) f[(49ebb50c5716e25e,#FFFFFF)] "Text 75"
+#     b4468035c0a740e3 fr s(fill,48) f[(df8aafd31aefa98f,#1C1C30)] st[(42f9f1d0279ea6c5,#2D2D45,w(1))] rd(10) "Frame 163"
+#   1c18450327996d30 fr s(fill,8) f[] "Frame 164"
+#   dafde7299cb15938 al(v,g(6)) s(fill,hug) f[] "Frame 165"
+#     4b074ac3e45bfb1c t("Confirm Password",Inter,14,m,align(l)) s(fill,hug) f[(381900d71b082348,#FFFFFF)] "Text 76"
+#     02a621008c6adea3 fr s(fill,48) f[(856b6abab236c90f,#1C1C30)] st[(c6423602ed93fdd8,#2D2D45,w(1))] rd(10) "Frame 166"
+#   5335d78165ae6248 fr s(fill,20) f[] "Frame 167"
+#   d132764af6194adb fr s(fill,fill) f[] "Frame 168"
+#   7ef679007ab04aaf al(h,x(c),y(c)) s(fill,52) f[(9f8acfcd636d5cb7,#7C3AED)] rd(12) o(0.50) "Frame 169"
+#     bf0720cccac15777 t("Create Account",Inter,16,r,align(l)) f[(517b898f2cd26113,#FFFFFF)] "Text 77"
+#   5e82c4dd7563fb65 al(h,x(c),y(c),pad(0,0,32,0)) s(fill,hug) f[] "Frame 170"
+#     e8b8e15f6fb59042 t("By signing up, you agree to our\nTerms of Service and Privacy Policy",Inter,12,r,align(l),lh(1.40)) f[(07a0c22118a6a354,#6B7280)] "Text 78"
 version: 4
 canvas:
   background:
@@ -5,3 +263,4715 @@ canvas:
     color: "#000000"
     opacity: 0.5
   backgroundEnabled: false
+elements:
+  - id: 0d10a8d165cbfeac
+    type: parent
+    name: Welcome Screen
+    corners:
+      - [0.0, 0.0]
+      - [390.0, 0.0]
+      - [390.0, 844.0]
+      - [0.0, 844.0]
+    fills:
+      - id: 5d1458b6c7b268d7
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: 82d51ce76d1af49e
+    type: parent
+    name: Frame 2
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 186.0]
+      - [24.0, 186.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 0428309190860da6
+    type: parent
+    name: Frame 3
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 186.0]
+      - [366.0, 186.0]
+      - [366.0, 284.0]
+      - [24.0, 284.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 3b1508d69993a701
+    type: parent
+    name: Frame 4
+    parent: 0428309190860da6
+    corners:
+      - [143.0, 0.0]
+      - [199.0, 0.0]
+      - [199.0, 56.0]
+      - [143.0, 56.0]
+    fills:
+      - id: b45e3fd45c3c69fc
+        type: linearGradient
+        colors: ["#7C3AED", "#EC4899"]
+        positions: [0.0, 1.0]
+        startPoint: [0.1465, 0.1465]
+        endPoint: [0.8536, 0.8536]
+    parent-data:
+      type: autoLayout
+      cornerRadius: [16.0, 16.0, 16.0, 16.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 56.0
+      fixedHeight: 56.0
+  - id: 0616ac86685ad683
+    type: parent
+    name: Frame 5
+    parent: 3b1508d69993a701
+    corners:
+      - [17.81, 13.5]
+      - [38.19, 13.5]
+      - [38.19, 42.5]
+      - [17.81, 42.5]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: hug
+      height: hug
+  - id: e7506f6b65bdb0d5
+    type: text
+    name: Text 1
+    parent: 0616ac86685ad683
+    corners:
+      - [0.0, 0.0]
+      - [13.58, 0.0]
+      - [13.58, 29.0]
+      - [0.0, 29.0]
+    fills:
+      - id: 844cc62c5c34a17d
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: L
+      font: Inter
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: 1791245333635c3e
+    type: text
+    name: Text 2
+    parent: 0616ac86685ad683
+    corners:
+      - [13.58, 0.0]
+      - [20.38, 0.0]
+      - [20.38, 29.0]
+      - [13.58, 29.0]
+    fills:
+      - id: d224a43431650d76
+        type: solid
+        color: "#FFFFFF"
+        opacity: 0.9
+    text:
+      content: i
+      font: Inter
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: 86c084efeb50d626
+    type: text
+    name: Text 3
+    parent: 0428309190860da6
+    corners:
+      - [134.32, 64.0]
+      - [207.68, 64.0]
+      - [207.68, 98.0]
+      - [134.32, 98.0]
+    fills:
+      - id: 610f51635230c9d8
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+      letterSpacing: -1.0
+    layout:
+      width: hug
+      height: hug
+  - id: cc3791d289de65d8
+    type: parent
+    name: Frame 6
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 284.0]
+      - [366.0, 284.0]
+      - [366.0, 324.0]
+      - [24.0, 324.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 40.0
+  - id: 9ebb89941ef7c34d
+    type: parent
+    name: Frame 7
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 324.0]
+      - [366.0, 324.0]
+      - [366.0, 414.0]
+      - [24.0, 414.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 0f88dcdb50dd1f0f
+    type: text
+    name: Text 4
+    parent: 9ebb89941ef7c34d
+    corners:
+      - [98.98, 0.0]
+      - [243.03, 0.0]
+      - [243.03, 34.0]
+      - [98.98, 34.0]
+    fills:
+      - id: e3b5ea9fe47c99cd
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Join LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: d41bdb065132a73a
+    type: text
+    name: Text 5
+    parent: 9ebb89941ef7c34d
+    corners:
+      - [77.98, 42.0]
+      - [264.03, 42.0]
+      - [264.03, 90.0]
+      - [77.98, 90.0]
+    fills:
+      - id: 72988cda24abd3dc
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: "Enter your invite code to\ncreate an account"
+      font: Inter
+      size: 16.0
+      lineHeight: 1.5
+    layout:
+      width: hug
+      height: hug
+  - id: 2abfa4c9db82efc2
+    type: parent
+    name: Frame 8
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 414.0]
+      - [366.0, 414.0]
+      - [366.0, 446.0]
+      - [24.0, 446.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 962d6554c119b824
+    type: parent
+    name: Frame 9
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 446.0]
+      - [366.0, 446.0]
+      - [366.0, 517.0]
+      - [24.0, 517.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 50e61b316ddf1a95
+    type: text
+    name: Text 6
+    parent: 962d6554c119b824
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: 5b20db5be69e9ce8
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Invite Code
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: c20454c555ad3f31
+    type: parent
+    name: Frame 10
+    parent: 962d6554c119b824
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: 8a64f6b3b392d239
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: 9b1eb28bdc1d3248
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: d6216bce1650d6c9
+    type: parent
+    name: Frame 11
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 517.0]
+      - [366.0, 517.0]
+      - [366.0, 541.0]
+      - [24.0, 541.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 24.0
+  - id: 8c4c79cf52da3a38
+    type: parent
+    name: Frame 13
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 541.0]
+      - [366.0, 541.0]
+      - [366.0, 557.0]
+      - [24.0, 557.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 16.0
+  - id: d419b5399e64451f
+    type: parent
+    name: Frame 14
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 557.0]
+      - [366.0, 557.0]
+      - [366.0, 609.0]
+      - [24.0, 609.0]
+    fills:
+      - id: f628ca9efde63f78
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: e6e38219e370baac
+    type: text
+    name: Text 8
+    parent: d419b5399e64451f
+    corners:
+      - [136.43, 16.5]
+      - [205.58, 16.5]
+      - [205.58, 35.5]
+      - [136.43, 35.5]
+    fills:
+      - id: 8ae8c9a4b601ffa6
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Continue
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 6b48ab7766078d4f
+    type: parent
+    name: Frame 15
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 609.0]
+      - [366.0, 609.0]
+      - [366.0, 795.0]
+      - [24.0, 795.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 7acc87914956556f
+    type: parent
+    name: Frame 16
+    parent: 0d10a8d165cbfeac
+    corners:
+      - [24.0, 795.0]
+      - [366.0, 795.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      spacing: 4.0
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 40d282650a647c40
+    type: text
+    name: Text 9
+    parent: 7acc87914956556f
+    corners:
+      - [61.85, 0.0]
+      - [234.85, 0.0]
+      - [234.85, 17.0]
+      - [61.85, 17.0]
+    fills:
+      - id: d8c894658f4bbef2
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Already have an account?
+      font: Inter
+      size: 14.0
+    layout:
+      width: hug
+      height: hug
+  - id: 628cbc5a12adaa8a
+    type: text
+    name: Text 10
+    parent: 7acc87914956556f
+    corners:
+      - [238.85, 0.0]
+      - [280.16, 0.0]
+      - [280.16, 17.0]
+      - [238.85, 17.0]
+    fills:
+      - id: 516286d7ea66b704
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: Log In
+      font: Inter
+      size: 14.0
+      weight: semibold
+    layout:
+      width: hug
+      height: hug
+  - id: 6617087e25a20f1c
+    type: parent
+    name: Sign-Up Screen
+    corners:
+      - [0.0, 960.0]
+      - [390.0, 960.0]
+      - [390.0, 1804.0]
+      - [0.0, 1804.0]
+    fills:
+      - id: d4594b9ba1fa0b0e
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: b62112def003c4bb
+    type: parent
+    name: Frame 18
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 100.0]
+      - [24.0, 100.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: hug
+  - id: 8df59f516c2ea220
+    type: parent
+    name: Frame 19
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 100.0]
+      - [366.0, 100.0]
+      - [366.0, 160.0]
+      - [24.0, 160.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 12.0
+      padding: [12.0, 0.0, 12.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 4f4c39728e8de1c4
+    type: parent
+    name: Frame 20
+    parent: 8df59f516c2ea220
+    corners:
+      - [0.0, 12.0]
+      - [36.0, 12.0]
+      - [36.0, 48.0]
+      - [0.0, 48.0]
+    fills:
+      - id: 45017f829882f540
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 36.0
+      fixedHeight: 36.0
+  - id: abd054ff824571ce
+    type: vector
+    name: Path
+    parent: 4f4c39728e8de1c4
+    corners:
+      - [15.75, 13.5]
+      - [20.25, 13.5]
+      - [20.25, 22.5]
+      - [15.75, 22.5]
+    path:
+      nodes:
+        - [0, 20.25, 22.5]
+        - [1, 15.75, 18.0]
+        - [2, 20.25, 13.5]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: b23d2a9d9757571a
+        thickness: 2.0
+        type: solid
+        color: "#9CA3AF"
+        dashCap: round
+  - id: cec1c8cd7b1df21f
+    type: parent
+    name: Frame 21
+    parent: 8df59f516c2ea220
+    corners:
+      - [48.0, 16.0]
+      - [187.9, 16.0]
+      - [187.9, 44.0]
+      - [48.0, 44.0]
+    fills:
+      - id: 0c1142579d1857a3
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [20.0, 20.0, 20.0, 20.0]
+      direction: horizontal
+      crossAxis: center
+      spacing: 8.0
+      padding: [6.0, 14.0, 6.0, 14.0]
+    layout:
+      width: hug
+      height: hug
+  - id: 9b47e9a59650d0db
+    type: vector
+    name: Path
+    parent: cec1c8cd7b1df21f
+    corners:
+      - [14.0, 10.79]
+      - [23.34, 10.79]
+      - [23.34, 17.21]
+      - [14.0, 17.21]
+    path:
+      nodes:
+        - [0, 23.34, 10.79]
+        - [1, 16.92, 17.21]
+        - [2, 14.0, 14.29]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: 85798deb12cf77a7
+        thickness: 2.5
+        type: solid
+        color: "#10B981"
+        dashCap: round
+  - id: 0c034fe704d24082
+    type: text
+    name: Text 11
+    parent: cec1c8cd7b1df21f
+    corners:
+      - [31.34, 6.0]
+      - [125.9, 6.0]
+      - [125.9, 22.0]
+      - [31.34, 22.0]
+    fills:
+      - id: b4f7e1c5f58faf52
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Code accepted
+      font: Inter
+      size: 13.0
+    layout:
+      width: hug
+      height: hug
+  - id: 60a0f3f31a6a154f
+    type: parent
+    name: Frame 22
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 160.0]
+      - [366.0, 160.0]
+      - [366.0, 168.0]
+      - [24.0, 168.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 7a93d56ca9fc7d55
+    type: parent
+    name: Frame 23
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 168.0]
+      - [366.0, 168.0]
+      - [366.0, 231.0]
+      - [24.0, 231.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 714874d84c3361ed
+    type: text
+    name: Text 12
+    parent: 7a93d56ca9fc7d55
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 34.0]
+      - [0.0, 34.0]
+    fills:
+      - id: b7b331f0ddd676f7
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create your account
+      font: Inter
+      size: 28.0
+      weight: bold
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: eb93697a41122829
+    type: text
+    name: Text 13
+    parent: 7a93d56ca9fc7d55
+    corners:
+      - [0.0, 40.0]
+      - [342.0, 40.0]
+      - [342.0, 63.0]
+      - [0.0, 63.0]
+    fills:
+      - id: 860edb6d893a996d
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Set up your email and password to get started
+      font: Inter
+      size: 15.0
+      width: 342.0
+      lineHeight: 1.5
+    layout:
+      width: fill
+      height: hug
+  - id: 3c4251154bdd7016
+    type: parent
+    name: Frame 24
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 231.0]
+      - [366.0, 231.0]
+      - [366.0, 263.0]
+      - [24.0, 263.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 92bad5447de13b9b
+    type: parent
+    name: Frame 25
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 263.0]
+      - [366.0, 263.0]
+      - [366.0, 334.0]
+      - [24.0, 334.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 569ff9520837a927
+    type: text
+    name: Text 14
+    parent: 92bad5447de13b9b
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: 76983e120802f525
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Email
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: e104177b440405e8
+    type: parent
+    name: Frame 26
+    parent: 92bad5447de13b9b
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: 162c504254085a34
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: e52008ec87e1b331
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 33d95df3e9436d02
+    type: parent
+    name: Frame 27
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 334.0]
+      - [366.0, 334.0]
+      - [366.0, 354.0]
+      - [24.0, 354.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 20.0
+  - id: fb25614dae9b10f7
+    type: parent
+    name: Frame 28
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 354.0]
+      - [366.0, 354.0]
+      - [366.0, 425.0]
+      - [24.0, 425.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 019ae7d320731c27
+    type: text
+    name: Text 15
+    parent: fb25614dae9b10f7
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: ae477a865a591392
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 87000ac462852e07
+    type: parent
+    name: Frame 29
+    parent: fb25614dae9b10f7
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: hug
+  - id: 5b5a783f9f11f5e4
+    type: parent
+    name: Frame 30
+    parent: 87000ac462852e07
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 48.0]
+      - [0.0, 48.0]
+    fills:
+      - id: 82dce96fab839c61
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: 6dace93fcea6fc99
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 2d6fd143615bb794
+    type: parent
+    name: Frame 31
+    parent: 87000ac462852e07
+    corners:
+      - [306.0, 0.0]
+      - [330.0, 0.0]
+      - [330.0, 24.0]
+      - [306.0, 24.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 24.0
+      fixedHeight: 24.0
+  - id: df13637bfd9910c8
+    type: parent
+    name: SVG
+    parent: 2d6fd143615bb794
+    corners:
+      - [2.84, 5.33]
+      - [21.17, 5.33]
+      - [21.17, 18.66]
+      - [2.84, 18.66]
+    parent-data:
+      type: frame
+    layout:
+      width: hug
+      height: hug
+  - id: c797f22056302925
+    type: vector
+    name: Path
+    parent: df13637bfd9910c8
+    corners:
+      - [0.0, 0.0]
+      - [18.33, 0.0]
+      - [18.33, 13.33]
+      - [0.0, 13.33]
+    path:
+      nodes:
+        - [0, 0.0, 6.67]
+        - [1, 9.17, 0.0]
+        - [2, 18.33, 6.67]
+        - [3, 9.17, 13.33]
+      edges:
+        - id: 0
+          nodes: [0, 1]
+          handleB: [-5.83, 0.0]
+        - id: 1
+          nodes: [1, 2]
+          handleA: [5.83, 0.0]
+        - id: 2
+          nodes: [2, 3]
+          handleB: [5.83, 0.0]
+        - id: 3
+          nodes: [0, 3]
+          handleB: [-5.83, 0.0]
+      regions:
+        - id: "0:1:2:3"
+          fills: []
+          edges: 0+1+2+3-
+          cw: true
+    strokes:
+      - id: d45a245f069af777
+        thickness: 1.5
+        type: solid
+        color: "#9CA3AF"
+        dashCap: round
+  - id: 3469fdc629e366e1
+    type: circle
+    name: Ellipse
+    parent: df13637bfd9910c8
+    corners:
+      - [6.67, 4.17]
+      - [11.67, 4.17]
+      - [11.67, 9.17]
+      - [6.67, 9.17]
+    strokes:
+      - id: a3ad9eae277b3e08
+        thickness: 1.5
+        type: solid
+        color: "#9CA3AF"
+        dashCap: round
+  - id: d7bcb429d60db9a0
+    type: parent
+    name: Frame 32
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 425.0]
+      - [366.0, 425.0]
+      - [366.0, 445.0]
+      - [24.0, 445.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 20.0
+  - id: 9d57f374c2cd9cb8
+    type: parent
+    name: Frame 33
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 445.0]
+      - [366.0, 445.0]
+      - [366.0, 516.0]
+      - [24.0, 516.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: c13a3481ca43f3b7
+    type: text
+    name: Text 16
+    parent: 9d57f374c2cd9cb8
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: d942e6baa287065b
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Confirm Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 7e1f16948aa2c57b
+    type: parent
+    name: Frame 34
+    parent: 9d57f374c2cd9cb8
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: hug
+  - id: e4f5b0814b4b92fb
+    type: parent
+    name: Frame 35
+    parent: 7e1f16948aa2c57b
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 48.0]
+      - [0.0, 48.0]
+    fills:
+      - id: 6a73fe6b457e64c5
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: b2fee68a6ab4f543
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 5ee43335a3125f5f
+    type: parent
+    name: Frame 36
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 516.0]
+      - [366.0, 516.0]
+      - [366.0, 524.0]
+      - [24.0, 524.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 5757e479f3608e67
+    type: parent
+    name: Frame 38
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 524.0]
+      - [366.0, 524.0]
+      - [366.0, 532.0]
+      - [24.0, 532.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 5395ec261722be51
+    type: parent
+    name: Frame 40
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 532.0]
+      - [366.0, 532.0]
+      - [366.0, 540.0]
+      - [24.0, 540.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: d8799c320006ba7a
+    type: parent
+    name: Frame 42
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 540.0]
+      - [366.0, 540.0]
+      - [366.0, 548.0]
+      - [24.0, 548.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: e3d5aa810eb0286f
+    type: parent
+    name: Frame 43
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 548.0]
+      - [366.0, 548.0]
+      - [366.0, 710.0]
+      - [24.0, 710.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: c1a561a1985ef5cc
+    type: parent
+    name: Frame 44
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 710.0]
+      - [366.0, 710.0]
+      - [366.0, 762.0]
+      - [24.0, 762.0]
+    fills:
+      - id: 1f6ba10ad49d2cf3
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: a868d07d3e144afa
+    type: text
+    name: Text 20
+    parent: c1a561a1985ef5cc
+    corners:
+      - [111.37, 16.5]
+      - [230.63, 16.5]
+      - [230.63, 35.5]
+      - [111.37, 35.5]
+    fills:
+      - id: add0ea3093c0931b
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create Account
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 6b4b5b35a5815a3b
+    type: parent
+    name: Frame 45
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 762.0]
+      - [366.0, 762.0]
+      - [366.0, 778.0]
+      - [24.0, 778.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 16.0
+  - id: 3e1cdfc436a43ffb
+    type: parent
+    name: Frame 46
+    parent: 6617087e25a20f1c
+    corners:
+      - [24.0, 778.0]
+      - [366.0, 778.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: c61832d58da06b9f
+    type: text
+    name: Text 21
+    parent: 3e1cdfc436a43ffb
+    corners:
+      - [68.08, 0.0]
+      - [273.92, 0.0]
+      - [273.92, 34.0]
+      - [68.08, 34.0]
+    fills:
+      - id: db0a13843c25274b
+        type: solid
+        color: "#6B7280"
+    text:
+      content: "By signing up, you agree to our\nTerms of Service and Privacy Policy"
+      font: Inter
+      size: 12.0
+      lineHeight: 1.4
+    layout:
+      width: hug
+      height: hug
+  - id: e78b27178ece3f3d
+    type: parent
+    name: Account Created Screen
+    corners:
+      - [0.0, 1920.0]
+      - [390.0, 1920.0]
+      - [390.0, 2764.0]
+      - [0.0, 2764.0]
+    fills:
+      - id: fd841ec21a06df4d
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: 3635a659e2fa5f54
+    type: parent
+    name: Frame 48
+    parent: e78b27178ece3f3d
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 288.5]
+      - [24.0, 288.5]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: f8093d86eddb0d35
+    type: parent
+    name: Frame 49
+    parent: e78b27178ece3f3d
+    corners:
+      - [24.0, 288.5]
+      - [366.0, 288.5]
+      - [366.0, 368.5]
+      - [24.0, 368.5]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+    layout:
+      width: fill
+      height: hug
+  - id: d188ed1be7afc4db
+    type: parent
+    name: Frame 50
+    parent: f8093d86eddb0d35
+    corners:
+      - [131.0, 0.0]
+      - [211.0, 0.0]
+      - [211.0, 80.0]
+      - [131.0, 80.0]
+    fills:
+      - id: 20b51e484ef778d9
+        type: linearGradient
+        colors: ["#10B981", "#10B981"]
+        positions: [0.0, 1.0]
+        startPoint: [0.1465, 0.1465]
+        endPoint: [0.8536, 0.8536]
+    strokes:
+      - id: 4da7c59cfe4b47ba
+        thickness: 2.0
+        type: solid
+        color: "#10B981"
+        opacity: 0.3
+    parent-data:
+      type: autoLayout
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 80.0
+      fixedHeight: 80.0
+  - id: caf2d8baa8fb4acb
+    type: vector
+    name: Path
+    parent: d188ed1be7afc4db
+    corners:
+      - [28.0, 31.75]
+      - [52.0, 31.75]
+      - [52.0, 48.25]
+      - [28.0, 48.25]
+    path:
+      nodes:
+        - [0, 52.0, 31.75]
+        - [1, 35.5, 48.25]
+        - [2, 28.0, 40.75]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: fb855bdd661e6f45
+        thickness: 3.0
+        type: solid
+        color: "#10B981"
+        dashCap: round
+  - id: 2fab807b070a1c5b
+    type: parent
+    name: Frame 51
+    parent: e78b27178ece3f3d
+    corners:
+      - [24.0, 368.5]
+      - [366.0, 368.5]
+      - [366.0, 400.5]
+      - [24.0, 400.5]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 1ca7f74fde72d093
+    type: parent
+    name: Frame 52
+    parent: e78b27178ece3f3d
+    corners:
+      - [24.0, 400.5]
+      - [366.0, 400.5]
+      - [366.0, 466.5]
+      - [24.0, 466.5]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 0df667b0ce30f49d
+    type: text
+    name: Text 22
+    parent: 1ca7f74fde72d093
+    corners:
+      - [50.98, 0.0]
+      - [291.02, 0.0]
+      - [291.02, 34.0]
+      - [50.98, 34.0]
+    fills:
+      - id: 9c8d13ac4f1e2be6
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Account created!
+      font: Inter
+      size: 28.0
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: f16f0bbda295e98e
+    type: text
+    name: Text 23
+    parent: 1ca7f74fde72d093
+    corners:
+      - [101.85, 42.0]
+      - [240.14, 42.0]
+      - [240.14, 66.0]
+      - [101.85, 66.0]
+    fills:
+      - id: 236883eef17dd769
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Welcome to LIFEY
+      font: Inter
+      size: 16.0
+      lineHeight: 1.5
+    layout:
+      width: hug
+      height: hug
+  - id: b8e188ad5f7238ba
+    type: parent
+    name: Frame 53
+    parent: e78b27178ece3f3d
+    corners:
+      - [24.0, 466.5]
+      - [366.0, 466.5]
+      - [366.0, 514.5]
+      - [24.0, 514.5]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 8b16be7e743ad335
+    type: parent
+    name: Frame 54
+    parent: e78b27178ece3f3d
+    corners:
+      - [24.0, 514.5]
+      - [366.0, 514.5]
+      - [366.0, 555.5]
+      - [24.0, 555.5]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 16.0
+    layout:
+      width: fill
+      height: hug
+  - id: 9b1db60ab1d77b5f
+    type: parent
+    name: Frame 55
+    parent: 8b16be7e743ad335
+    corners:
+      - [151.0, 0.0]
+      - [191.0, 0.0]
+      - [191.0, 8.0]
+      - [151.0, 8.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: hug
+      height: hug
+  - id: 0e8dfe8ec2526e3a
+    type: parent
+    name: Frame 56
+    parent: 9b1db60ab1d77b5f
+    corners:
+      - [0.0, 0.0]
+      - [8.0, 0.0]
+      - [8.0, 8.0]
+      - [0.0, 8.0]
+    opacity: 0.4
+    fills:
+      - id: 1ad8da313e1ab21b
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: frame
+      cornerRadius: [4.0, 4.0, 4.0, 4.0]
+    layout:
+      fixedWidth: 8.0
+      fixedHeight: 8.0
+  - id: 0c13ce6c67e9496a
+    type: parent
+    name: Frame 57
+    parent: 9b1db60ab1d77b5f
+    corners:
+      - [16.0, 0.0]
+      - [24.0, 0.0]
+      - [24.0, 8.0]
+      - [16.0, 8.0]
+    opacity: 0.7
+    fills:
+      - id: f094d4ff1f76302f
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: frame
+      cornerRadius: [4.0, 4.0, 4.0, 4.0]
+    layout:
+      fixedWidth: 8.0
+      fixedHeight: 8.0
+  - id: d843b478fa858c42
+    type: parent
+    name: Frame 58
+    parent: 9b1db60ab1d77b5f
+    corners:
+      - [32.0, 0.0]
+      - [40.0, 0.0]
+      - [40.0, 8.0]
+      - [32.0, 8.0]
+    fills:
+      - id: ade391b274d9f8e6
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: frame
+      cornerRadius: [4.0, 4.0, 4.0, 4.0]
+    layout:
+      fixedWidth: 8.0
+      fixedHeight: 8.0
+  - id: 57a73d78228193ec
+    type: text
+    name: Text 24
+    parent: 8b16be7e743ad335
+    corners:
+      - [92.69, 24.0]
+      - [249.31, 24.0]
+      - [249.31, 41.0]
+      - [92.69, 41.0]
+    fills:
+      - id: 7166a8d0fa2ac5c4
+        type: solid
+        color: "#6B7280"
+    text:
+      content: Taking you to the app...
+      font: Inter
+      size: 14.0
+    layout:
+      width: hug
+      height: hug
+  - id: cccf61b7fd9cfa78
+    type: parent
+    name: Frame 59
+    parent: e78b27178ece3f3d
+    corners:
+      - [24.0, 555.5]
+      - [366.0, 555.5]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: e171a600c2b5d89a
+    type: parent
+    name: Welcome - Invalid Code Error
+    corners:
+      - [430.0, 0.0]
+      - [820.0, 0.0]
+      - [820.0, 844.0]
+      - [430.0, 844.0]
+    fills:
+      - id: bc292bfcf4aa39e1
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: d0719f87cbdfdfcf
+    type: parent
+    name: Frame 61
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 174.0]
+      - [24.0, 174.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 246d42b54f0e38c9
+    type: parent
+    name: Frame 62
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 174.0]
+      - [366.0, 174.0]
+      - [366.0, 272.0]
+      - [24.0, 272.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 515ebf2ed425a980
+    type: parent
+    name: Frame 63
+    parent: 246d42b54f0e38c9
+    corners:
+      - [143.0, 0.0]
+      - [199.0, 0.0]
+      - [199.0, 56.0]
+      - [143.0, 56.0]
+    fills:
+      - id: 0f97dea9c176ce83
+        type: linearGradient
+        colors: ["#7C3AED", "#EC4899"]
+        positions: [0.0, 1.0]
+        startPoint: [0.1465, 0.1465]
+        endPoint: [0.8536, 0.8536]
+    parent-data:
+      type: autoLayout
+      cornerRadius: [16.0, 16.0, 16.0, 16.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 56.0
+      fixedHeight: 56.0
+  - id: 5d0bb4e1133837f5
+    type: text
+    name: Text 25
+    parent: 515ebf2ed425a980
+    corners:
+      - [21.21, 13.5]
+      - [34.79, 13.5]
+      - [34.79, 42.5]
+      - [21.21, 42.5]
+    fills:
+      - id: f197a2f5a6966644
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: L
+      font: Inter
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: 32b14408493186b5
+    type: text
+    name: Text 26
+    parent: 246d42b54f0e38c9
+    corners:
+      - [134.32, 64.0]
+      - [207.68, 64.0]
+      - [207.68, 98.0]
+      - [134.32, 98.0]
+    fills:
+      - id: "3081467199753130"
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+      letterSpacing: -1.0
+    layout:
+      width: hug
+      height: hug
+  - id: 666d3ccc60ac4086
+    type: parent
+    name: Frame 64
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 272.0]
+      - [366.0, 272.0]
+      - [366.0, 312.0]
+      - [24.0, 312.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 40.0
+  - id: 1a3ec68f1781a65a
+    type: parent
+    name: Frame 65
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 312.0]
+      - [366.0, 312.0]
+      - [366.0, 402.0]
+      - [24.0, 402.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 77e6196c8e33b674
+    type: text
+    name: Text 27
+    parent: 1a3ec68f1781a65a
+    corners:
+      - [98.98, 0.0]
+      - [243.03, 0.0]
+      - [243.03, 34.0]
+      - [98.98, 34.0]
+    fills:
+      - id: 72753e5cbde0f7a8
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Join LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: ed36637a98334c9d
+    type: text
+    name: Text 28
+    parent: 1a3ec68f1781a65a
+    corners:
+      - [77.98, 42.0]
+      - [264.03, 42.0]
+      - [264.03, 90.0]
+      - [77.98, 90.0]
+    fills:
+      - id: 3a8de84c2231adec
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: "Enter your invite code to\ncreate an account"
+      font: Inter
+      size: 16.0
+      lineHeight: 1.5
+    layout:
+      width: hug
+      height: hug
+  - id: d70a69daf915ee6c
+    type: parent
+    name: Frame 66
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 402.0]
+      - [366.0, 402.0]
+      - [366.0, 434.0]
+      - [24.0, 434.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 1a0d37c703b178ff
+    type: parent
+    name: Frame 67
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 434.0]
+      - [366.0, 434.0]
+      - [366.0, 505.0]
+      - [24.0, 505.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 48aee109359a3b0c
+    type: text
+    name: Text 29
+    parent: 1a0d37c703b178ff
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: c820e49e42917346
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Invite Code
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: ef4573d9eb0c5057
+    type: parent
+    name: Frame 68
+    parent: 1a0d37c703b178ff
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: f82c9b7bf6c2731f
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: 749a8154c92aa998
+        thickness: 1.0
+        type: solid
+        color: "#EF4444"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 2217bb0457a387f4
+    type: parent
+    name: Frame 69
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 505.0]
+      - [366.0, 505.0]
+      - [366.0, 517.0]
+      - [24.0, 517.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 12.0
+  - id: a47c57be112961a2
+    type: parent
+    name: Frame 70
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 517.0]
+      - [366.0, 517.0]
+      - [366.0, 553.0]
+      - [24.0, 553.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: a123bdbc45d7a209
+    type: text
+    name: Text 30
+    parent: a47c57be112961a2
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 36.0]
+      - [0.0, 36.0]
+    fills:
+      - id: f6e96face6e73790
+        type: solid
+        color: "#EF4444"
+    text:
+      content: Invalid invite code — check with the person who invited you
+      font: Inter
+      size: 13.0
+      width: 342.0
+      lineHeight: 1.4
+    layout:
+      width: fill
+      height: hug
+  - id: d7ca44b5129bbe35
+    type: parent
+    name: Frame 71
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 553.0]
+      - [366.0, 553.0]
+      - [366.0, 569.0]
+      - [24.0, 569.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 16.0
+  - id: ff0b9e315cf7e082
+    type: parent
+    name: Frame 72
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 569.0]
+      - [366.0, 569.0]
+      - [366.0, 621.0]
+      - [24.0, 621.0]
+    opacity: 0.5
+    fills:
+      - id: a4e070f1beccda84
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: e078a76b7d71cbdc
+    type: text
+    name: Text 31
+    parent: ff0b9e315cf7e082
+    corners:
+      - [136.43, 16.5]
+      - [205.58, 16.5]
+      - [205.58, 35.5]
+      - [136.43, 35.5]
+    fills:
+      - id: 7bc84765b37ee4aa
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Continue
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 601ed5f142978f45
+    type: parent
+    name: Frame 73
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 621.0]
+      - [366.0, 621.0]
+      - [366.0, 795.0]
+      - [24.0, 795.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 9a1cdede02d1c085
+    type: parent
+    name: Frame 74
+    parent: e171a600c2b5d89a
+    corners:
+      - [24.0, 795.0]
+      - [366.0, 795.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      spacing: 4.0
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 45975860c8bd172a
+    type: text
+    name: Text 32
+    parent: 9a1cdede02d1c085
+    corners:
+      - [61.85, 0.0]
+      - [234.85, 0.0]
+      - [234.85, 17.0]
+      - [61.85, 17.0]
+    fills:
+      - id: cd06abef6e80ef81
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Already have an account?
+      font: Inter
+      size: 14.0
+    layout:
+      width: hug
+      height: hug
+  - id: 934f77e4aab24d8a
+    type: text
+    name: Text 33
+    parent: 9a1cdede02d1c085
+    corners:
+      - [238.85, 0.0]
+      - [280.16, 0.0]
+      - [280.16, 17.0]
+      - [238.85, 17.0]
+    fills:
+      - id: 7b4a0c84c0ce901d
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: Log In
+      font: Inter
+      size: 14.0
+      weight: semibold
+    layout:
+      width: hug
+      height: hug
+  - id: bd9697cee94acf6c
+    type: parent
+    name: Welcome - Expired Code Error
+    corners:
+      - [860.0, 0.0]
+      - [1250.0, 0.0]
+      - [1250.0, 844.0]
+      - [860.0, 844.0]
+    fills:
+      - id: 91800ed95bdd4880
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: 6346ca9491e7b9cf
+    type: parent
+    name: Frame 76
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 183.0]
+      - [24.0, 183.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 241ddc659d76d650
+    type: parent
+    name: Frame 77
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 183.0]
+      - [366.0, 183.0]
+      - [366.0, 281.0]
+      - [24.0, 281.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 5e4820e72ffd262a
+    type: parent
+    name: Frame 78
+    parent: 241ddc659d76d650
+    corners:
+      - [143.0, 0.0]
+      - [199.0, 0.0]
+      - [199.0, 56.0]
+      - [143.0, 56.0]
+    fills:
+      - id: f58e956bd5224f15
+        type: linearGradient
+        colors: ["#7C3AED", "#EC4899"]
+        positions: [0.0, 1.0]
+        startPoint: [0.1465, 0.1465]
+        endPoint: [0.8536, 0.8536]
+    parent-data:
+      type: autoLayout
+      cornerRadius: [16.0, 16.0, 16.0, 16.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 56.0
+      fixedHeight: 56.0
+  - id: b9e54ed469ae5cbf
+    type: text
+    name: Text 34
+    parent: 5e4820e72ffd262a
+    corners:
+      - [21.21, 13.5]
+      - [34.79, 13.5]
+      - [34.79, 42.5]
+      - [21.21, 42.5]
+    fills:
+      - id: 54c80608bcfd549f
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: L
+      font: Inter
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: 640205548f6197b1
+    type: text
+    name: Text 35
+    parent: 241ddc659d76d650
+    corners:
+      - [134.32, 64.0]
+      - [207.68, 64.0]
+      - [207.68, 98.0]
+      - [134.32, 98.0]
+    fills:
+      - id: 1a50e7d2fb485120
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+      letterSpacing: -1.0
+    layout:
+      width: hug
+      height: hug
+  - id: b8517f224ecf8f7f
+    type: parent
+    name: Frame 79
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 281.0]
+      - [366.0, 281.0]
+      - [366.0, 321.0]
+      - [24.0, 321.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 40.0
+  - id: 7c2e219ee0c13f57
+    type: parent
+    name: Frame 80
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 321.0]
+      - [366.0, 321.0]
+      - [366.0, 411.0]
+      - [24.0, 411.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 171d7ed0a45f2f6f
+    type: text
+    name: Text 36
+    parent: 7c2e219ee0c13f57
+    corners:
+      - [98.98, 0.0]
+      - [243.03, 0.0]
+      - [243.03, 34.0]
+      - [98.98, 34.0]
+    fills:
+      - id: 5a52656f02a7df94
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Join LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: 4ddd7c679e2b05fb
+    type: text
+    name: Text 37
+    parent: 7c2e219ee0c13f57
+    corners:
+      - [77.98, 42.0]
+      - [264.03, 42.0]
+      - [264.03, 90.0]
+      - [77.98, 90.0]
+    fills:
+      - id: f48f25347b0e0dcd
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: "Enter your invite code to\ncreate an account"
+      font: Inter
+      size: 16.0
+      lineHeight: 1.5
+    layout:
+      width: hug
+      height: hug
+  - id: 5cfa0a02e5befb1f
+    type: parent
+    name: Frame 81
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 411.0]
+      - [366.0, 411.0]
+      - [366.0, 443.0]
+      - [24.0, 443.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 3b0cc4e5c20148f6
+    type: parent
+    name: Frame 82
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 443.0]
+      - [366.0, 443.0]
+      - [366.0, 514.0]
+      - [24.0, 514.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: a8189b2b98eafebd
+    type: text
+    name: Text 38
+    parent: 3b0cc4e5c20148f6
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: b5fcb75551a04666
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Invite Code
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: b6cc9a1495ea8c4f
+    type: parent
+    name: Frame 83
+    parent: 3b0cc4e5c20148f6
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: ffe842bf11498521
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: de80b1817d51b5f6
+        thickness: 1.0
+        type: solid
+        color: "#EF4444"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 5f7f5f065fdc85d9
+    type: parent
+    name: Frame 84
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 514.0]
+      - [366.0, 514.0]
+      - [366.0, 526.0]
+      - [24.0, 526.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 12.0
+  - id: 15f5ad377a8afda1
+    type: parent
+    name: Frame 85
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 526.0]
+      - [366.0, 526.0]
+      - [366.0, 544.0]
+      - [24.0, 544.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 7ec707358cd51e7d
+    type: text
+    name: Text 39
+    parent: 15f5ad377a8afda1
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 18.0]
+      - [0.0, 18.0]
+    fills:
+      - id: 7e33145da13de003
+        type: solid
+        color: "#EF4444"
+    text:
+      content: This invite code has expired
+      font: Inter
+      size: 13.0
+      width: 342.0
+      lineHeight: 1.4
+    layout:
+      width: fill
+      height: hug
+  - id: fbc653fc7e01b576
+    type: parent
+    name: Frame 86
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 544.0]
+      - [366.0, 544.0]
+      - [366.0, 560.0]
+      - [24.0, 560.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 16.0
+  - id: fc3a980b647398c3
+    type: parent
+    name: Frame 87
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 560.0]
+      - [366.0, 560.0]
+      - [366.0, 612.0]
+      - [24.0, 612.0]
+    opacity: 0.5
+    fills:
+      - id: 8373450bfd020352
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: 63bfb6cf69f2c0aa
+    type: text
+    name: Text 40
+    parent: fc3a980b647398c3
+    corners:
+      - [136.43, 16.5]
+      - [205.58, 16.5]
+      - [205.58, 35.5]
+      - [136.43, 35.5]
+    fills:
+      - id: 77f4dd26351a59bf
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Continue
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 9c7c37fc8bc63a33
+    type: parent
+    name: Frame 88
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 612.0]
+      - [366.0, 612.0]
+      - [366.0, 795.0]
+      - [24.0, 795.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 2fe724e0b291bf0b
+    type: parent
+    name: Frame 89
+    parent: bd9697cee94acf6c
+    corners:
+      - [24.0, 795.0]
+      - [366.0, 795.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      spacing: 4.0
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 84306f44a03c343c
+    type: text
+    name: Text 41
+    parent: 2fe724e0b291bf0b
+    corners:
+      - [61.85, 0.0]
+      - [234.85, 0.0]
+      - [234.85, 17.0]
+      - [61.85, 17.0]
+    fills:
+      - id: aa45d526da9c4dcb
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Already have an account?
+      font: Inter
+      size: 14.0
+    layout:
+      width: hug
+      height: hug
+  - id: 3dd329b9e03519b9
+    type: text
+    name: Text 42
+    parent: 2fe724e0b291bf0b
+    corners:
+      - [238.85, 0.0]
+      - [280.16, 0.0]
+      - [280.16, 17.0]
+      - [238.85, 17.0]
+    fills:
+      - id: "0b289ccd647b57a7"
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: Log In
+      font: Inter
+      size: 14.0
+      weight: semibold
+    layout:
+      width: hug
+      height: hug
+  - id: 77b2be292367e8e1
+    type: parent
+    name: Welcome - Used Code Error
+    corners:
+      - [1290.0, 0.0]
+      - [1680.0, 0.0]
+      - [1680.0, 844.0]
+      - [1290.0, 844.0]
+    fills:
+      - id: 5cf59b5b895fa9c1
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: e0146221e51aa21c
+    type: parent
+    name: Frame 91
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 183.0]
+      - [24.0, 183.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 897cab8b7bc773a5
+    type: parent
+    name: Frame 92
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 183.0]
+      - [366.0, 183.0]
+      - [366.0, 281.0]
+      - [24.0, 281.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 5898222164c3f544
+    type: parent
+    name: Frame 93
+    parent: 897cab8b7bc773a5
+    corners:
+      - [143.0, 0.0]
+      - [199.0, 0.0]
+      - [199.0, 56.0]
+      - [143.0, 56.0]
+    fills:
+      - id: 02a6df09bbf5a168
+        type: linearGradient
+        colors: ["#7C3AED", "#EC4899"]
+        positions: [0.0, 1.0]
+        startPoint: [0.1465, 0.1465]
+        endPoint: [0.8536, 0.8536]
+    parent-data:
+      type: autoLayout
+      cornerRadius: [16.0, 16.0, 16.0, 16.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 56.0
+      fixedHeight: 56.0
+  - id: c747648677332b34
+    type: text
+    name: Text 43
+    parent: 5898222164c3f544
+    corners:
+      - [21.21, 13.5]
+      - [34.79, 13.5]
+      - [34.79, 42.5]
+      - [21.21, 42.5]
+    fills:
+      - id: a7eb203b36232870
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: L
+      font: Inter
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: 7063d656d3e0341c
+    type: text
+    name: Text 44
+    parent: 897cab8b7bc773a5
+    corners:
+      - [134.32, 64.0]
+      - [207.68, 64.0]
+      - [207.68, 98.0]
+      - [134.32, 98.0]
+    fills:
+      - id: b4f0994a7c559e71
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+      letterSpacing: -1.0
+    layout:
+      width: hug
+      height: hug
+  - id: c8048dc253bf86ad
+    type: parent
+    name: Frame 94
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 281.0]
+      - [366.0, 281.0]
+      - [366.0, 321.0]
+      - [24.0, 321.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 40.0
+  - id: 446ea5405bbd2e85
+    type: parent
+    name: Frame 95
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 321.0]
+      - [366.0, 321.0]
+      - [366.0, 411.0]
+      - [24.0, 411.0]
+    parent-data:
+      type: autoLayout
+      crossAxis: center
+      spacing: 8.0
+    layout:
+      width: fill
+      height: hug
+  - id: 7af959e990640ee3
+    type: text
+    name: Text 45
+    parent: 446ea5405bbd2e85
+    corners:
+      - [98.98, 0.0]
+      - [243.03, 0.0]
+      - [243.03, 34.0]
+      - [98.98, 34.0]
+    fills:
+      - id: 536f4fc40b972ad8
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Join LIFEY
+      font: Inter
+      size: 28.0
+      weight: bold
+    layout:
+      width: hug
+      height: hug
+  - id: 16e131badf4cdf58
+    type: text
+    name: Text 46
+    parent: 446ea5405bbd2e85
+    corners:
+      - [77.98, 42.0]
+      - [264.03, 42.0]
+      - [264.03, 90.0]
+      - [77.98, 90.0]
+    fills:
+      - id: d8e791e0782f03e6
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: "Enter your invite code to\ncreate an account"
+      font: Inter
+      size: 16.0
+      lineHeight: 1.5
+    layout:
+      width: hug
+      height: hug
+  - id: c2e72faebaf2e906
+    type: parent
+    name: Frame 96
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 411.0]
+      - [366.0, 411.0]
+      - [366.0, 443.0]
+      - [24.0, 443.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 1f5b22fd5d66f6e6
+    type: parent
+    name: Frame 97
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 443.0]
+      - [366.0, 443.0]
+      - [366.0, 514.0]
+      - [24.0, 514.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 387866592e98699e
+    type: text
+    name: Text 47
+    parent: 1f5b22fd5d66f6e6
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: 4b67ff1fa80e92fc
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Invite Code
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: b83150adc081cd4c
+    type: parent
+    name: Frame 98
+    parent: 1f5b22fd5d66f6e6
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: b185cf95a20c278d
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: 11451f938d9b6ede
+        thickness: 1.0
+        type: solid
+        color: "#EF4444"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 9f4efe61fc0e6570
+    type: parent
+    name: Frame 99
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 514.0]
+      - [366.0, 514.0]
+      - [366.0, 526.0]
+      - [24.0, 526.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 12.0
+  - id: 8fc9318cc88b0087
+    type: parent
+    name: Frame 100
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 526.0]
+      - [366.0, 526.0]
+      - [366.0, 544.0]
+      - [24.0, 544.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: f7106b249f705550
+    type: text
+    name: Text 48
+    parent: 8fc9318cc88b0087
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 18.0]
+      - [0.0, 18.0]
+    fills:
+      - id: 811b51227627b30a
+        type: solid
+        color: "#EF4444"
+    text:
+      content: This invite code has already been used
+      font: Inter
+      size: 13.0
+      width: 342.0
+      lineHeight: 1.4
+    layout:
+      width: fill
+      height: hug
+  - id: d855ca0881e5abf6
+    type: parent
+    name: Frame 101
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 544.0]
+      - [366.0, 544.0]
+      - [366.0, 560.0]
+      - [24.0, 560.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 16.0
+  - id: 795e8b0b33d7e6f1
+    type: parent
+    name: Frame 102
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 560.0]
+      - [366.0, 560.0]
+      - [366.0, 612.0]
+      - [24.0, 612.0]
+    opacity: 0.5
+    fills:
+      - id: 99f04efbbb927832
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: 6820ee54529f73b2
+    type: text
+    name: Text 49
+    parent: 795e8b0b33d7e6f1
+    corners:
+      - [136.43, 16.5]
+      - [205.58, 16.5]
+      - [205.58, 35.5]
+      - [136.43, 35.5]
+    fills:
+      - id: 00a54d5eeebf20a2
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Continue
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 8fca1b5883d86a29
+    type: parent
+    name: Frame 103
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 612.0]
+      - [366.0, 612.0]
+      - [366.0, 795.0]
+      - [24.0, 795.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: b36c2eb94f83a7a5
+    type: parent
+    name: Frame 104
+    parent: 77b2be292367e8e1
+    corners:
+      - [24.0, 795.0]
+      - [366.0, 795.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      spacing: 4.0
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: f82af9b9b844aeef
+    type: text
+    name: Text 50
+    parent: b36c2eb94f83a7a5
+    corners:
+      - [61.85, 0.0]
+      - [234.85, 0.0]
+      - [234.85, 17.0]
+      - [61.85, 17.0]
+    fills:
+      - id: 7e394ab12bd8d69e
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Already have an account?
+      font: Inter
+      size: 14.0
+    layout:
+      width: hug
+      height: hug
+  - id: 15aab26e21f24ae1
+    type: text
+    name: Text 51
+    parent: b36c2eb94f83a7a5
+    corners:
+      - [238.85, 0.0]
+      - [280.16, 0.0]
+      - [280.16, 17.0]
+      - [238.85, 17.0]
+    fills:
+      - id: 5f11164459d114d1
+        type: solid
+        color: "#A78BFA"
+    text:
+      content: Log In
+      font: Inter
+      size: 14.0
+      weight: semibold
+    layout:
+      width: hug
+      height: hug
+  - id: 4fc1d85b061bc5a1
+    type: parent
+    name: Sign-Up - Password Too Short Error
+    corners:
+      - [430.0, 960.0]
+      - [820.0, 960.0]
+      - [820.0, 1804.0]
+      - [430.0, 1804.0]
+    fills:
+      - id: 9b3fb97a1e611497
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: c7198a52249d771c
+    type: parent
+    name: Frame 106
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 100.0]
+      - [24.0, 100.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: hug
+  - id: 881908d514091768
+    type: parent
+    name: Frame 107
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 100.0]
+      - [366.0, 100.0]
+      - [366.0, 160.0]
+      - [24.0, 160.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 12.0
+      padding: [12.0, 0.0, 12.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: aa6d1e27d860b99d
+    type: parent
+    name: Frame 108
+    parent: 881908d514091768
+    corners:
+      - [0.0, 12.0]
+      - [36.0, 12.0]
+      - [36.0, 48.0]
+      - [0.0, 48.0]
+    fills:
+      - id: a4b37623a5e6ec2d
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 36.0
+      fixedHeight: 36.0
+  - id: 7b0f2e3fc3a388e6
+    type: vector
+    name: Path
+    parent: aa6d1e27d860b99d
+    corners:
+      - [15.75, 13.5]
+      - [20.25, 13.5]
+      - [20.25, 22.5]
+      - [15.75, 22.5]
+    path:
+      nodes:
+        - [0, 20.25, 22.5]
+        - [1, 15.75, 18.0]
+        - [2, 20.25, 13.5]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: 5ed35e870a2b88f1
+        thickness: 2.0
+        type: solid
+        color: "#9CA3AF"
+        dashCap: round
+  - id: 1ccf7904665a086a
+    type: parent
+    name: Frame 109
+    parent: 881908d514091768
+    corners:
+      - [48.0, 16.0]
+      - [187.9, 16.0]
+      - [187.9, 44.0]
+      - [48.0, 44.0]
+    fills:
+      - id: 077db8f4c1e9755f
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [20.0, 20.0, 20.0, 20.0]
+      direction: horizontal
+      crossAxis: center
+      spacing: 8.0
+      padding: [6.0, 14.0, 6.0, 14.0]
+    layout:
+      width: hug
+      height: hug
+  - id: dfd757a60dd48ed5
+    type: vector
+    name: Path
+    parent: 1ccf7904665a086a
+    corners:
+      - [14.0, 10.79]
+      - [23.34, 10.79]
+      - [23.34, 17.21]
+      - [14.0, 17.21]
+    path:
+      nodes:
+        - [0, 23.34, 10.79]
+        - [1, 16.92, 17.21]
+        - [2, 14.0, 14.29]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: 124874c259953295
+        thickness: 2.5
+        type: solid
+        color: "#10B981"
+        dashCap: round
+  - id: 1b46c7722d518f92
+    type: text
+    name: Text 52
+    parent: 1ccf7904665a086a
+    corners:
+      - [31.34, 6.0]
+      - [125.9, 6.0]
+      - [125.9, 22.0]
+      - [31.34, 22.0]
+    fills:
+      - id: 8fa1ab07db918dd5
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Code accepted
+      font: Inter
+      size: 13.0
+    layout:
+      width: hug
+      height: hug
+  - id: 77788cd77a092096
+    type: parent
+    name: Frame 110
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 160.0]
+      - [366.0, 160.0]
+      - [366.0, 168.0]
+      - [24.0, 168.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 67d22a4b2fa9ef25
+    type: parent
+    name: Frame 111
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 168.0]
+      - [366.0, 168.0]
+      - [366.0, 231.0]
+      - [24.0, 231.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 560cc095ad8a79c3
+    type: text
+    name: Text 53
+    parent: 67d22a4b2fa9ef25
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 34.0]
+      - [0.0, 34.0]
+    fills:
+      - id: 225ce8515ed4b11d
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create your account
+      font: Inter
+      size: 28.0
+      weight: bold
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 319c8a4754c67a89
+    type: text
+    name: Text 54
+    parent: 67d22a4b2fa9ef25
+    corners:
+      - [0.0, 40.0]
+      - [342.0, 40.0]
+      - [342.0, 63.0]
+      - [0.0, 63.0]
+    fills:
+      - id: bc5d1923c01c6a50
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Set up your email and password to get started
+      font: Inter
+      size: 15.0
+      width: 342.0
+      lineHeight: 1.5
+    layout:
+      width: fill
+      height: hug
+  - id: 8149393eef3baef1
+    type: parent
+    name: Frame 112
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 231.0]
+      - [366.0, 231.0]
+      - [366.0, 263.0]
+      - [24.0, 263.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 0042d843ff2da49e
+    type: parent
+    name: Frame 113
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 263.0]
+      - [366.0, 263.0]
+      - [366.0, 334.0]
+      - [24.0, 334.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: f478e4408c5892d2
+    type: text
+    name: Text 55
+    parent: 0042d843ff2da49e
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: d9b0a2ed2bd4596c
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Email
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: c7f91b383243bb82
+    type: parent
+    name: Frame 114
+    parent: 0042d843ff2da49e
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: ab936d17f86ddbe5
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: 953ac551170087d9
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: e621546000914190
+    type: parent
+    name: Frame 115
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 334.0]
+      - [366.0, 334.0]
+      - [366.0, 354.0]
+      - [24.0, 354.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 20.0
+  - id: bd4e65a235b585a0
+    type: parent
+    name: Frame 116
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 354.0]
+      - [366.0, 354.0]
+      - [366.0, 425.0]
+      - [24.0, 425.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 5dfdea15de109557
+    type: text
+    name: Text 56
+    parent: bd4e65a235b585a0
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: da650682212d225d
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 3fa1a522b37e2fdb
+    type: parent
+    name: Frame 117
+    parent: bd4e65a235b585a0
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: fe291b7054c4c9b6
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: a1cbb5be62eacd97
+        thickness: 1.0
+        type: solid
+        color: "#EF4444"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 8f5562055ae7aa14
+    type: parent
+    name: Frame 118
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 425.0]
+      - [366.0, 425.0]
+      - [366.0, 433.0]
+      - [24.0, 433.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: ad7590a22da5a4a8
+    type: parent
+    name: Frame 119
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 433.0]
+      - [366.0, 433.0]
+      - [366.0, 451.0]
+      - [24.0, 451.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: cb166a4463543559
+    type: text
+    name: Text 57
+    parent: ad7590a22da5a4a8
+    corners:
+      - [0.0, 0.0]
+      - [244.52, 0.0]
+      - [244.52, 18.0]
+      - [0.0, 18.0]
+    fills:
+      - id: 35aea8e141f1411e
+        type: solid
+        color: "#EF4444"
+    text:
+      content: Password must be at least 8 characters
+      font: Inter
+      size: 13.0
+      lineHeight: 1.4
+    layout:
+      width: hug
+      height: hug
+  - id: 2c76da5a5e85fa74
+    type: parent
+    name: Frame 120
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 451.0]
+      - [366.0, 451.0]
+      - [366.0, 463.0]
+      - [24.0, 463.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 12.0
+  - id: 2dc3d60baab64afb
+    type: parent
+    name: Frame 121
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 463.0]
+      - [366.0, 463.0]
+      - [366.0, 534.0]
+      - [24.0, 534.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: bf24618c074ae8dd
+    type: text
+    name: Text 58
+    parent: 2dc3d60baab64afb
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: 2fdd21ad85311205
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Confirm Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: d921d4dcdf906b46
+    type: parent
+    name: Frame 122
+    parent: 2dc3d60baab64afb
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: 4daf3d50eaec2b9c
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: abd7c4c67c5f7deb
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 7c54c5dc71be3c55
+    type: parent
+    name: Frame 123
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 534.0]
+      - [366.0, 534.0]
+      - [366.0, 554.0]
+      - [24.0, 554.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 20.0
+  - id: c6e2e460195ed1b0
+    type: parent
+    name: Frame 124
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 554.0]
+      - [366.0, 554.0]
+      - [366.0, 726.0]
+      - [24.0, 726.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 559e651116b29562
+    type: parent
+    name: Frame 125
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 726.0]
+      - [366.0, 726.0]
+      - [366.0, 778.0]
+      - [24.0, 778.0]
+    opacity: 0.5
+    fills:
+      - id: 55a6a45e28874b9d
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: 7ee35324df6a3a06
+    type: text
+    name: Text 59
+    parent: 559e651116b29562
+    corners:
+      - [111.37, 16.5]
+      - [230.63, 16.5]
+      - [230.63, 35.5]
+      - [111.37, 35.5]
+    fills:
+      - id: 81f27f66aa26682c
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create Account
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 415bfee722219293
+    type: parent
+    name: Frame 126
+    parent: 4fc1d85b061bc5a1
+    corners:
+      - [24.0, 778.0]
+      - [366.0, 778.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 6348a8706e9a75ab
+    type: text
+    name: Text 60
+    parent: 415bfee722219293
+    corners:
+      - [68.08, 0.0]
+      - [273.92, 0.0]
+      - [273.92, 34.0]
+      - [68.08, 34.0]
+    fills:
+      - id: 0506b3fa03d348ee
+        type: solid
+        color: "#6B7280"
+    text:
+      content: "By signing up, you agree to our\nTerms of Service and Privacy Policy"
+      font: Inter
+      size: 12.0
+      lineHeight: 1.4
+    layout:
+      width: hug
+      height: hug
+  - id: bf066d27faca6182
+    type: parent
+    name: Sign-Up - Passwords Match Error
+    corners:
+      - [860.0, 960.0]
+      - [1250.0, 960.0]
+      - [1250.0, 1804.0]
+      - [860.0, 1804.0]
+    fills:
+      - id: a3d90df7ddebf198
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: 016f1ea5ea914bfd
+    type: parent
+    name: Frame 128
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 100.0]
+      - [24.0, 100.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: hug
+  - id: 035632efdb4955fb
+    type: parent
+    name: Frame 129
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 100.0]
+      - [366.0, 100.0]
+      - [366.0, 160.0]
+      - [24.0, 160.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 12.0
+      padding: [12.0, 0.0, 12.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: deb1863f1a6c0157
+    type: parent
+    name: Frame 130
+    parent: 035632efdb4955fb
+    corners:
+      - [0.0, 12.0]
+      - [36.0, 12.0]
+      - [36.0, 48.0]
+      - [0.0, 48.0]
+    fills:
+      - id: d15e4d1ab0ff4ecb
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 36.0
+      fixedHeight: 36.0
+  - id: 29e560e13fad6cbb
+    type: vector
+    name: Path
+    parent: deb1863f1a6c0157
+    corners:
+      - [15.75, 13.5]
+      - [20.25, 13.5]
+      - [20.25, 22.5]
+      - [15.75, 22.5]
+    path:
+      nodes:
+        - [0, 20.25, 22.5]
+        - [1, 15.75, 18.0]
+        - [2, 20.25, 13.5]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: 39f038f1c76a0bb1
+        thickness: 2.0
+        type: solid
+        color: "#9CA3AF"
+        dashCap: round
+  - id: deff6b8923dab951
+    type: parent
+    name: Frame 131
+    parent: 035632efdb4955fb
+    corners:
+      - [48.0, 16.0]
+      - [187.9, 16.0]
+      - [187.9, 44.0]
+      - [48.0, 44.0]
+    fills:
+      - id: "4444293507779707"
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [20.0, 20.0, 20.0, 20.0]
+      direction: horizontal
+      crossAxis: center
+      spacing: 8.0
+      padding: [6.0, 14.0, 6.0, 14.0]
+    layout:
+      width: hug
+      height: hug
+  - id: 41df1cfd3a45636f
+    type: vector
+    name: Path
+    parent: deff6b8923dab951
+    corners:
+      - [14.0, 10.79]
+      - [23.34, 10.79]
+      - [23.34, 17.21]
+      - [14.0, 17.21]
+    path:
+      nodes:
+        - [0, 23.34, 10.79]
+        - [1, 16.92, 17.21]
+        - [2, 14.0, 14.29]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: b9115b30be2b457a
+        thickness: 2.5
+        type: solid
+        color: "#10B981"
+        dashCap: round
+  - id: 28eae02a8c3abff7
+    type: text
+    name: Text 61
+    parent: deff6b8923dab951
+    corners:
+      - [31.34, 6.0]
+      - [125.9, 6.0]
+      - [125.9, 22.0]
+      - [31.34, 22.0]
+    fills:
+      - id: c4a52e76bce4d79b
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Code accepted
+      font: Inter
+      size: 13.0
+    layout:
+      width: hug
+      height: hug
+  - id: 15a3413a9e00577d
+    type: parent
+    name: Frame 132
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 160.0]
+      - [366.0, 160.0]
+      - [366.0, 168.0]
+      - [24.0, 168.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: a000092e4a87d897
+    type: parent
+    name: Frame 133
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 168.0]
+      - [366.0, 168.0]
+      - [366.0, 231.0]
+      - [24.0, 231.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 6257e296a5464061
+    type: text
+    name: Text 62
+    parent: a000092e4a87d897
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 34.0]
+      - [0.0, 34.0]
+    fills:
+      - id: 57ae2284bca13fa8
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create your account
+      font: Inter
+      size: 28.0
+      weight: bold
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 64a49f2493d0f752
+    type: text
+    name: Text 63
+    parent: a000092e4a87d897
+    corners:
+      - [0.0, 40.0]
+      - [342.0, 40.0]
+      - [342.0, 63.0]
+      - [0.0, 63.0]
+    fills:
+      - id: 3c8714d114e6d9b5
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Set up your email and password to get started
+      font: Inter
+      size: 15.0
+      width: 342.0
+      lineHeight: 1.5
+    layout:
+      width: fill
+      height: hug
+  - id: 67929c111f442c73
+    type: parent
+    name: Frame 134
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 231.0]
+      - [366.0, 231.0]
+      - [366.0, 263.0]
+      - [24.0, 263.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 2f74619c0dc644c6
+    type: parent
+    name: Frame 135
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 263.0]
+      - [366.0, 263.0]
+      - [366.0, 334.0]
+      - [24.0, 334.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: b2f853f9f66b6cb3
+    type: text
+    name: Text 64
+    parent: 2f74619c0dc644c6
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: b9ffc6af84e3f664
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Email
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: b7a22b9089f3b5ab
+    type: parent
+    name: Frame 136
+    parent: 2f74619c0dc644c6
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: 98782b5bc71d03e7
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: a37e2155f5549921
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 9b27ef79146fc0cb
+    type: parent
+    name: Frame 137
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 334.0]
+      - [366.0, 334.0]
+      - [366.0, 354.0]
+      - [24.0, 354.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 20.0
+  - id: 979cd06cbb867736
+    type: parent
+    name: Frame 138
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 354.0]
+      - [366.0, 354.0]
+      - [366.0, 425.0]
+      - [24.0, 425.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 551c9fe71b95ecd0
+    type: text
+    name: Text 65
+    parent: 979cd06cbb867736
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: ccfc92486fa1bb3c
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 363f9d7519e9c64f
+    type: parent
+    name: Frame 139
+    parent: 979cd06cbb867736
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: c9136bf8e7ffd1dd
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: cc568f321948b035
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: c51680133ccefce9
+    type: parent
+    name: Frame 140
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 425.0]
+      - [366.0, 425.0]
+      - [366.0, 433.0]
+      - [24.0, 433.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 8f0c9b124240b161
+    type: parent
+    name: Frame 141
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 433.0]
+      - [366.0, 433.0]
+      - [366.0, 504.0]
+      - [24.0, 504.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 935c6442ed61c998
+    type: text
+    name: Text 66
+    parent: 8f0c9b124240b161
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: 09388a8d21175948
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Confirm Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 52430ed879370f87
+    type: parent
+    name: Frame 142
+    parent: 8f0c9b124240b161
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: 45c8630ed9299776
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: d479325869917f70
+        thickness: 1.0
+        type: solid
+        color: "#EF4444"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 7c0e995f5ce2a732
+    type: parent
+    name: Frame 143
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 504.0]
+      - [366.0, 504.0]
+      - [366.0, 512.0]
+      - [24.0, 512.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 9d3a69deb07af44f
+    type: parent
+    name: Frame 144
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 512.0]
+      - [366.0, 512.0]
+      - [366.0, 530.0]
+      - [24.0, 530.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 19eb76af007b77da
+    type: text
+    name: Text 67
+    parent: 9d3a69deb07af44f
+    corners:
+      - [0.0, 0.0]
+      - [152.84, 0.0]
+      - [152.84, 18.0]
+      - [0.0, 18.0]
+    fills:
+      - id: f56fdffe46ed9c3f
+        type: solid
+        color: "#EF4444"
+    text:
+      content: Passwords do not match
+      font: Inter
+      size: 13.0
+      lineHeight: 1.4
+    layout:
+      width: hug
+      height: hug
+  - id: d7904aa5a6929b2f
+    type: parent
+    name: Frame 145
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 530.0]
+      - [366.0, 530.0]
+      - [366.0, 542.0]
+      - [24.0, 542.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 12.0
+  - id: 521e0995efff9f5c
+    type: parent
+    name: Frame 146
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 542.0]
+      - [366.0, 542.0]
+      - [366.0, 726.0]
+      - [24.0, 726.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: deb69d44e4301b91
+    type: parent
+    name: Frame 147
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 726.0]
+      - [366.0, 726.0]
+      - [366.0, 778.0]
+      - [24.0, 778.0]
+    opacity: 0.5
+    fills:
+      - id: eee939d1d9cb6d8a
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: 733f19553869ceaf
+    type: text
+    name: Text 68
+    parent: deb69d44e4301b91
+    corners:
+      - [111.37, 16.5]
+      - [230.63, 16.5]
+      - [230.63, 35.5]
+      - [111.37, 35.5]
+    fills:
+      - id: 6a1e2b183b12ff57
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create Account
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 396ffa15427cbbcb
+    type: parent
+    name: Frame 148
+    parent: bf066d27faca6182
+    corners:
+      - [24.0, 778.0]
+      - [366.0, 778.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: e116cc86f1b15f1a
+    type: text
+    name: Text 69
+    parent: 396ffa15427cbbcb
+    corners:
+      - [68.08, 0.0]
+      - [273.92, 0.0]
+      - [273.92, 34.0]
+      - [68.08, 34.0]
+    fills:
+      - id: 750e2602b9c51821
+        type: solid
+        color: "#6B7280"
+    text:
+      content: "By signing up, you agree to our\nTerms of Service and Privacy Policy"
+      font: Inter
+      size: 12.0
+      lineHeight: 1.4
+    layout:
+      width: hug
+      height: hug
+  - id: 9416e64f30174cc7
+    type: parent
+    name: Sign-Up - Email Exists Error
+    corners:
+      - [1290.0, 960.0]
+      - [1680.0, 960.0]
+      - [1680.0, 1804.0]
+      - [1290.0, 1804.0]
+    fills:
+      - id: 5a8d639ca0de04ec
+        type: solid
+        color: "#0D0D1F"
+    parent-data:
+      type: autoLayout
+      clip: true
+      cornerRadius: [40.0, 40.0, 40.0, 40.0]
+      padding: [0.0, 24.0, 0.0, 24.0]
+    layout:
+      fixedWidth: 390.0
+      fixedHeight: 844.0
+  - id: f557659019a132aa
+    type: parent
+    name: Frame 150
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 0.0]
+      - [366.0, 0.0]
+      - [366.0, 100.0]
+      - [24.0, 100.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: hug
+  - id: a208cb2e2a442911
+    type: parent
+    name: Frame 151
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 100.0]
+      - [366.0, 100.0]
+      - [366.0, 160.0]
+      - [24.0, 160.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      crossAxis: center
+      spacing: 12.0
+      padding: [12.0, 0.0, 12.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: 2243f4615fe6a947
+    type: parent
+    name: Frame 152
+    parent: a208cb2e2a442911
+    corners:
+      - [0.0, 12.0]
+      - [36.0, 12.0]
+      - [36.0, 48.0]
+      - [0.0, 48.0]
+    fills:
+      - id: 18b74b4aa8d36c8f
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      fixedWidth: 36.0
+      fixedHeight: 36.0
+  - id: 755892dea9f407ea
+    type: vector
+    name: Path
+    parent: 2243f4615fe6a947
+    corners:
+      - [15.75, 13.5]
+      - [20.25, 13.5]
+      - [20.25, 22.5]
+      - [15.75, 22.5]
+    path:
+      nodes:
+        - [0, 20.25, 22.5]
+        - [1, 15.75, 18.0]
+        - [2, 20.25, 13.5]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: 9cf62fbcaa1afc26
+        thickness: 2.0
+        type: solid
+        color: "#9CA3AF"
+        dashCap: round
+  - id: 3b90dde29237db6b
+    type: parent
+    name: Frame 153
+    parent: a208cb2e2a442911
+    corners:
+      - [48.0, 16.0]
+      - [187.9, 16.0]
+      - [187.9, 44.0]
+      - [48.0, 44.0]
+    fills:
+      - id: a15fc94876b4b2d5
+        type: solid
+        color: "#1C1C30"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [20.0, 20.0, 20.0, 20.0]
+      direction: horizontal
+      crossAxis: center
+      spacing: 8.0
+      padding: [6.0, 14.0, 6.0, 14.0]
+    layout:
+      width: hug
+      height: hug
+  - id: 1d6d331e5dfecda8
+    type: vector
+    name: Path
+    parent: 3b90dde29237db6b
+    corners:
+      - [14.0, 10.79]
+      - [23.34, 10.79]
+      - [23.34, 17.21]
+      - [14.0, 17.21]
+    path:
+      nodes:
+        - [0, 23.34, 10.79]
+        - [1, 16.92, 17.21]
+        - [2, 14.0, 14.29]
+      edges:
+        - [0, 0, 1]
+        - [1, 1, 2]
+    strokes:
+      - id: 9d6c2a4f92593969
+        thickness: 2.5
+        type: solid
+        color: "#10B981"
+        dashCap: round
+  - id: 6750b40d20737e05
+    type: text
+    name: Text 70
+    parent: 3b90dde29237db6b
+    corners:
+      - [31.34, 6.0]
+      - [125.9, 6.0]
+      - [125.9, 22.0]
+      - [31.34, 22.0]
+    fills:
+      - id: 258331df03414226
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Code accepted
+      font: Inter
+      size: 13.0
+    layout:
+      width: hug
+      height: hug
+  - id: 891054a7d0fbcc53
+    type: parent
+    name: Frame 154
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 160.0]
+      - [366.0, 160.0]
+      - [366.0, 168.0]
+      - [24.0, 168.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 7f97bba4f65fc356
+    type: parent
+    name: Frame 155
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 168.0]
+      - [366.0, 168.0]
+      - [366.0, 231.0]
+      - [24.0, 231.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: a050e79edf5495ac
+    type: text
+    name: Text 71
+    parent: 7f97bba4f65fc356
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 34.0]
+      - [0.0, 34.0]
+    fills:
+      - id: d74f3c1d3bc06da0
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create your account
+      font: Inter
+      size: 28.0
+      weight: bold
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 457edf4d8cf63d56
+    type: text
+    name: Text 72
+    parent: 7f97bba4f65fc356
+    corners:
+      - [0.0, 40.0]
+      - [342.0, 40.0]
+      - [342.0, 63.0]
+      - [0.0, 63.0]
+    fills:
+      - id: 9b88619813bd93c8
+        type: solid
+        color: "#9CA3AF"
+    text:
+      content: Set up your email and password to get started
+      font: Inter
+      size: 15.0
+      width: 342.0
+      lineHeight: 1.5
+    layout:
+      width: fill
+      height: hug
+  - id: 237d053738ef8017
+    type: parent
+    name: Frame 156
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 231.0]
+      - [366.0, 231.0]
+      - [366.0, 263.0]
+      - [24.0, 263.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 32.0
+  - id: 4dddcc37186ad45f
+    type: parent
+    name: Frame 157
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 263.0]
+      - [366.0, 263.0]
+      - [366.0, 334.0]
+      - [24.0, 334.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: fcaff591047faddf
+    type: text
+    name: Text 73
+    parent: 4dddcc37186ad45f
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: f8984a473f6dd907
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Email
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 1a5b8f2929720b3b
+    type: parent
+    name: Frame 158
+    parent: 4dddcc37186ad45f
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: 53f1bd5a566b6cfe
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: cda92e5c67b8177b
+        thickness: 1.0
+        type: solid
+        color: "#EF4444"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 307698598fe29a59
+    type: parent
+    name: Frame 159
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 334.0]
+      - [366.0, 334.0]
+      - [366.0, 342.0]
+      - [24.0, 342.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: 8d298b6abb0158d2
+    type: parent
+    name: Frame 160
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 342.0]
+      - [366.0, 342.0]
+      - [366.0, 378.0]
+      - [24.0, 378.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 4289708d93162011
+    type: text
+    name: Text 74
+    parent: 8d298b6abb0158d2
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 36.0]
+      - [0.0, 36.0]
+    fills:
+      - id: 81ea6aedb4f13105
+        type: solid
+        color: "#EF4444"
+    text:
+      content: An account with this email already exists — please log in instead
+      font: Inter
+      size: 13.0
+      width: 342.0
+      lineHeight: 1.4
+    layout:
+      width: fill
+      height: hug
+  - id: eee60a684aeede4d
+    type: parent
+    name: Frame 161
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 378.0]
+      - [366.0, 378.0]
+      - [366.0, 390.0]
+      - [24.0, 390.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 12.0
+  - id: 251dd9987fb2bdd9
+    type: parent
+    name: Frame 162
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 390.0]
+      - [366.0, 390.0]
+      - [366.0, 461.0]
+      - [24.0, 461.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: a961bb9a1aaf9c35
+    type: text
+    name: Text 75
+    parent: 251dd9987fb2bdd9
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: 49ebb50c5716e25e
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: b4468035c0a740e3
+    type: parent
+    name: Frame 163
+    parent: 251dd9987fb2bdd9
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: df8aafd31aefa98f
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: 42f9f1d0279ea6c5
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 1c18450327996d30
+    type: parent
+    name: Frame 164
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 461.0]
+      - [366.0, 461.0]
+      - [366.0, 469.0]
+      - [24.0, 469.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 8.0
+  - id: dafde7299cb15938
+    type: parent
+    name: Frame 165
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 469.0]
+      - [366.0, 469.0]
+      - [366.0, 540.0]
+      - [24.0, 540.0]
+    parent-data:
+      type: autoLayout
+      spacing: 6.0
+    layout:
+      width: fill
+      height: hug
+  - id: 4b074ac3e45bfb1c
+    type: text
+    name: Text 76
+    parent: dafde7299cb15938
+    corners:
+      - [0.0, 0.0]
+      - [342.0, 0.0]
+      - [342.0, 17.0]
+      - [0.0, 17.0]
+    fills:
+      - id: 381900d71b082348
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Confirm Password
+      font: Inter
+      size: 14.0
+      weight: medium
+      width: 342.0
+    layout:
+      width: fill
+      height: hug
+  - id: 02a621008c6adea3
+    type: parent
+    name: Frame 166
+    parent: dafde7299cb15938
+    corners:
+      - [0.0, 23.0]
+      - [342.0, 23.0]
+      - [342.0, 71.0]
+      - [0.0, 71.0]
+    fills:
+      - id: 856b6abab236c90f
+        type: solid
+        color: "#1C1C30"
+    strokes:
+      - id: c6423602ed93fdd8
+        thickness: 1.0
+        type: solid
+        color: "#2D2D45"
+    parent-data:
+      type: frame
+      cornerRadius: [10.0, 10.0, 10.0, 10.0]
+    layout:
+      width: fill
+      fixedHeight: 48.0
+  - id: 5335d78165ae6248
+    type: parent
+    name: Frame 167
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 540.0]
+      - [366.0, 540.0]
+      - [366.0, 560.0]
+      - [24.0, 560.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      fixedHeight: 20.0
+  - id: d132764af6194adb
+    type: parent
+    name: Frame 168
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 560.0]
+      - [366.0, 560.0]
+      - [366.0, 726.0]
+      - [24.0, 726.0]
+    parent-data:
+      type: frame
+    layout:
+      width: fill
+      height: fill
+  - id: 7ef679007ab04aaf
+    type: parent
+    name: Frame 169
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 726.0]
+      - [366.0, 726.0]
+      - [366.0, 778.0]
+      - [24.0, 778.0]
+    opacity: 0.5
+    fills:
+      - id: 9f8acfcd636d5cb7
+        type: solid
+        color: "#7C3AED"
+    parent-data:
+      type: autoLayout
+      cornerRadius: [12.0, 12.0, 12.0, 12.0]
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+    layout:
+      width: fill
+      fixedHeight: 52.0
+  - id: bf0720cccac15777
+    type: text
+    name: Text 77
+    parent: 7ef679007ab04aaf
+    corners:
+      - [111.37, 16.5]
+      - [230.63, 16.5]
+      - [230.63, 35.5]
+      - [111.37, 35.5]
+    fills:
+      - id: 517b898f2cd26113
+        type: solid
+        color: "#FFFFFF"
+    text:
+      content: Create Account
+      font: Inter
+      size: 16.0
+    layout:
+      width: hug
+      height: hug
+  - id: 5e82c4dd7563fb65
+    type: parent
+    name: Frame 170
+    parent: 9416e64f30174cc7
+    corners:
+      - [24.0, 778.0]
+      - [366.0, 778.0]
+      - [366.0, 844.0]
+      - [24.0, 844.0]
+    parent-data:
+      type: autoLayout
+      direction: horizontal
+      mainAxis: center
+      crossAxis: center
+      padding: [0.0, 0.0, 32.0, 0.0]
+    layout:
+      width: fill
+      height: hug
+  - id: e8b8e15f6fb59042
+    type: text
+    name: Text 78
+    parent: 5e82c4dd7563fb65
+    corners:
+      - [68.08, 0.0]
+      - [273.92, 0.0]
+      - [273.92, 34.0]
+      - [68.08, 34.0]
+    fills:
+      - id: 07a0c22118a6a354
+        type: solid
+        color: "#6B7280"
+    text:
+      content: "By signing up, you agree to our\nTerms of Service and Privacy Policy"
+      font: Inter
+      size: 12.0
+      lineHeight: 1.4
+    layout:
+      width: hug
+      height: hug

@@ -7,17 +7,25 @@
 
 ## Screen Inventory
 
+> Only default screens are listed here. Screen variants (error states, loading states, etc.) are documented in the story's traceability matrix but omitted from this index.
+
 | # | Screen Name | Epic / Story | Status | Notes |
 |---|------------|-------------|--------|-------|
-|   | *(to be added)* | | | |
+| 1 | Welcome Screen (`#lifey-welcome`) | EP0002-ST0001 | Designed | Invite code gating — single input + Continue |
+| 2 | Sign-Up Screen (`#lifey-signup`) | EP0002-ST0001 | Designed | Email + password + confirm password form |
+| 3 | Account Created Screen (`#lifey-account-created`) | EP0002-ST0001 | Designed | Success state with auto-redirect |
 
 ---
 
 ## Screen Navigation Flow
 
+> Default screen flow only. Variant transitions (error/loading states) are handled within each screen's local state.
+
 ```mermaid
 flowchart TD
-    %% Add screens and transitions here as they are designed
+    Welcome[Welcome Screen] -->|Valid invite code| SignUp[Sign-Up Screen]
+    SignUp -->|Valid submission| AccountCreated[Account Created Screen]
+    AccountCreated -->|Auto-redirect| MainApp[Main App]
 ```
 
 ---
@@ -56,6 +64,13 @@ flowchart TD
 
 All screens live on the **`Lifey`** canvas in `docs/design/Lifey.design`.
 
+### Canvas Layout Rules
+
+- **Different screen types** are stacked vertically (top to bottom). The first screen type starts at Y=0; each subsequent type starts below the previous row.
+- **Same-screen variants** (error states, loading states, design alternates) are arranged horizontally (left to right) on the same row. The **default screen** (no error, no message) is always the first (leftmost) element in its row.
+- Variants follow the default to the right at X = 430px increments (390px width + 40px gap).
+- Screen type rows are separated by a vertical gap (Y = previous row bottom + 40px minimum).
+
 ### Design Proposals
 
 New design tokens, component specs, or layout patterns are proposed by the frontend-designer and reviewed by tech-lead via ADRs. Proposal docs go under `docs/architecture/design-proposals/`.
@@ -71,20 +86,34 @@ New design tokens, component specs, or layout patterns are proposed by the front
 | `docs/design/Assets/` | Image assets (icons, logos, exports) | ✅ Yes |
 | `docs/design/Canvas.design` | Scratch canvas config | ❌ Never edit |
 | `docs/design/.brilliant/` | Brilliant internal data | ❌ Never edit |
+| `docs/reviews/` | Design review reports (output from frontend-review) | ✅ Yes — created by frontend-review agent |
 
 ---
 
-## Screen Template
+## Designed Screens
 
-When adding a new screen, use this format:
+### Welcome Screen (default)
+- **Epic/Story:** EP0002-ST0001
+- **Design ref:** `#lifey-welcome`
+- **Purpose:** First screen — invite code gating for new users
+- **Transitions:** (app open) → Welcome → (valid code) → Sign-Up Screen
+- **Key elements:** LIFEY brand icon + wordmark, "Join LIFEY" heading, invite code input, Continue button (primary purple), "Log In" link
+- **Variants (row right):** Invalid code error, Expired code error, Used code error
 
-```markdown
-### Screen Name
-- **Epic/Story:** EPxxxx-STxxxx
-- **Design ref:** `#lifey-<screen-name>`
-- **Purpose:** One-liner of what this screen does
-- **Transitions:** Previous screen → This screen → Next screen
-```
+### Sign-Up Screen (default)
+- **Epic/Story:** EP0002-ST0001
+- **Design ref:** `#lifey-signup`
+- **Purpose:** Email + password account creation form
+- **Transitions:** Welcome → (valid code) → Sign-Up → (submitted) → Account Created
+- **Key elements:** Back button, "Code accepted" indicator, email input, password input (with eye toggle), confirm password input, Create Account button, terms text
+- **Variants (row right):** Password too short error, Passwords match error, Email exists error
+
+### Account Created Screen (default)
+- **Epic/Story:** EP0002-ST0001
+- **Design ref:** `#lifey-account-created`
+- **Purpose:** Success confirmation with auto-redirect to main app
+- **Transitions:** Sign-Up → (submitted) → Account Created → (auto) → Main App
+- **Key elements:** Success checkmark in green circle, "Account created!" heading, "Welcome to LIFEY" subtitle, loading dots animation, "Taking you to the app..." text
 
 ---
 

@@ -85,8 +85,18 @@ create a new screen or change the flow.
    emerges across screens, add a `comp` master to the relevant category section.
    All masters and screens live on the same `Lifey` canvas — `inst()` always works.
 7. **No phone chrome.** Screens contain only app UI — no status bar (9:41, signal, battery), home indicator, or device mockup dressing. The 390×844 frame with `rd(40) clip` is the design boundary.
-8. **Export on request.** Only export screens to `docs/diagrams/` when the
-    user explicitly asks for a screenshot or shareable file.
+8. **AC-traceable by design.** Every acceptance criterion must map to ≥1
+    specific visual element or state on the canvas. Maintain a traceability
+    matrix from proposal through final review. No orphaned elements, no
+    uncovered ACs.
+9. **Propose before you design.** Never go from intake straight to canvas.
+    Always produce a written design proposal with screens, AC mapping,
+    navigation flow, and decisions, then get user confirmation.
+10. **Review before handoff.** Always run the Design Review Checklist and AC
+    traceability check before marking designs complete. For complex stories,
+    invoke the frontend-review subagent as an independent gate.
+11. **Export on request.** Only export screens to `docs/diagrams/` when the
+     user explicitly asks for a screenshot or shareable file.
 
 ---
 
@@ -110,9 +120,30 @@ create a new screen or change the flow.
    Present: "Designing [N] screens for [epic/story]. Intended flow: [A → B → C]."
    Wait for approval.
 
-### 2. Design
+### 2. Design Proposal & Confirmation
 
-1. **Sketch the flow first** — list every screen and the transition between them.
+After the brief is confirmed, but **before creating anything on the canvas**,
+produce a detailed design proposal and get sign-off.
+
+1. **Build the proposal:**
+   - List every screen and the specific story AC(s) it serves
+   - Map the navigation flow: `Screen A → Screen B → Screen C`
+   - Note all states per screen: default, loading, error, empty, edge cases
+   - Describe design decisions: new components, reused patterns, token deviations
+   - Create an **AC-to-Screen traceability matrix** (see skill for format)
+2. **Present the proposal** to the user with a clear "Confirm? (Y/n)" prompt.
+3. **Wait for confirmation.** Do not proceed to design without approval.
+   If the user requests changes, update the proposal and reconfirm.
+4. **Load Brilliant knowledge** (if not already loaded):
+   ```
+   brilliant_get_knowledge(keys: ["design/foundations", "design/colors",
+     "design/typography", "design/blocks/actions", "design/blocks/inputs",
+     "design/blocks/layout", "design/blocks/navigation", "design/blocks/feedback"])
+   ```
+
+### 3. Design
+
+1. **Review the confirmed proposal** — every screen, state, and AC mapping is now locked.
 2. **Check the component masters** — before building a new element, check the
    component section on the right side of the `Lifey` canvas (p(1760,0)) for a
    matching pattern. Reuse or adapt existing masters.
@@ -134,7 +165,7 @@ create a new screen or change the flow.
    to something descriptive (e.g., "Sign Up Screen") via
    `create_modify_elements`.
 
-### 3. Validate
+### 4. Validate
 
 Check each screen against:
 
@@ -147,7 +178,25 @@ Check each screen against:
 | No collapsed frames | Frames with `s(fill,fill)` must have a fixed-size ancestor |
 | Color contrast | Text on dark bg — white text at 0.5–0.7 opacity for secondary |
 
-### 4. Update Component Masters (if new patterns emerged)
+### 5. AC-to-Design Traceability Check
+
+**Before considering the design complete**, verify every story AC is covered:
+
+1. **Build or review the traceability matrix** — map each AC to a specific element
+   ID or state on the canvas. (Created during the Proposal phase; now verify it.)
+2. **Check for gaps** — for each AC, there must be ≥1 visual element or state.
+3. **Check for orphans** — any element that doesn't serve an AC is scope creep.
+   Remove it or explicitly confirm with the user.
+4. **Check states** — for every AC, are success, error, loading, and empty states
+   designed where the Gherkin implies them?
+5. **Document the matrix** in your session notes for dev-agent handoff.
+
+**If mismatches are found:**
+- Missing AC coverage → add the needed element or state
+- Orphaned element → remove or confirm with user
+- Scope creep → remove screen or get sign-off to extend the story
+
+### 6. Update Component Masters (if new patterns emerged)
 
 1. If you created a new reusable element (button variant, input pattern, feedback state)
    that doesn't already appear in the component section, add a `comp` master to the
@@ -155,7 +204,22 @@ Check each screen against:
 2. If the element is instanced multiple times, extract it as a `comp` master with `inst()`
    instances and `override()` for variant content — all on the same `Lifey` canvas.
 
-### 5. Update Session & Propose Tokens
+### 7. Final Review
+
+After validation and AC traceability, run a final review before handoff:
+
+1. **Self-review:** Run the full [Design Review Checklist](#design-review-checklist)
+   from the skill one last time across every screen.
+2. **Optional: Invoke frontend-review subagent.** For complex multi-screen stories
+   or when the user requests extra scrutiny:
+   ```
+   task "Review designs for EPxxxx-STxxxx" frontend-review
+   ```
+   The subagent checks AC traceability, design system compliance, cross-screen
+   consistency, scope boundary, and visual quality. Wait for its report.
+3. **Address any issues** found by self-review or subagent before proceeding.
+
+### 8. Update Session & Propose Tokens
 
 1. **Update `.opencode/frontend-structure.md`** with any new screens created and update
    the navigation flow diagram.
@@ -188,7 +252,8 @@ Check each screen against:
 |------|------|-----|
 | Design token / component proposal | `tech-lead` | Create proposal doc, then `task` to tech-lead for ADR review |
 | Story is missing or unclear | User → `project-manager` | Flag it — let project-manager refine |
-| Design is approved for implementation | `dev-agent` | Pass exported PNG + screen specs |
+| Design review (AC traceability, DS compliance, consistency) | `frontend-review` | `task "Review designs for EPxxxx-STxxxx" frontend-review` |
+| Design is approved for implementation | `dev-agent` | Pass exported PNG + screen specs + AC traceability matrix |
 | OpenCode config question | `opencode-manager` | `webfetch` from opencode.ai/docs/ |
 | New design rules needed | Self | Create/update `docs/rules/frontend-design/` |
 
@@ -214,4 +279,14 @@ Check each screen against:
     screens, add a documented example to `Lifey/Components/{Category}`. Component
     masters live on the feature canvas (cross-canvas `inst()` is not supported);
     library canvases serve as documented reference galleries.
-12. **No emoji in designs unless explicitly requested.**
+12. **Propose before creating.** Always present a design proposal (screens,
+     navigation, AC mapping, design decisions) and get user confirmation before
+     creating anything on the Brilliant canvas.
+13. **Trace every AC to a visual element.** Maintain a traceability matrix
+     mapping each acceptance criterion to specific screen elements or states.
+     Verify before handoff — no uncovered ACs, no orphaned elements.
+14. **No scope creep.** Every screen and element must serve a specific AC from
+     the story or epic. If it doesn't, remove it or get explicit user sign-off.
+15. **Run final review before handoff.** Self-review the full checklist and AC
+     traceability. For complex stories, invoke the frontend-review subagent.
+16. **No emoji in designs unless explicitly requested.**
