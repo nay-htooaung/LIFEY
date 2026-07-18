@@ -153,4 +153,36 @@ describe('EP0002-ST0001: Sign Up with Invite Code and Password', () => {
       expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
     });
   });
+
+  describe('@AC-005: Used invite code shows error', () => {
+    test('test_ac_005_used_code_shows_error', async () => {
+      const user = userEvent.setup();
+
+      // Mock: code found but already used
+      mockInviteCodeLookup({
+        id: 'code-3',
+        code: 'USED-CODE',
+        household_id: null,
+        used_by: 'some-user-id',
+        used_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 86400000).toISOString(), // not expired
+      });
+
+      render(<App />);
+
+      const input = screen.getByPlaceholderText(/invite code/i);
+      await user.type(input, 'USED-CODE');
+
+      const continueButton = screen.getByRole('button', { name: /continue/i });
+      await user.click(continueButton);
+
+      // Should see the used error
+      expect(
+        screen.getByText('This invite code has already been used'),
+      ).toBeInTheDocument();
+
+      // Should still be on the welcome screen
+      expect(screen.queryByPlaceholderText(/email/i)).not.toBeInTheDocument();
+    });
+  });
 });
