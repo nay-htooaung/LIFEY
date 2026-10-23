@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { monthKey, today as todayFn } from '../domain/dates'
 import { dueOccurrences, monthEnd } from '../domain/recurring'
-import type { Day, Entry, PaymentMethod, Profile, Snapshot, Source, Space } from '../domain/types'
+import type { Day, Entry, PaymentMethod, Profile, Snapshot, Source, Space, Theme } from '../domain/types'
 import { I18nContext, makeI18n, useI18n } from '../i18n'
+import { THEMES } from '../ui/bits'
 import { useUI } from '../ui/ui'
 import { RepoError, type Repo } from './repo'
 
@@ -39,7 +40,26 @@ export const LOCALE_KEY = 'lifey-locale'
 export const THEME_KEY = 'lifey-theme'
 type Prefs = Partial<Pick<Profile, 'locale' | 'theme' | 'avatar'>>
 
-export function StoreProvider({ repo, children, fallback }: { repo: Repo; children: ReactNode; fallback: ReactNode }) {
+/** The theme on screen now: the saved one index.html applied, or the default. */
+export const currentTheme = (): Theme => {
+  const k = document.documentElement.dataset.skin ?? ''
+  return THEMES.find((th) => th === k) ?? 'midnight'
+}
+
+/** Shows a theme everywhere and remembers it on this device. */
+export function applyTheme(theme: Theme) {
+  document.documentElement.dataset.skin = theme
+  // the browser bar follows the theme's page colour
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--paper').trim())
+  try {
+    localStorage.setItem(THEME_KEY, theme)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** `pickedTheme` is a theme chosen on the sign-in screen; it wins over the profile's and is saved to it. */
+export function StoreProvider({ repo, children, fallback, pickedTheme }: { repo: Repo; children: ReactNode; fallback: ReactNode; pickedTheme?: Theme }) {
   const [loaded, setSnap] = useState<Snapshot | null>(null)
   const [spaceId, setSpaceId] = useState<string>(() => {
     try {
@@ -51,7 +71,7 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
   const [day, setDay] = useState(todayFn())
   const [error, setError] = useState<string | null>(null)
   // Choices made here win over the loaded profile, so they apply before the save has round-tripped.
-  const [prefs, setPrefsState] = useState<Prefs>({})
+  const [prefs, setPrefsState] = useState<Prefs>(() => (pickedTheme ? { theme: pickedTheme } : {}))
   const ui = useUI()
   const loading = useRef(false)
   // how many saves and loads are in flight
@@ -115,16 +135,18 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
   const theme = prefs.theme ?? loaded?.me.theme
 
   useEffect(() => {
-    if (!theme) return
-    document.documentElement.dataset.skin = theme
-    // the browser bar follows the theme's page colour
-    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', getComputedStyle(document.documentElement).getPropertyValue('--paper').trim())
-    try {
-      localStorage.setItem(THEME_KEY, theme)
-    } catch {
-      /* ignore */
-    }
+    if (theme) applyTheme(theme)
   }, [theme])
+
+  // save the sign-in screen's choice once the profile has loaded, if it differs
+  const pickedRef = useRef(pickedTheme)
+  const loadedTheme = loaded?.me.theme
+  useEffect(() => {
+    const picked = pickedRef.current
+    if (!loadedTheme || !picked) return
+    pickedRef.current = undefined
+    if (picked !== loadedTheme) repo.updateProfile({ theme: picked }).catch(() => { /* the choice still shows on this device */ })
+  }, [loadedTheme, repo])
 
   const value = useMemo<Store | null>(() => {
     if (!loaded) return null

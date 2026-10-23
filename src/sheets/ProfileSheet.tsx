@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n'
 import { useStore, useSubmit } from '../data/store'
-import { AVATARS, Avatar, THEMES } from '../ui/bits'
+import { AVATARS, Avatar } from '../ui/bits'
 import { InstallCard } from '../ui/InstallCard'
+import { ThemePicker } from '../ui/ThemePicker'
 import { useUI } from '../ui/ui'
 
 /** You: character, name, language, theme, installing the app, signing out. Opened from the avatar in the top bar. */
@@ -37,15 +38,7 @@ export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => Pro
       </div>
       <div className="field">
         <span className="label">{t('theme')}</span>
-        <div className="themes">
-          {THEMES.map((th) => (
-            <button key={th} aria-pressed={snap.me.theme === th} onClick={() => setPrefs({ theme: th })}>
-              {/* a tiny preview drawn with that theme's own tokens */}
-              <span className="theme-sw" data-skin={th}><i /><i /></span>
-              {t(`theme_${th}`)}
-            </button>
-          ))}
-        </div>
+        <ThemePicker value={snap.me.theme} onChange={(theme) => setPrefs({ theme })} />
       </div>
       <div className="field">
         <span className="label">{t('character')}</span>

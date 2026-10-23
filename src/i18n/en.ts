@@ -47,7 +47,7 @@ export const en = {
   you: 'You', me: 'Me',
   signInTitle: 'Money for you and the people you live with.', signInTab: 'Sign in', signUpTab: 'Create account',
   email: 'Email', password: 'Password', passwordHint: 'At least 8 characters.', badLogin: 'Email or password is wrong. Check both and try again.',
-  confirmEmail: 'Check {e} for a confirmation email, then sign in.', tryDemo: 'Try with example data',
+  confirmEmail: 'Check {e} for a confirmation email, then sign in.',
   signupCode: 'Invitation code', signupCodeHint: 'Ask the owner for one. Each code works once.',
   badInvite: 'That invitation code is wrong, expired or already used. Ask for a new one.',
   genericError: 'Something went wrong: {m}', offline: "You're offline. Changes need a connection.", loading: 'Loading…',

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import type { Locale } from './domain/types'
+import type { Locale, Theme } from './domain/types'
 import { createCloudRepo } from './data/cloud'
 import { createDemoRepo, type DemoRepo } from './data/demo'
 import type { Repo } from './data/repo'
@@ -21,7 +21,6 @@ import { IconChevron, IconList, IconPlan, IconPlus, IconToday, IconWallet } from
 import { UIOutlet, UIProvider, useUI } from './ui/ui'
 
 type Tab = 'today' | 'activity' | 'wallet' | 'plan'
-const MODE_KEY = 'lifey-mode'
 
 const store = {
   get(k: string) {
@@ -50,8 +49,9 @@ const initialLocale = (): Locale => {
 export function App() {
   const [locale, setLocaleState] = useState<Locale>(initialLocale)
   const [session, setSession] = useState<Session | null | undefined>(supabase ? undefined : null)
-  const [demo, setDemo] = useState(() => !supabase || store.get(MODE_KEY) === 'demo')
   const [demoKey, setDemoKey] = useState(0)
+  // set when the theme is changed on the sign-in screen, so the account picks it up
+  const [pickedTheme, setPickedTheme] = useState<Theme>()
 
   const setLocale = (l: Locale) => {
     store.set(LOCALE_KEY, l)
@@ -68,11 +68,12 @@ export function App() {
   const userId = session?.user.id
   const repo = useMemo<Repo | null>(() => {
     if (userId && supabase) return createCloudRepo(supabase, userId)
-    if (demo) return createDemoRepo(locale)
+    // without Supabase settings (local development) the app runs on example data
+    if (!supabase) return createDemoRepo(locale)
     return null
     // locale only seeds a fresh demo; changing it later must not rebuild the repo
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, demo, demoKey])
+  }, [userId, demoKey])
 
   useEffect(() => {
     document.documentElement.lang = locale
@@ -85,20 +86,14 @@ export function App() {
         sb={supabase!}
         locale={locale}
         setLocale={setLocale}
-        onDemo={() => {
-          store.set(MODE_KEY, 'demo')
-          setDemo(true)
-        }}
+        onTheme={setPickedTheme}
       />
     )
   }
 
   const signOut = async () => {
     if (repo.mode === 'cloud') await repo.signOut()
-    if (supabase) {
-      store.set(MODE_KEY, null)
-      setDemo(false)
-    }
+    setPickedTheme(undefined)
   }
   const resetDemo = () => {
     ;(repo as DemoRepo).reset(locale)
@@ -107,7 +102,7 @@ export function App() {
 
   return (
     <UIProvider>
-      <StoreProvider key={`${repo.mode}-${userId ?? 'demo'}-${demoKey}`} repo={repo} fallback={<div className="splash">lifey</div>}>
+      <StoreProvider key={`${repo.mode}-${userId ?? 'demo'}-${demoKey}`} repo={repo} pickedTheme={pickedTheme} fallback={<div className="splash">lifey</div>}>
         <Shell onSignOut={signOut} onResetDemo={repo.mode === 'demo' ? resetDemo : undefined} canSignOut={!!supabase} />
       </StoreProvider>
     </UIProvider>
