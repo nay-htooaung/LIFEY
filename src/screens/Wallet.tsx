@@ -9,7 +9,7 @@ import { IconLock } from '../ui/icons'
 import { useUI } from '../ui/ui'
 
 const SRC_GLYPH: Record<SourceKind, string> = { bank: '銀', cash: '¥', emoney: 'e' }
-const METHOD_GLYPH: Record<MethodKind, string> = { cash: '¥', debit: 'D', emoney: 'e', credit: 'C' }
+const METHOD_GLYPH: Record<MethodKind, string> = { cash: '¥', debit: 'D', credit: 'C' }
 
 export function Wallet() {
   const { snap, space, today } = useStore()

@@ -26,7 +26,7 @@ const toEntry = (r: Row): Entry => ({
 })
 const entryRow = (e: Omit<Entry, 'id' | 'createdBy'>) => ({
   space_id: e.spaceId, kind: e.kind, amount: e.amount, category_id: e.kind === 'transfer' ? null : e.categoryId,
-  method_id: e.kind === 'expense' ? e.methodId : null, source_id: e.kind !== 'expense' || !e.methodId ? e.sourceId : null,
+  method_id: e.kind !== 'income' ? e.methodId : null, source_id: e.kind === 'income' || !e.methodId ? e.sourceId : null,
   to_source_id: e.kind === 'transfer' ? e.toSourceId : null, fee: e.kind === 'transfer' ? e.fee : 0, occurred_on: e.occurredOn, name: e.name, note: e.note, tags: e.tags, repeat: e.repeat, repeat_of: e.repeatOf,
 })
 

@@ -11,7 +11,7 @@ import { useUI } from './ui'
 
 /**
  * How an entry was paid, from the viewer's side: other members' personal methods stay hidden.
- * For a transfer, the label reads "from → to", each side hidden the same way.
+ * For a transfer, the label reads "from → to" (from is a source, or a card charging e-money), each side hidden the same way.
  */
 export function usePaidWith() {
   const { snap } = useStore()
@@ -24,7 +24,7 @@ export function usePaidWith() {
     const visible = e.methodId ? m : s
     const nameOf = (x?: { name: string }) => x?.name ?? t('hiddenSrc', { p: person(e.createdBy) })
     const label = e.kind === 'transfer'
-      ? `${nameOf(s)} → ${nameOf(e.toSourceId ? source.get(e.toSourceId) : undefined)}`
+      ? `${nameOf(visible)} → ${nameOf(e.toSourceId ? source.get(e.toSourceId) : undefined)}`
       : nameOf(visible)
     const personal = !visible || (visible.spaceId !== e.spaceId && snap.spaces.find((x) => x.id === visible.spaceId)?.kind === 'personal')
     return { label, personal, mine: !!visible && personal }

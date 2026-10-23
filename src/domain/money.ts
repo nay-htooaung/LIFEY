@@ -65,7 +65,7 @@ export function flowsOf(entries: Entry[]): Flow[] {
   return entries.flatMap((e): Flow[] =>
     e.kind === 'transfer'
       ? [
-          { methodId: null, sourceId: e.sourceId, kind: 'expense', amount: e.amount + e.fee, occurredOn: e.occurredOn },
+          { methodId: e.methodId, sourceId: e.methodId ? null : e.sourceId, kind: 'expense', amount: e.amount + e.fee, occurredOn: e.occurredOn },
           { methodId: null, sourceId: e.toSourceId, kind: 'income', amount: e.amount, occurredOn: e.occurredOn },
         ]
       : [{ methodId: e.methodId, sourceId: e.methodId ? null : e.sourceId, kind: e.kind, amount: e.amount, occurredOn: e.occurredOn }],

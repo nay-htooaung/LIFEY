@@ -151,6 +151,24 @@ describe('transfers', () => {
   })
 })
 
+describe('charging e-money with a credit card', () => {
+  const suica: Source = { ...chk, id: 'suica', kind: 'emoney', openingBalance: 0 }
+  const charge = entry({ kind: 'transfer', methodId: 'visa', sourceId: null, categoryId: null, toSourceId: 'suica', amount: 5000, fee: 100, occurredOn: '2026-10-05' })
+  const flows = flowsOf([charge])
+  it('fills the e-money today and puts amount and fee on the card', () => {
+    expect(sourceBalance(suica, [], flows, '2026-10-05')).toBe(5000)
+    expect(creditOutstanding(visa, flows, '2026-10-05')).toBe(5100)
+  })
+  it('leaves the bank until the card is paid', () => {
+    expect(sourceBalance(chk, [visa], flows, '2026-10-05')).toBe(100000)
+    expect(nextCardPayment(visa, flows, '2026-10-05')).toEqual({ on: '2026-11-10', amount: 5100 })
+    expect(sourceBalance(chk, [visa], flows, '2026-11-10')).toBe(100000 - 5100)
+  })
+  it('counts only the fee as spending', () => {
+    expect(monthEntries([charge], 'me', '2026-10-31').map((e) => e.amount)).toEqual([100])
+  })
+})
+
 describe('editing a schedule', () => {
   const rent = entry({ id: 'rent', amount: 80000, repeat: 'monthly', occurredOn: '2026-08-27' })
   const copies = ['2026-09-27', '2026-10-27', '2026-11-27'].map((d) => entry({ id: d, amount: 80000, repeatOf: 'rent', occurredOn: d }))

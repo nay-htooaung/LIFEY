@@ -182,6 +182,31 @@ select t.ok((select sum(amount) from public.money_flows() where source_id = curr
             'a transfer takes amount and fee out of the source');
 select t.ok((select sum(amount) from public.money_flows() where source_id = current_setting('t.joint')::uuid and kind = 'income') = 50000,
             'a transfer puts the amount into the target');
+-- charging e-money with a credit card: a charge on the card, money into the e-money source
+insert into public.entries (space_id, kind, amount, fee, method_id, to_source_id)
+values (current_setting('t.my_space')::uuid, 'transfer', 3000, 50, current_setting('t.visa')::uuid, current_setting('t.suica')::uuid)
+returning set_config('t.charge', id::text, false) \gset
+select t.ok((select method_id = current_setting('t.visa')::uuid and source_id is null from public.entries where id = current_setting('t.charge')::uuid),
+            'a card charge keeps its card');
+select t.ok(exists (select 1 from public.money_flows() where method_id = current_setting('t.visa')::uuid and kind = 'expense' and amount = 3050),
+            'a card charge puts amount and fee on the card');
+select t.ok((select sum(amount) from public.money_flows() where source_id = current_setting('t.suica')::uuid and kind = 'income') = 3000,
+            'a card charge puts the amount into the e-money');
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id, to_source_id)
+  values (current_setting('t.my_space')::uuid, 'transfer', 1, current_setting('t.visa')::uuid, current_setting('t.chk')::uuid);
+  raise exception 'TEST FAIL: a card charged a bank account';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id, to_source_id)
+  values (current_setting('t.home')::uuid, 'transfer', 1, current_setting('t.jdeb')::uuid, current_setting('t.suica')::uuid);
+  raise exception 'TEST FAIL: a debit card charged e-money';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.payment_methods (space_id, name, kind, source_id)
+  values (current_setting('t.my_space')::uuid, 'PayPay', 'emoney', current_setting('t.chk')::uuid);
+  raise exception 'TEST FAIL: added an e-money payment method';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 do $$ begin
   insert into public.entries (space_id, kind, amount, source_id, to_source_id)
   values (current_setting('t.my_space')::uuid, 'transfer', 1, current_setting('t.chk')::uuid, current_setting('t.chk')::uuid);

@@ -79,7 +79,7 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
             <label className="label" htmlFor="m-kind">{t('kind')}</label>
             <Select id="m-kind" value={kind} onChange={(v) => setKind(v as MethodKind)} options={[
               { value: 'credit', label: t('creditCard') }, { value: 'debit', label: t('debitCard') },
-              { value: 'emoney', label: t('emoney') }, { value: 'cash', label: t('cash') },
+              { value: 'cash', label: t('cash') },
             ]} />
           </div>
         )}

@@ -3,7 +3,7 @@ export type Theme = 'midnight' | 'light' | 'milky'
 export type SpaceKind = 'personal' | 'household'
 export type Tone = 'me' | 'a' | 'b' | 'c' | 'd'
 export type SourceKind = 'bank' | 'cash' | 'emoney'
-export type MethodKind = 'cash' | 'debit' | 'credit' | 'emoney'
+export type MethodKind = 'cash' | 'debit' | 'credit'
 /** What a category or a flow of money is. */
 export type MoneyKind = 'expense' | 'income'
 /** Entries can also move money between two sources. */
@@ -80,9 +80,9 @@ export interface Entry {
   /** Whole yen, always positive. */
   amount: number
   categoryId: string | null
-  /** Expenses: the payment method, or null when paid straight from `sourceId`. */
+  /** Expenses: the payment method, or null when paid straight from `sourceId`. Transfer: a credit card charging e-money. */
   methodId: string | null
-  /** Income: where it lands. Expense without a method: where it is paid from. Transfer: where it leaves. */
+  /** Income: where it lands. Expense without a method: where it is paid from. Transfer without a method: where it leaves. */
   sourceId: string | null
   /** Transfer only: where the money lands. */
   toSourceId: string | null

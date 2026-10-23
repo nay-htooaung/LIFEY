@@ -47,39 +47,42 @@ export function seedDemo(locale: Locale): Snapshot {
     S('chk', 'me', 'Everyday account', '普段使いの口座', 'bank', 380000), S('sav', 'me', 'Savings', '貯金口座', 'bank', 1250000),
     S('cash', 'me', 'Cash', '現金', 'cash', 18000), S('joint', 'home', 'Joint account', '共同口座', 'bank', 160000),
     S('jar', 'home', 'Household envelope', '生活費の封筒', 'cash', 12000), S('tcash', 'trip', 'Trip wallet', '旅行用の財布', 'cash', 30000),
+    S('pp', 'me', 'PayPay', 'PayPay', 'emoney', 4000), S('suica', 'me', 'Suica', 'Suica', 'emoney', 2000),
   ]
   const M = (id: string, spaceId: string, en: string, ja: string, kind: PaymentMethod['kind'], sourceId: string, credit?: [number, number, number]): PaymentMethod =>
     ({ id, spaceId, name: L(en, ja), kind, sourceId, creditLimit: credit?.[0] ?? null, limitSharedWith: null, closingDay: credit?.[1] ?? null, paymentDay: credit?.[2] ?? null, archived: false })
   const methods: PaymentMethod[] = [
     M('m-cash', 'me', 'Cash', '現金', 'cash', 'cash'), M('m-deb', 'me', 'Debit ••4421', 'デビット ••4421', 'debit', 'chk'),
-    M('m-pp', 'me', 'PayPay', 'PayPay', 'emoney', 'chk'), M('m-suica', 'me', 'Suica', 'Suica', 'emoney', 'chk'),
     M('m-cc', 'me', 'Visa ••9012', 'Visa ••9012', 'credit', 'chk', [500000, 15, 10]),
     M('m-jdeb', 'home', 'Joint debit ••7730', '共同デビット ••7730', 'debit', 'joint'),
     M('m-jcc', 'home', 'Family card ••5518', '家族カード ••5518', 'credit', 'joint', [800000, 31, 27]),
     M('m-jcash', 'home', 'Envelope cash', '封筒の現金', 'cash', 'jar'), M('m-tcash', 'trip', 'Trip wallet', '旅行用の財布', 'cash', 'tcash'),
   ]
   const entries: Entry[] = []
+  const isSource = (id: string) => sources.some((s) => s.id === id)
   const e = (spaceId: string, occurredOn: string, kind: Entry['kind'], amount: number, categoryId: string, via: string, en: string, ja: string, x: Partial<Entry> = {}) =>
     entries.push({
-      id: uid(), spaceId, kind, amount, categoryId, methodId: kind === 'expense' && via !== 'hidden' ? via : null,
-      sourceId: kind === 'income' ? via : null, toSourceId: null, fee: 0, occurredOn, name: '', note: L(en, ja), tags: [], repeat: 'none', repeatOf: null, createdBy: ME, ...x,
+      id: uid(), spaceId, kind, amount, categoryId, methodId: kind === 'expense' && via !== 'hidden' && !isSource(via) ? via : null,
+      sourceId: kind === 'income' || isSource(via) ? via : null, toSourceId: null, fee: 0, occurredOn, name: '', note: L(en, ja), tags: [], repeat: 'none', repeatOf: null, createdBy: ME, ...x,
     })
   const hidden = 'hidden' // paid from another member's personal funds: no method we can see
   // personal
+  e('me', ago(12), 'transfer', 10000, '', 'chk', 'Charge PayPay', 'PayPayにチャージ', { categoryId: null, sourceId: 'chk', toSourceId: 'pp' })
+  e('me', ago(9), 'transfer', 3000, '', 'm-cc', 'Charge Suica', 'Suicaにチャージ', { categoryId: null, methodId: 'm-cc', toSourceId: 'suica' })
   e('me', lastMonth(25), 'income', 320000, 'c-sal', 'chk', 'Salary', '給料', { repeat: 'monthly' })
   e('me', lastMonth(28), 'expense', 3000, 'c-sub', 'm-cc', 'Phone plan', '携帯料金', { repeat: 'monthly' })
   e('me', lastMonth(5), 'expense', 1080, 'c-sub', 'm-cc', 'Music streaming', '音楽配信', { repeat: 'monthly' })
   e('me', lastMonth(30), 'expense', 7700, 'c-hl', 'm-cc', 'Gym membership', 'ジム会費', { repeat: 'monthly' })
   const daily: [number, number, string, string, string, string, string[]?][] = [
     [21, 980, 'c-food', 'm-deb', 'Ramen lunch', 'ラーメンランチ'], [20, 520, 'c-cof', 'm-cash', 'Café latte', 'カフェラテ'],
-    [19, 8800, 'c-shop', 'm-cc', 'Running shoes', 'ランニングシューズ', ['treat']], [17, 480, 'c-tr', 'm-suica', 'Train', '電車'],
+    [19, 8800, 'c-shop', 'm-cc', 'Running shoes', 'ランニングシューズ', ['treat']], [17, 480, 'c-tr', 'suica', 'Train', '電車'],
     [16, 450, 'c-cof', 'm-cash', 'Konbini coffee', 'コンビニコーヒー'], [15, 4200, 'c-food', 'm-cc', 'Dinner with Yui', 'ゆいと夕食', ['friends']],
     [13, 1900, 'c-fun', 'm-cc', 'Movie', '映画'], [12, 520, 'c-cof', 'm-cash', 'Café latte', 'カフェラテ'],
-    [11, 3600, 'c-hl', 'm-deb', 'Pharmacy', '薬局'], [10, 1280, 'c-food', 'm-pp', 'Bento', 'お弁当'],
-    [8, 2400, 'c-tr', 'm-cc', 'Taxi home', 'タクシー'], [7, 680, 'c-cof', 'm-pp', 'Coffee + croissant', 'コーヒーとクロワッサン'],
-    [6, 3300, 'c-fun', 'm-cc', 'Bouldering day pass', 'ボルダリング', ['hobby']], [5, 1100, 'c-food', 'm-pp', 'Sushi lunch', '寿司ランチ'],
+    [11, 3600, 'c-hl', 'm-deb', 'Pharmacy', '薬局'], [10, 1280, 'c-food', 'pp', 'Bento', 'お弁当'],
+    [8, 2400, 'c-tr', 'm-cc', 'Taxi home', 'タクシー'], [7, 680, 'c-cof', 'pp', 'Coffee + croissant', 'コーヒーとクロワッサン'],
+    [6, 3300, 'c-fun', 'm-cc', 'Bouldering day pass', 'ボルダリング', ['hobby']], [5, 1100, 'c-food', 'pp', 'Sushi lunch', '寿司ランチ'],
     [4, 520, 'c-cof', 'm-cash', 'Café latte', 'カフェラテ'], [3, 12800, 'c-shop', 'm-cc', 'Rain jacket', 'レインジャケット'],
-    [2, 1560, 'c-food', 'm-pp', 'Onigiri & salad', 'おにぎりとサラダ'], [1, 450, 'c-cof', 'm-cash', 'Konbini coffee', 'コンビニコーヒー'],
+    [2, 1560, 'c-food', 'pp', 'Onigiri & salad', 'おにぎりとサラダ'], [1, 450, 'c-cof', 'm-cash', 'Konbini coffee', 'コンビニコーヒー'],
     [1, 1200, 'c-food', 'm-cc', 'Curry', 'カレー'],
   ]
   for (const [n, amt, cat, via, en, ja, tags] of daily) e('me', ago(n), 'expense', amt, cat, via, en, ja, { tags: tags ?? [] })
@@ -94,7 +97,7 @@ export function seedDemo(locale: Locale): Snapshot {
     [16, 1280, 'h-hh', 'm-jcash', 'Dish soap, sponges', '洗剤・スポンジ', ME], [13, 7350, 'h-gro', 'm-jcc', 'Weekly shop', '週末のまとめ買い', ME],
     [12, 3980, 'h-pet', hidden, 'Cat food & litter', '猫のごはん・砂', 'demo-sam'], [8, 3200, 'h-din', hidden, 'Thai takeout', 'タイ料理テイクアウト', 'demo-sam'],
     [6, 9120, 'h-gro', 'm-jcc', 'Weekly shop', '週末のまとめ買い', 'demo-sam'], [4, 2980, 'h-hh', 'm-deb', 'Shower curtain', 'シャワーカーテン', ME],
-    [3, 1850, 'h-gro', hidden, 'Farmers market', 'マルシェ', 'demo-sam'], [2, 5400, 'h-din', 'm-pp', 'Pizza night', 'ピザの日', ME],
+    [3, 1850, 'h-gro', hidden, 'Farmers market', 'マルシェ', 'demo-sam'], [2, 5400, 'h-din', 'pp', 'Pizza night', 'ピザの日', ME],
   ]
   for (const [n, amt, cat, via, en, ja, by] of home) e('home', ago(n), 'expense', amt, cat, via, en, ja, { createdBy: by })
   // Kyoto Trip: everyone pays their own way
@@ -102,7 +105,7 @@ export function seedDemo(locale: Locale): Snapshot {
     [26, 14170, 't-tr', 'm-cc', 'Shinkansen to Kyoto', '新幹線（京都まで）', ME], [26, 14170, 't-tr', hidden, 'Shinkansen to Kyoto', '新幹線（京都まで）', 'demo-sam'],
     [26, 14170, 't-tr', hidden, 'Shinkansen to Kyoto', '新幹線（京都まで）', 'demo-ren'], [26, 36000, 't-st', hidden, 'Machiya stay, 2 nights', '町家ステイ 2泊', 'demo-ren'],
     [25, 4800, 't-food', 'm-tcash', 'Udon lunch', 'うどんランチ', ME], [25, 1200, 't-see', 'm-tcash', 'Kiyomizu-dera entry', '清水寺 拝観料', 'demo-sam'],
-    [25, 9600, 't-food', hidden, 'Kaiseki dinner', '京料理の夕食', 'demo-sam'], [24, 2100, 't-food', 'm-pp', 'Matcha sweets', '抹茶スイーツ', ME],
+    [25, 9600, 't-food', hidden, 'Kaiseki dinner', '京料理の夕食', 'demo-sam'], [24, 2100, 't-food', 'pp', 'Matcha sweets', '抹茶スイーツ', ME],
     [24, 2100, 't-tr', 'm-tcash', 'Bus day passes', 'バス一日券', 'demo-ren'],
   ]
   for (const [n, amt, cat, via, en, ja, by] of trip) e('trip', ago(n), 'expense', amt, cat, via, en, ja, { createdBy: by })

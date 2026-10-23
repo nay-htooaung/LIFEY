@@ -54,8 +54,8 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
   const [amount, setAmount] = useState(init.amount ? String(init.amount) : '0')
   const [spaceId, setSpaceId] = useState(init.spaceId ?? space.id)
   const [categoryId, setCategoryId] = useState<string | null>(init.categoryId ?? null)
-  // expense: a method or a source; income: a source; transfer: the source it leaves
-  const [via, setVia] = useState<string | null>((init.kind !== 'expense' || !init.methodId ? init.sourceId : init.methodId) ?? null)
+  // expense: a method or a source; income: a source; transfer: the source it leaves, or a credit card charging e-money
+  const [via, setVia] = useState<string | null>((init.kind === 'income' || !init.methodId ? init.sourceId : init.methodId) ?? null)
   const [toVia, setToVia] = useState<string | null>(init.toSourceId ?? null)
   const [fee, setFee] = useState(init.fee ? String(init.fee) : '0')
   // which number the keypad types into; only transfers have a second one
@@ -72,15 +72,18 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
 
   // Any method/source from a space I belong to. The target space's own first, then mine, then other spaces.
   // Expenses can be paid with a method or straight from a source, listed by name like the rest.
+  // Transfers leave a source, or a credit card when charging e-money.
   const options = useMemo(() => {
     // deleted ones only when this entry already uses them, so editing never switches its payment silently
     const live = <T extends { id: string; archived: boolean }>(xs: T[]) => xs.filter((x) => !x.archived || x.id === via || x.id === toVia)
     const sources = live(snap.sources).map((x) => ({ ...x, isSource: true }))
-    const pool = kind === 'expense' ? [...live(snap.methods).map((x) => ({ ...x, isSource: false })), ...sources] : sources
+    const methods = live(snap.methods).filter((x) => kind === 'expense' || (kind === 'transfer' && x.kind === 'credit'))
+    const pool = kind === 'income' ? sources : kind === 'expense' ? [...methods.map((x) => ({ ...x, isSource: false })), ...sources]
+      : [...sources, ...methods.map((x) => ({ ...x, isSource: false }))]
     const rank = (sid: string) => (sid === spaceId ? 0 : sid === personal.id ? 1 : 2)
     return pool
       .sort((a, b) => rank(a.spaceId) - rank(b.spaceId))
-      .map((x) => ({ id: x.id, name: x.name, spaceId: x.spaceId, isSource: x.isSource, personal: x.spaceId === personal.id && spaceId !== personal.id }))
+      .map((x) => ({ id: x.id, name: x.name, kind: x.kind, spaceId: x.spaceId, isSource: x.isSource, personal: x.spaceId === personal.id && spaceId !== personal.id }))
   }, [kind, snap.methods, snap.sources, spaceId, personal.id, via, toVia])
 
   const catId = cats.some((c) => c.id === categoryId) ? categoryId : (cats[0]?.id ?? null)
@@ -91,7 +94,8 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
   const cash = snap.sources.find((s) => s.fixed && s.spaceId === personal.id)?.id
   const viaId = pickFrom(options, via, kind === 'income' ? cash : lastUsed[`${spaceId}:${kind}`])
   const chosen = options.find((o) => o.id === viaId)
-  const toOptions = kind === 'transfer' ? options.filter((o) => o.id !== viaId) : []
+  // a card can only charge e-money; money never moves into a card
+  const toOptions = kind === 'transfer' ? options.filter((o) => o.isSource && o.id !== viaId && (chosen?.isSource || o.kind === 'emoney')) : []
   const toId = pickFrom(toOptions, toVia, lastUsed[`${spaceId}:transfer-to`])
   const n = parseInt(amount, 10) || 0
   const feeN = kind === 'transfer' ? parseInt(fee, 10) || 0 : 0
@@ -116,7 +120,7 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
     const transfer = kind === 'transfer'
     const entry: NewEntry = {
       spaceId, kind, amount: n, categoryId: transfer ? null : catId,
-      methodId: kind === 'expense' && !chosen?.isSource ? viaId : null, sourceId: kind !== 'expense' || chosen?.isSource ? viaId : null,
+      methodId: kind !== 'income' && !chosen?.isSource ? viaId : null, sourceId: kind === 'income' || chosen?.isSource ? viaId : null,
       toSourceId: transfer ? toId : null, fee: feeN,
       occurredOn: date, name: name.trim(), note: note.trim(), tags: tags.split(/[,、，]/).map((s) => s.trim()).filter(Boolean),
       repeat: canRepeat || (base && isTemplate(base)) ? repeat : 'none', repeatOf: series ? null : (base?.repeatOf ?? null),

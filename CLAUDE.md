@@ -56,7 +56,7 @@ The user asks for a change; carry it through to dev without being told each step
   The user replaces it with `develop` at the v1.0.0 release (pushing `main` deploys prod). Other branches run
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
-- Latest migration: `20261023090000_fixed_cash.sql`.
+- Latest migration: `20261023100000_card_charge.sql`.
 - Pushing deploys dev; to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
 - The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
@@ -81,10 +81,12 @@ The user asks for a change; carry it through to dev without being told each step
 - Themes are `[data-skin]` token blocks (midnight, light, milky). `index.html` applies the saved theme before first paint.
 - Money rules (`src/domain/money.ts`, `recurring.ts`; keep the unit tests in step):
   - **Transfers** (`kind = 'transfer'`) move `amount` from `source_id` to `to_source_id`; `fee` comes out of the
-    source on top. Only the fee counts as spending (`spendingView`).
+    source on top. Only the fee counts as spending (`spendingView`). A transfer may instead leave a credit card
+    (`method_id`, `source_id` null) into an e-money source: amount + fee is a charge on the card.
   - **`money_flows()` in SQL and `flowsOf()` in TS** must produce the same flows.
   - **Expenses paid from a source** have `method_id` null and `source_id` set.
-  - **Sources** are cash, bank or e-money (`emoney`, charged by transfers and paid from directly). Every personal
+  - **Sources** are cash, bank or e-money (`emoney`, charged by transfers and paid from directly; there is no
+    e-money payment method, PayPay あと払い etc. are set up as cards). Every personal
     space has one `fixed` cash source from sign-up: only its balance can change (a DB trigger guards it).
     Income defaults to it.
   - **Shared credit limits:** a card can share one other card's limit (`limit_shared_with`), one level only.
