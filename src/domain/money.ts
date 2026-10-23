@@ -218,6 +218,22 @@ export function accountForecast(items: Upcoming[], s: Snapshot, on: Day): Accoun
   return [...by.values()]
 }
 
+/**
+ * The forecast shown in a space. An account's future depends on everything that touches it, so items from
+ * every space I belong to are summed (a personal bank also pays personal bills and cards). Only accounts that
+ * matter here are listed: the space's own accounts with anything coming, and any its upcoming items move money through.
+ */
+export function spaceForecast(spaceId: string, s: Snapshot, on: Day): AccountForecast[] {
+  const all = s.spaces.flatMap((sp) => upcoming(sp.id, s, on))
+  const here = all.filter((u) => s.entries.some((e) => e.id === u.templateId && e.spaceId === spaceId) || isCardIn(u, spaceId, s))
+  const touched = new Set(here.flatMap((u) => [u.sourceId, u.toSourceId]).filter(Boolean))
+  return accountForecast(all, s, on).filter((f) => f.source.spaceId === spaceId || touched.has(f.source.id))
+}
+
+/** A card payment belongs to the space of its card. */
+const isCardIn = (u: Upcoming, spaceId: string, s: Snapshot) =>
+  u.kind === 'card' && s.methods.some((m) => `c-${m.id}` === u.key && m.spaceId === spaceId)
+
 export interface SafeToSpend {
   budget: number
   spent: number

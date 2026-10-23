@@ -66,8 +66,8 @@ export function EntryRow({ entry, showDate }: { entry: Entry; showDate?: boolean
   )
 }
 
-/** `sourceName`: the account the money moves through, when there is one. */
-export function UpcomingRow({ item, sourceName }: { item: Upcoming; sourceName?: string }) {
+/** `sourceName`: the account the money moves through, when there is one; `onlyMe`: it is personal, shown to me only. */
+export function UpcomingRow({ item, sourceName, onlyMe }: { item: Upcoming; sourceName?: string; onlyMe?: boolean }) {
   const { today, snap, space } = useStore()
   const { t, month } = useI18n()
   const [, m, d] = parts(item.on)
@@ -89,7 +89,9 @@ export function UpcomingRow({ item, sourceName }: { item: Upcoming; sourceName?:
             : item.kind === 'transfer' ? <span className="pill mute">⇄ {t('transfer')}</span>
             : <span className="pill mute"><IconRepeat /> {t('repeats')}</span>}
         </div>
-        {sourceName && <div className="s">{sourceName}</div>}
+        {sourceName && (
+          <div className="s">{onlyMe && <IconLock />}<span>{sourceName}</span>{onlyMe && <span>· {t('onlyYouShort')}</span>}</div>
+        )}
       </div>
       <span className={'amt num' + (item.kind === 'income' ? ' amt-in' : '')}>{item.kind === 'income' ? '+' : ''}{yen(item.amount)}</span>
     </Tag>

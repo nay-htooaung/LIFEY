@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { accountForecast, creditLimitUse, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { accountForecast, creditLimitUse, spaceForecast, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
 import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 
@@ -169,5 +169,23 @@ describe('editing a schedule', () => {
   })
   it('counts a future template as its own next date', () => {
     expect(nextOccurrence({ ...rent, occurredOn: '2026-12-27' }, '2026-11-01')).toBe('2026-12-27')
+  })
+})
+
+describe('forecast in a shared space', () => {
+  // a personal bank pays a shared rent bill and a personal gym bill
+  const rent = entry({ id: 'rent', spaceId: 'home', amount: 70000, methodId: null, sourceId: 'chk', repeat: 'monthly', occurredOn: '2026-09-27' })
+  const gym = entry({ id: 'gym', spaceId: 'me', amount: 8000, methodId: null, sourceId: 'chk', repeat: 'monthly', occurredOn: '2026-09-28' })
+  const joint: Source = { ...chk, id: 'joint', spaceId: 'home', openingBalance: 5000 }
+  const snap = {
+    spaces: [{ id: 'me' }, { id: 'home' }], sources: [chk, joint], methods: [], flows: [], entries: [rent, gym], categories: [],
+  } as unknown as Snapshot
+  it('counts every space on the account but lists only what matters here', () => {
+    const rows = spaceForecast('home', snap, '2026-10-01')
+    // the shared account has nothing coming, so it has no line
+    expect(rows.map((f) => [f.source.id, f.out, f.after])).toEqual([['chk', 78000, 22000]])
+  })
+  it('lists the personal bank in its own space too', () => {
+    expect(spaceForecast('me', snap, '2026-10-01').map((f) => f.source.id)).toEqual(['chk'])
   })
 })

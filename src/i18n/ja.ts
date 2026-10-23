@@ -30,7 +30,7 @@ export const ja: Record<MessageKey, string> = {
   loggedTo: '{s}に{a}を記録しました', saved: '保存しました',
   hiddenHint: '鍵マークはあなた個人の支払い方法です。メンバーには記録だけが見え、カードや口座は見えません。',
   sharedHint: 'スペース名の付いた支払い方法は共有です。そのメンバーには金額が見えます。',
-  private: 'あなただけ', sharedWith: '{n}人で共有', loggedBy: '記録した人', hiddenSrc: '{p}の個人のお金', onlyYou: 'あなただけに表示', space: 'スペース',
+  private: 'あなただけ', sharedWith: '{n}人で共有', loggedBy: '記録した人', hiddenSrc: '{p}の個人のお金', onlyYou: 'あなただけに表示', onlyYouShort: 'あなただけに表示', space: 'スペース',
   logAgain: '複製', edit: '編集', del: '削除', confirmDel: 'もう一度押すと削除', deleted: '削除しました',
   srcTitle: '口座・現金を追加', srcSub: '{s}のお金の置き場所。', name: '名前', srcPh: '例: 旅行用の貯金', type: '種類', balance: '今日の残高',
   mTitle: '支払い方法を追加', mPh: '例: 楽天カード ••1003', kind: '種類', creditCard: 'クレジットカード', debitCard: 'デビットカード',

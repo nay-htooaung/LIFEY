@@ -1,9 +1,10 @@
 import { parts } from '../domain/dates'
-import { accountForecast, UPCOMING_DAYS, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
+import { spaceForecast, UPCOMING_DAYS, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
 import { usePersonName, useStore, useSubmit } from '../data/store'
 import { SourceSheet } from '../sheets/SourceSheet'
 import { UpcomingRow } from '../ui/entry'
+import { IconLock } from '../ui/icons'
 import { InstallCard } from '../ui/InstallCard'
 import { useUI } from '../ui/ui'
 
@@ -23,6 +24,8 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   const billDays = new Set(up.filter((u) => u.kind !== 'income' && u.on.slice(0, 7) === today.slice(0, 7)).map((u) => parts(u.on)[2]))
   const pct = sts.budget ? Math.min(1, (sts.spent + sts.committed) / sts.budget) : 0
   const R = 2 * Math.PI * 30
+  // in a shared space, my personal accounts are shown to me only; say so next to them
+  const isMine = (spaceId: string) => space.kind === 'household' && spaceId === personal.id
   const needsSetup = space.kind === 'personal' && !snap.methods.some((m) => m.spaceId === personal.id && !m.archived)
 
   const startCash = () =>
@@ -93,12 +96,13 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
           <div className="sec-h"><h3>{t('comingUp')}</h3><button className="link" onClick={() => go('plan')}>{t('allBills')}</button></div>
           <div className="card list">
             {up.slice(0, 6).map((u) => {
-              const name = (id?: string | null) => snap.sources.find((x) => x.id === id)?.name
-              const via = u.kind === 'transfer' ? [name(u.sourceId), name(u.toSourceId)].filter(Boolean).join(' → ') : name(u.sourceId)
-              return <UpcomingRow key={u.key} item={u} sourceName={via} />
+              const src = (id?: string | null) => snap.sources.find((x) => x.id === id)
+              const ends = u.kind === 'transfer' ? [src(u.sourceId), src(u.toSourceId)] : [src(u.sourceId)]
+              const via = ends.filter(Boolean).map((x) => x!.name).join(' → ')
+              return <UpcomingRow key={u.key} item={u} sourceName={via} onlyMe={ends.some((x) => x && isMine(x.spaceId))} />
             })}
           </div>
-          <Forecast items={up} />
+          <Forecast />
         </>
       )}
     </>
@@ -106,10 +110,10 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
 }
 
 /** Each account once: today's balance, what comes in and goes out over the coming days, and what is left. */
-function Forecast({ items }: { items: ReturnType<typeof upcoming> }) {
-  const { snap, today } = useStore()
+function Forecast() {
+  const { snap, space, personal, today } = useStore()
   const { t } = useI18n()
-  const rows = accountForecast(items, snap, today)
+  const rows = spaceForecast(space.id, snap, today)
   if (!rows.length) return null
   return (
     <div className="card forecast">
@@ -120,6 +124,9 @@ function Forecast({ items }: { items: ReturnType<typeof upcoming> }) {
             <b>{f.source.name}</b>
             <span className={'num fc-after' + (f.after < 0 ? ' short' : '')}>{yen(f.after)}</span>
           </div>
+          {space.kind === 'household' && f.source.spaceId === personal.id && (
+            <div className="privacy fc-private"><IconLock /><span>{t('onlyYou')}</span></div>
+          )}
           <div className="fc-sub num">
             <span>{t('nowBal', { a: yen(f.now) })}</span>
             {f.in > 0 && <span className="amt-in">+{yen(f.in)}</span>}
