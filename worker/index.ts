@@ -1,0 +1,91 @@
+// Serves the app's static build, plus /api/chat: the assistant's model calls.
+// The model's API key lives here as a secret and never reaches the app. Each request first calls ai_use() with
+// the person's Supabase token, which checks who they are and counts it against their daily allowance.
+// The tools themselves run in the app (src/assistant/run.ts), on the data the person can already see.
+import { systemPrompt, TOOLS, type ChatContext } from '../src/assistant/tools'
+
+interface Env {
+  ASSETS: { fetch(req: Request): Promise<Response> }
+  /** Secret: an OpenCode Go API key. */
+  OPENCODE_API_KEY?: string
+  AI_BASE_URL: string
+  AI_MODEL: string
+  SUPABASE_URL: string
+  SUPABASE_ANON_KEY: string
+}
+
+interface Msg { role: 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: unknown[]; tool_call_id?: string }
+
+const MAX_BODY = 400_000
+const MAX_MESSAGES = 120
+
+const fail = (status: number, error: string) =>
+  new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } })
+
+export default {
+  async fetch(req: Request, env: Env): Promise<Response> {
+    const url = new URL(req.url)
+    if (url.pathname === '/api/chat') return req.method === 'POST' ? chat(req, env) : fail(405, 'method')
+    if (url.pathname.startsWith('/api/')) return fail(404, 'not_found')
+    return env.ASSETS.fetch(req)
+  },
+}
+
+async function chat(req: Request, env: Env): Promise<Response> {
+  if (!env.OPENCODE_API_KEY) return fail(503, 'not_configured')
+  const token = req.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1]
+  if (!token) return fail(401, 'signed_out')
+
+  const raw = await req.text()
+  if (raw.length > MAX_BODY) return fail(413, 'too_long')
+  let body: { messages?: Msg[]; context?: ChatContext }
+  try {
+    body = JSON.parse(raw)
+  } catch {
+    return fail(400, 'bad_json')
+  }
+  const { messages, context } = body
+  if (!Array.isArray(messages) || !messages.length || messages.length > MAX_MESSAGES || !context?.space?.id) return fail(400, 'bad_request')
+  // only the conversation itself; the system prompt and tools are set here
+  const convo = messages
+    .filter((m) => m && ['user', 'assistant', 'tool'].includes(m.role))
+    .map(({ role, content, tool_calls, tool_call_id }) => ({ role, content, ...(tool_calls ? { tool_calls } : {}), ...(tool_call_id ? { tool_call_id } : {}) }))
+  const ctx: ChatContext = {
+    today: /^\d{4}-\d{2}-\d{2}$/.test(context.today) ? context.today : new Date().toISOString().slice(0, 10),
+    locale: context.locale === 'ja' ? 'ja' : 'en',
+    space: { id: String(context.space.id).slice(0, 64), name: String(context.space.name ?? '').slice(0, 60) },
+  }
+
+  // who is asking, and is there allowance left today
+  const use = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/ai_use`, {
+    method: 'POST',
+    headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: '{}',
+  })
+  if (!use.ok) {
+    const text = await use.text()
+    if (text.includes('ai daily limit')) return fail(429, 'daily_limit')
+    if (use.status === 401 || use.status === 403 || text.includes('not signed in') || text.includes('JWT')) return fail(401, 'signed_out')
+    console.error('ai_use failed', use.status, text)
+    return fail(502, 'usage_check')
+  }
+
+  const upstream = await fetch(`${env.AI_BASE_URL}/chat/completions`, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${env.OPENCODE_API_KEY}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: env.AI_MODEL,
+      messages: [{ role: 'system', content: systemPrompt(ctx) }, ...convo],
+      tools: TOOLS,
+      tool_choice: 'auto',
+      stream: true,
+      max_tokens: 2000,
+    }),
+  })
+  if (!upstream.ok || !upstream.body) {
+    const text = await upstream.text()
+    console.error('model failed', upstream.status, text.slice(0, 500))
+    return fail(upstream.status === 429 ? 429 : 502, upstream.status === 429 ? 'model_busy' : 'model')
+  }
+  return new Response(upstream.body, { headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store' } })
+}

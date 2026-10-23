@@ -53,6 +53,9 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
 | Supabase | `lifey-dev` `uezezkydnlbksrqvaipr` | `lifey-prod` `klxhdsravxkprqxdgebv` |
 | Site | https://lifey-dev.naytech001.workers.dev | Worker `lifey` (not deployed yet) |
 
+- The Worker (`worker/index.ts`) serves the static build and `/api/chat`, the assistant's model proxy (OpenCode Go,
+  model in `wrangler.jsonc` vars). Each environment needs the secret `OPENCODE_API_KEY` (`wrangler secret put
+  OPENCODE_API_KEY --env dev`); without it the assistant answers "not set up". This sandbox cannot reach opencode.ai.
 - `.github/workflows/deploy.yml` runs on pushes to `develop` and `main`: checks, then `node scripts/migrate.mjs <ref>` applies pending migrations
   through the Supabase Management API (only `SUPABASE_ACCESS_TOKEN` is needed; GitHub runners cannot reach the
   IPv6-only database), then builds and deploys to Cloudflare. Refs, URLs and publishable keys are public and live in the workflow.
@@ -61,7 +64,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   The user replaces it with `develop` at the v1.0.0 release (pushing `main` deploys prod). Other branches run
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
-- Latest migration: `20261023100000_card_charge.sql`.
+- Latest migration: `20261023110000_ai_usage.sql`.
 - Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
 - The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
@@ -101,6 +104,11 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   - **Editing a schedule** goes through `scheduleChange`: it never edits records dated today or earlier, replaces
     later copies, and splits the schedule into a new template. "Edit this entry" on a running template splits too.
   - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`); `accountForecast` sums it per source.
+- Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token and the daily
+  allowance (`ai_use()`, 150 requests per person per day) before each call. Its tools (`tools.ts`) run in the app
+  (`run.ts`) on the signed-in person's data, so it sees only what they see. It never saves: `propose_*` tools fill a
+  tray of changes the person reviews (before/after from `domain/changes.ts`) and applies with a long press; Undo reverses them.
+  Repeating entries are left to Edit schedule.
 - Privacy: other members never see your personal methods or sources, only "<name>'s personal funds".
   Members may update only a space's `name` and `tone` (column grant).
 

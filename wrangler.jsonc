@@ -1,18 +1,35 @@
-// Cloudflare Workers static assets. The app is a static build; no server code.
+// Cloudflare Workers: the app's static build, plus /api/* (worker/index.ts) for the assistant.
 //   prod: `wrangler deploy`            -> worker "lifey"
 //   dev:  `wrangler deploy --env dev`  -> worker "lifey-dev"
-// Supabase settings are baked in at build time (VITE_*), so build once per environment.
+// Supabase settings are baked into the app at build time (VITE_*), so build once per environment.
+// The Worker needs them too (vars below; public, like in deploy.yml) and one secret per environment:
+//   wrangler secret put OPENCODE_API_KEY [--env dev]
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "lifey",
+  "main": "worker/index.ts",
   "compatibility_date": "2026-10-01",
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "vars": {
+    "AI_BASE_URL": "https://opencode.ai/zen/go/v1",
+    "AI_MODEL": "kimi-k3",
+    "SUPABASE_URL": "https://klxhdsravxkprqxdgebv.supabase.co",
+    "SUPABASE_ANON_KEY": "sb_publishable_sACpYnhosiXr03kQQtwlfQ_5N36ziLp"
   },
   "env": {
     "dev": {
-      "name": "lifey-dev"
+      "name": "lifey-dev",
+      "vars": {
+        "AI_BASE_URL": "https://opencode.ai/zen/go/v1",
+        "AI_MODEL": "kimi-k3",
+        "SUPABASE_URL": "https://uezezkydnlbksrqvaipr.supabase.co",
+        "SUPABASE_ANON_KEY": "sb_publishable_ljBGmafJjhU7TtycIccS9g_t5_FInRI"
+      }
     }
   }
 }

@@ -3,13 +3,29 @@ import { changeImpact, type Change } from '../domain/changes'
 import { asNew } from '../domain/recurring'
 import type { Entry, NewEntry } from '../domain/types'
 import { useI18n, yen } from '../i18n'
-import { toneVar, useLookups, useStore, useSubmit } from '../data/store'
+import { toneVar, useLookups, usePersonName, useStore, useSubmit } from '../data/store'
+import { supabase } from '../data/supabase'
 import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
 import { usePaidWith } from '../ui/entry'
 import { IconChevron, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
 import { useUI } from '../ui/ui'
-import { mockTurn, suggestions, type Intent, type Msg, type Step, type Waiting } from './mock'
+import { ChatError, readStream, runTool, trimHistory, type ApiMsg, type ToolCtx } from './run'
+import type { ChatContext } from './tools'
+
+/** What the chat shows. The conversation sent to the model is kept separately (ApiMsg). */
+type Msg =
+  | { id: number; role: 'user'; text: string }
+  | { id: number; role: 'ai'; text: string }
+  /** What the assistant looked at, as a quiet line. */
+  | { id: number; role: 'tool'; text: string }
+  /** A question with tappable answers; `answer` is set once answered. */
+  | { id: number; role: 'ask'; text: string; options: string[]; answer?: string }
+  /** Applied changes, with what Undo needs: the ids the new entries got. */
+  | { id: number; role: 'receipt'; changes: Change[]; added: string[]; undone?: boolean }
+  | { id: number; role: 'error'; text: string }
+
+type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, 'id'> : never) : never
 
 /** A proposed change in the tray; `skip` leaves it out when applying. */
 type Pending = Change & { skip?: boolean }
@@ -18,10 +34,13 @@ interface Assistant {
   msgs: Msg[]
   tray: Pending[]
   thinking: boolean
-  send(text: string, opts?: { intent?: Intent; choice?: string; askId?: number }): void
+  /** A typed message, or the answer to the open question. */
+  send(text: string): void
+  retry(): void
   setTray(fn: (tray: Pending[]) => Pending[]): void
   /** Moves the applied changes from the tray into a receipt in the chat. */
-  applied(changes: Change[], added: string[]): void
+  applied(changes: Change[], added: string[], leftOut: number): void
+  discarded(): void
   undone(receiptId: number): void
   reset(): void
 }
@@ -34,80 +53,186 @@ const useAssistant = () => {
 }
 
 let nextId = 1
-const STEP_MS = 650
+/** Model calls per message, so a confused loop stops. */
+const MAX_STEPS = 8
 
-/** Keeps the conversation while the sheet is closed. */
+/** Keeps the conversation while the sheet is closed, and runs the model's tool calls on the person's own data. */
 export function AssistantProvider({ children }: { children: ReactNode }) {
-  const { snap, space, personal, today } = useStore()
-  const { t } = useI18n()
+  const { snap, repo, space, today } = useStore()
+  const { t, locale } = useI18n()
+  const person = usePersonName()
+  const paidLabel = usePaidWith()
+  const paidWith = (e: Entry) => paidLabel(e).label
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [tray, setTray] = useState<Pending[]>([])
   const [thinking, setThinking] = useState(false)
-  const waiting = useRef<Waiting>(null)
-  const ctx = useRef({ snap, space, personal, today, t })
-  ctx.current = { snap, space, personal, today, t }
+  const history = useRef<ApiMsg[]>([])
+  // the open ask_user call, answered by the next message
+  const asking = useRef<{ callId: string; msgId: number } | null>(null)
+  // what happened in the app since the last message (applied, discarded), told to the model with the next one
+  const notes = useRef<string[]>([])
+  const seen = useRef(new Map<string, Entry>())
+  const live = useRef({ snap, repo, space, today, person, paidWith, t, locale })
+  live.current = { snap, repo, space, today, person, paidWith, t, locale }
   // a new chat drops replies still on their way
   const turn = useRef(0)
+  const abort = useRef<AbortController | null>(null)
 
-  const play = useCallback(async (steps: Step[], n: number) => {
-    setThinking(true)
-    for (const step of steps) {
-      await new Promise((r) => setTimeout(r, STEP_MS))
-      if (turn.current !== n) return
-      if ('propose' in step) setTray((tr) => [...tr, ...step.propose])
-      else setMsgs((m) => [...m, { ...step.msg, id: nextId++ } as Msg])
-    }
-    setThinking(false)
+  const add = useCallback((m: NewMsg) => {
+    const id = nextId++
+    setMsgs((x) => [...x, { ...m, id } as Msg])
+    return id
   }, [])
+
+  const run = useCallback(async () => {
+    const n = turn.current
+    const ctl = new AbortController()
+    abort.current = ctl
+    setThinking(true)
+    const L = () => live.current
+    try {
+      for (let step = 0; step < MAX_STEPS; step++) {
+        // the Worker checks who is asking; without a session (demo mode) it answers signed_out
+        const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token : undefined
+        const context: ChatContext = { today: L().today, locale: L().locale, space: { id: L().space.id, name: L().space.name } }
+        const res = await fetch('/api/chat', {
+          method: 'POST', signal: ctl.signal,
+          headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({ messages: trimHistory(history.current), context }),
+        })
+        if (!res.ok || !res.body) throw new ChatError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'model')
+        let aiId: number | null = null
+        const out = await readStream(res.body, (text) => {
+          if (turn.current !== n) return
+          if (aiId === null) aiId = add({ role: 'ai', text })
+          else setMsgs((x) => x.map((m) => (m.id === aiId ? { ...m, text } : m)))
+        })
+        if (turn.current !== n) return
+        history.current.push({ role: 'assistant', content: out.text || null, ...(out.toolCalls.length ? { tool_calls: out.toolCalls } : {}) })
+        if (!out.toolCalls.length) return
+
+        const ctx: ToolCtx = { ...L(), seen: seen.current }
+        let asked = false
+        for (const call of out.toolCalls) {
+          if (call.function.name === 'ask_user') {
+            let q: { question?: unknown; options?: unknown } = {}
+            try {
+              q = JSON.parse(call.function.arguments)
+            } catch { /* answered below */ }
+            const options = Array.isArray(q.options) ? q.options.map(String).slice(0, 6) : []
+            if (asked || typeof q.question !== 'string' || !options.length) {
+              history.current.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ error: asked ? 'ask one question at a time' : 'needs question and options' }) })
+              continue
+            }
+            asked = true
+            asking.current = { callId: call.id, msgId: add({ role: 'ask', text: q.question, options }) }
+            continue
+          }
+          const r = await runTool(call.function.name, call.function.arguments, ctx)
+          if (turn.current !== n) return
+          history.current.push({ role: 'tool', tool_call_id: call.id, content: r.content })
+          if (r.change) setTray((x) => [...x, r.change!])
+          const label = toolLabel(call.function.name, call.function.arguments, r.content, L().t)
+          if (label) add({ role: 'tool', text: label })
+        }
+        // the answer to the question goes back as the tool's result, with the next message
+        if (asked) return
+      }
+    } catch (e) {
+      if (turn.current !== n || ctl.signal.aborted) return
+      const code = e instanceof ChatError ? e.code : navigator.onLine ? 'model' : 'offline'
+      const { t } = L()
+      add({
+        role: 'error',
+        text: code === 'signed_out' ? t('aiErrSignedOut') : code === 'daily_limit' ? t('aiErrLimit') : code === 'model_busy' ? t('aiErrBusy')
+          : code === 'not_configured' ? t('aiErrSetup') : code === 'offline' ? t('offline') : t('aiErr'),
+      })
+    } finally {
+      if (turn.current === n) setThinking(false)
+    }
+  }, [add])
 
   const value = useMemo<Assistant>(() => ({
     msgs, tray, thinking, setTray,
-    send(text, { intent, choice, askId } = {}) {
-      const trimmed = text.trim()
-      if (!trimmed || thinking) return
-      setMsgs((m) => [
-        ...m.map((x) => (x.id === askId && x.role === 'ask' ? { ...x, answer: choice } : x)),
-        { id: nextId++, role: 'user', text: trimmed },
-      ])
-      // typing a suggestion out counts as tapping it
-      const known = intent ?? suggestions(ctx.current).find((s) => s.text === trimmed)?.intent
-      const r = mockTurn({ text: trimmed, choice, intent: known }, waiting.current, ctx.current)
-      waiting.current = r.waiting
-      void play(r.steps, turn.current)
+    send(text) {
+      const said = text.trim()
+      if (!said || thinking) return
+      const ask = asking.current
+      asking.current = null
+      if (ask) {
+        setMsgs((x) => x.map((m) => (m.id === ask.msgId && m.role === 'ask' ? { ...m, answer: said } : m)))
+        history.current.push({ role: 'tool', tool_call_id: ask.callId, content: JSON.stringify({ answer: said }) })
+        if (notes.current.length) history.current.push({ role: 'user', content: notes.current.join('\n') })
+      } else {
+        history.current.push({ role: 'user', content: [...notes.current, said].join('\n') })
+      }
+      notes.current = []
+      add({ role: 'user', text: said })
+      void run()
     },
-    applied(changes, added) {
+    retry() {
+      if (thinking) return
+      setMsgs((x) => (x.at(-1)?.role === 'error' ? x.slice(0, -1) : x))
+      void run()
+    },
+    applied(changes, added, leftOut) {
       setTray([])
-      setMsgs((m) => [...m, { id: nextId++, role: 'receipt', changes, added }])
+      add({ role: 'receipt', changes, added })
+      notes.current.push(`[app] The person applied ${changes.length} proposed change(s)${leftOut ? ` and left out ${leftOut}` : ''}.`)
+    },
+    discarded() {
+      setTray([])
+      notes.current.push('[app] The person discarded the proposed changes.')
     },
     undone(id) {
-      setMsgs((m) => m.map((x) => (x.id === id && x.role === 'receipt' ? { ...x, undone: true } : x)))
+      setMsgs((x) => x.map((m) => (m.id === id && m.role === 'receipt' ? { ...m, undone: true } : m)))
+      notes.current.push('[app] The person undid the changes they had applied.')
     },
     reset() {
       turn.current++
-      waiting.current = null
+      abort.current?.abort()
+      history.current = []
+      asking.current = null
+      notes.current = []
+      seen.current.clear()
       setMsgs([])
       setTray([])
       setThinking(false)
     },
-  }), [msgs, tray, thinking, play])
+  }), [msgs, tray, thinking, run, add])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 
+/** A quiet line saying what the assistant looked at. Proposals show in the tray instead; failed calls show nothing. */
+function toolLabel(name: string, args: string, result: string, t: ReturnType<typeof useI18n>['t']): string | null {
+  if (result.startsWith('{"error"')) return null
+  if (name === 'get_overview') return t('aiReadOverview')
+  if (name === 'coming_up') return t('aiReadComing')
+  if (name === 'list_entries') {
+    let month = ''
+    try {
+      month = String(JSON.parse(args).month ?? '')
+    } catch { /* no month */ }
+    const [y, m] = month.split('-').map(Number)
+    return y && m ? t('aiReadMonth', { y, m }) : null
+  }
+  return null
+}
+
 export function AssistantSheet() {
   const a = useAssistant()
-  const store = useStore()
   const { t } = useI18n()
   const [text, setText] = useState('')
   const end = useRef<HTMLDivElement>(null)
-  const sugs = suggestions({ ...store, t })
   const lastAsk = [...a.msgs].reverse().find((m) => m.role === 'ask')
+  const last = a.msgs.at(-1)
 
   // the newest message stays in view; the footer is last in the sheet, so scrolling to the end shows both
   useEffect(() => {
     const body = end.current?.closest('.sheet-body')
     body?.scrollTo({ top: body.scrollHeight, behavior: 'smooth' })
-  }, [a.msgs.length, a.thinking, a.tray.length])
+  }, [a.msgs.length, last?.role === 'ai' ? last.text.length : 0, a.thinking, a.tray.length])
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -120,47 +245,42 @@ export function AssistantSheet() {
     <div className="chat">
       <div className="chat-h">
         <h2>{t('assistant')}</h2>
-        <span className="pill mute">{t('preview')}</span>
         {a.msgs.length > 0 && <button className="link" onClick={a.reset}>{t('newChat')}</button>}
       </div>
 
       <div className="chat-log">
         <AiBubble>{t('aiHello')}</AiBubble>
-        <p className="chat-note">{t('aiPreviewNote')}</p>
         {a.msgs.map((m) =>
           m.role === 'user' ? <div key={m.id} className="bub me">{m.text}</div>
           : m.role === 'ai' ? <AiBubble key={m.id}>{m.text}</AiBubble>
           : m.role === 'tool' ? <div key={m.id} className="chat-tool">✓ {m.text}</div>
+          : m.role === 'error' ? (
+            <div key={m.id} className="chat-err" role="alert">
+              <span>{m.text}</span>
+              {m === last && <button className="link" onClick={a.retry}>{t('tryAgain')}</button>}
+            </div>
+          )
           : m.role === 'ask' ? (
             <div key={m.id} className="ask">
               <AiBubble>{m.text}</AiBubble>
               <div className="chips wrap" role="group" aria-label={m.text}>
                 {m.options.map((o) => (
-                  <button key={o.value} className="chip" aria-pressed={m.answer === o.value}
-                    disabled={!!m.answer || m !== lastAsk || a.thinking}
-                    onClick={() => a.send(o.label, { choice: o.value, askId: m.id })}>{o.label}</button>
+                  <button key={o} className="chip" aria-pressed={m.answer === o}
+                    disabled={!!m.answer || m !== lastAsk || a.thinking} onClick={() => a.send(o)}>{o}</button>
                 ))}
               </div>
             </div>
           )
           : <Receipt key={m.id} msg={m} />,
         )}
-        {a.thinking && <div className="typing" role="status" aria-label={t('thinking')}><i /><i /><i /></div>}
-        {a.msgs.length === 0 && (
-          <div className="sugs">
-            <div className="label">{t('tryThese')}</div>
-            {sugs.map((s) => (
-              <button key={s.text} className="sug" onClick={() => a.send(s.text, { intent: s.intent })}>{s.text}</button>
-            ))}
-          </div>
-        )}
+        {a.thinking && last?.role !== 'ai' && <div className="typing" role="status" aria-label={t('thinking')}><i /><i /><i /></div>}
         <div ref={end} />
       </div>
 
       <div className="chat-foot">
         {a.tray.length > 0 && <Tray />}
         <form className="composer" onSubmit={submit}>
-          <input className="input" value={text} maxLength={300} placeholder={t('askPh')} aria-label={t('askPh')}
+          <input className="input" value={text} maxLength={500} placeholder={t('askPh')} aria-label={t('askPh')}
             enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
           <button className="send" aria-label={t('send')} disabled={!text.trim() || a.thinking}><IconSend /></button>
         </form>
@@ -213,7 +333,7 @@ function Tray() {
       const fresh = (await repo.load()).entries.filter((e) => !known.has(e.id))
       return adds.flatMap((n) => fresh.filter((e) => sameEntry(e, n)).slice(0, 1).map((e) => e.id))
     }, t('appliedN', { n: live.length }))
-    if (r?.ok) a.applied(live.map(({ skip: _s, ...c }) => c as Change), r.value)
+    if (r?.ok) a.applied(live.map(({ skip: _s, ...c }) => c as Change), r.value, a.tray.length - live.length)
   }
 
   const n = live.length
@@ -238,7 +358,7 @@ function Tray() {
       )}
       {open && (
         <div className="btn-row tray-act">
-          <button className="btn" disabled={busy} onClick={() => a.setTray(() => [])}>{t('discard')}</button>
+          <button className="btn" disabled={busy} onClick={a.discarded}>{t('discard')}</button>
           <HoldButton label={`${t('holdApply')} · ${n}`} disabled={!n || busy} busy={pending === 'apply'} onHold={apply} />
         </div>
       )}
