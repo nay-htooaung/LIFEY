@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
 import { accountForecast, creditLimitUse, spaceForecast, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
-import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
+import type { Category, Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 
 const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10, archived: false }
 const eom: PaymentMethod = { ...visa, id: 'eom', closingDay: 31, paymentDay: 27 }
@@ -205,5 +206,45 @@ describe('forecast in a shared space', () => {
   })
   it('lists the personal bank in its own space too', () => {
     expect(spaceForecast('me', snap, '2026-10-01').map((f) => f.source.id)).toEqual(['chk'])
+  })
+})
+
+describe('assistant changes', () => {
+  const cash: Source = { ...chk, id: 'cash', openingBalance: 10000 }
+  const food: Category = { id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense', monthlyBudget: 40000, sort: 0 }
+  const lunch = entry({ id: 'lunch', amount: 1200, methodId: 'visa', occurredOn: '2026-10-20' })
+  const coffee = entry({ id: 'coffee', amount: 500, methodId: null, sourceId: 'cash', occurredOn: '2026-10-21' })
+  // a member's entry I cannot see still moves the shared cash
+  const hidden: Flow = { methodId: null, sourceId: 'cash', kind: 'expense', amount: 300, occurredOn: '2026-10-19' }
+  const snap = {
+    me: { id: 'u1' }, sources: [chk, cash], methods: [visa], categories: [food], entries: [lunch, coffee],
+    flows: [...flowsOf([lunch, coffee]), hidden],
+  } as unknown as Snapshot
+  const { id: _id, createdBy: _by, ...lunchNew } = lunch
+  void _id
+  void _by
+  const changes: Change[] = [
+    { key: 'a', op: 'add', after: { ...lunchNew, amount: 800, methodId: null, sourceId: 'cash' } },
+    { key: 'b', op: 'edit', before: lunch, after: { ...lunchNew, methodId: null, sourceId: 'cash' } },
+    { key: 'c', op: 'delete', before: coffee },
+  ]
+
+  it('swaps only the changed entries and their own flows', () => {
+    expect(entriesAfter(snap.entries, changes, 'u1').map((e) => [e.id, e.amount, e.sourceId])).toEqual([['lunch', 1200, 'cash'], ['new:a', 800, 'cash']])
+    const after = flowsAfter(snap.flows, changes)
+    expect(after).toContainEqual(hidden)
+    expect(after.filter((f) => f.methodId === 'visa')).toEqual([])
+  })
+  it('shows what moves, before and after', () => {
+    expect(changeImpact(snap, changes, '2026-10-23')).toEqual([
+      // 10,000 - 500 - 300 → 10,000 - 300 - 800 - 1,200
+      { kind: 'source', id: 'cash', before: 9200, after: 7700 },
+      { kind: 'card', id: 'visa', before: 1200, after: 0 },
+      { kind: 'category', id: 'food', before: 1700, after: 2000 },
+    ])
+  })
+  it('leaves out what does not move', () => {
+    const rename: Change = { key: 'd', op: 'edit', before: lunch, after: { ...lunchNew, name: 'Lunch' } }
+    expect(changeImpact(snap, [rename], '2026-10-23')).toEqual([])
   })
 })

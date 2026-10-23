@@ -13,3 +13,7 @@ export const IconRepeat = (p: P) => (<svg className="ico" {...base} strokeWidth=
 export const IconLock = (p: P) => (<svg className="ico" {...base} strokeWidth={2.2} {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>)
 export const IconChevron = (p: P) => (<svg width={16} height={16} {...base} strokeWidth={2.4} {...p}><path d="M6 9l6 6 6-6" /></svg>)
 export const IconEdit = (p: P) => (<svg width={18} height={18} {...base} {...p}><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>)
+export const IconSpark = (p: P) => (<svg {...base} {...p}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z" /></svg>)
+export const IconSend = (p: P) => (<svg {...base} strokeWidth={2.4} {...p}><path d="M12 19V5M5 12l7-7 7 7" /></svg>)
+export const IconX = (p: P) => (<svg {...base} strokeWidth={2.4} {...p}><path d="M6 6l12 12M18 6L6 18" /></svg>)
+export const IconUndo = (p: P) => (<svg {...base} {...p}><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" /></svg>)

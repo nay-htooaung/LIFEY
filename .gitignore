@@ -5,3 +5,7 @@ dev-dist
 .env.local
 *.log
 .DS_Store
+
+# wrangler dev secrets and state
+.dev.vars
+.wrangler/

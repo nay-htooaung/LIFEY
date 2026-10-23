@@ -7,6 +7,7 @@ import type { Repo } from './data/repo'
 import { LOCALE_KEY, StoreProvider, toneVar, useStore } from './data/store'
 import { supabase } from './data/supabase'
 import { useI18n } from './i18n'
+import { AssistantProvider, AssistantSheet } from './assistant/AssistantSheet'
 import { Activity } from './screens/Activity'
 import { Plan } from './screens/Plan'
 import { SignIn } from './screens/SignIn'
@@ -17,7 +18,7 @@ import { MenuSheet } from './sheets/MenuSheet'
 import { ProfileSheet } from './sheets/ProfileSheet'
 import { SpacesSheet } from './sheets/SpacesSheet'
 import { Avatar, SpaceDot } from './ui/bits'
-import { IconChevron, IconList, IconPlan, IconPlus, IconToday, IconWallet } from './ui/icons'
+import { IconChevron, IconList, IconPlan, IconPlus, IconSpark, IconToday, IconWallet } from './ui/icons'
 import { UIOutlet, UIProvider, useUI } from './ui/ui'
 
 type Tab = 'today' | 'activity' | 'wallet' | 'plan'
@@ -145,6 +146,7 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): Promise<vo
   const label = space.kind === 'personal' ? snap.me.displayName || t('me') : space.name
 
   return (
+    <AssistantProvider>
     <div className="app" style={{ '--acc': toneVar(space) } as CSSProperties}>
       <header className="top">
         <button className="mod-btn" aria-label="lifey"
@@ -152,6 +154,7 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): Promise<vo
           lifey <small>{t('money')}</small><IconChevron />
         </button>
         <div className="top-r">
+          <button className="ai-btn" aria-label={t('assistant')} onClick={() => ui.open(<AssistantSheet />)}><IconSpark /></button>
           <button className="space-btn" aria-label={`${t('space')}: ${space.name}`} onClick={() => ui.open(<SpacesSheet />)}>
             <SpaceDot name={space.kind === 'personal' ? label : space.name} tone={space.tone} />
             <span className="nm">{space.name}</span><IconChevron />
@@ -181,5 +184,6 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): Promise<vo
       </nav>
       <UIOutlet />
     </div>
+    </AssistantProvider>
   )
 }

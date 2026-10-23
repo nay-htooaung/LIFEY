@@ -415,5 +415,41 @@ update public.profiles set avatar = '🐶' where id = current_setting('t.sam')::
 select t.as_user('sam');
 select t.ok((select avatar is null from public.profiles where id = auth.uid()), 'you cannot change someone else''s character');
 
+-- the assistant's allowance: counted per person per day, readable only by its owner, written only by ai_use()
+select t.as_user('you');
+select t.ok(public.ai_use() = 149, 'the first assistant request leaves 149');
+select t.ok(public.ai_use() = 148, 'each request counts');
+select t.ok((select requests from public.ai_usage where user_id = auth.uid()) = 2, 'you see your own usage');
+do $$ begin
+  update public.ai_usage set requests = 0;
+  raise exception 'TEST FAIL: reset own usage';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.ai_usage (user_id, day, requests) values (auth.uid(), current_date + 1, 0);
+  raise exception 'TEST FAIL: wrote usage directly';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+select t.as_user('sam');
+select t.ok((select count(*) from public.ai_usage) = 0, 'members do not see each other''s usage');
+select t.ok(public.ai_use() = 149, 'each person has their own allowance');
+reset role;
+update public.ai_usage set requests = 150 where user_id = current_setting('t.you')::uuid;
+set role authenticated;
+select t.as_user('you');
+do $$ begin
+  perform public.ai_use();
+  raise exception 'TEST FAIL: used the assistant past the daily limit';
+exception when others then if sqlerrm like 'TEST FAIL%' or sqlerrm <> 'ai daily limit' then raise; end if; end $$;
+select set_config('request.jwt.claim.sub', '', false);
+do $$ begin
+  perform public.ai_use();
+  raise exception 'TEST FAIL: used the assistant signed out';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+reset role;
+set role anon;
+do $$ begin
+  perform public.ai_use();
+  raise exception 'TEST FAIL: anon used the assistant';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
 reset role;
 \echo 'privacy tests passed'
