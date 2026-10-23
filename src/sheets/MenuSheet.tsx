@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { Locale } from '../domain/types'
 import { useI18n } from '../i18n'
 import { useStore } from '../data/store'
+import { InstallCard } from '../ui/InstallCard'
 import { useUI } from '../ui/ui'
 
 export const LOCALE_KEY = 'lifey-locale'
@@ -57,7 +58,7 @@ export function MenuSheet({ onSignOut, onResetDemo }: { onSignOut?: () => void; 
       ) : (
         onSignOut && <button className="btn" onClick={() => { ui.close(); onSignOut() }}>{t('signOut')}</button>
       )}
-      <p className="tiny muted" style={{ margin: 0 }}>{t('installHint')}</p>
+      <InstallCard />
     </>
   )
 }

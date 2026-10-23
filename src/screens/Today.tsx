@@ -10,6 +10,7 @@ import { SpacesSheet } from '../sheets/SpacesSheet'
 import { Avatar, SpaceDot } from '../ui/bits'
 import { EntryRow, UpcomingRow } from '../ui/entry'
 import { IconFlame } from '../ui/icons'
+import { InstallCard } from '../ui/InstallCard'
 import { useUI } from '../ui/ui'
 
 export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void }) {
@@ -92,6 +93,8 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
           </div>
         </div>
       )}
+
+      <InstallCard dismissible />
 
       <div className="card">
         <div className="streak">

@@ -1,3 +1,7 @@
+/* Bottom inset only where the page is drawn behind the system bars (installed app). In a browser tab,
+   Android Chrome reports the navigation bar's height but does not draw behind it, which left a gap. */
+:root { --safe-b: env(safe-area-inset-bottom, 0px); }
+@media (display-mode: browser) { :root { --safe-b: 0px; } }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; overscroll-behavior: none; }
@@ -30,14 +34,14 @@ button { cursor: pointer; }
 .sd.lg { width: 38px; height: 38px; border-radius: 13px; font-size: 15px; }
 .scroll {
   flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 14px;
-  padding: 4px max(18px, env(safe-area-inset-right, 0px)) calc(110px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+  padding: 4px max(18px, env(safe-area-inset-right, 0px)) calc(110px + var(--safe-b)) max(18px, env(safe-area-inset-left, 0px));
   scrollbar-width: none;
 }
 .scroll::-webkit-scrollbar { display: none; }
 .scroll > * { flex-shrink: 0; }
 .nav {
   position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); align-items: end;
-  padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  padding: 10px 14px calc(12px + var(--safe-b));
   background: color-mix(in srgb, var(--paper) 86%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line);
 }
 .nav button { background: none; border: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 11px; font-weight: 600; color: var(--muted); padding: 4px 0; }
@@ -159,7 +163,7 @@ button { cursor: pointer; }
 .sheet {
   background: var(--card); border-top: 1px solid var(--line); width: 100%; border-radius: 30px 30px 0 0; max-height: 94%; overflow-y: auto;
   display: flex; flex-direction: column; gap: 14px; animation: up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
-  padding: 10px max(18px, env(safe-area-inset-right, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
+  padding: 10px max(18px, env(safe-area-inset-right, 0px)) calc(22px + var(--safe-b)) max(18px, env(safe-area-inset-left, 0px));
 }
 /* A tall sheet scrolls; without this, rows that scroll sideways (.chips) shrink to nothing. */
 .sheet > * { flex-shrink: 0; }
@@ -202,7 +206,7 @@ details[open] summary { margin-bottom: 10px; }
 .code-box .num { flex: 1; font-size: 18px; letter-spacing: 0.08em; user-select: all; }
 
 .toast {
-  position: absolute; left: 18px; right: 18px; bottom: calc(104px + env(safe-area-inset-bottom, 0px)); z-index: 30;
+  position: absolute; left: 18px; right: 18px; bottom: calc(104px + var(--safe-b)); z-index: 30;
   background: var(--ink); color: var(--paper); border-radius: 16px; padding: 12px 14px; font-weight: 600; font-size: 14px;
   display: flex; align-items: center; gap: 10px; animation: up 0.25s;
 }
@@ -211,7 +215,7 @@ details[open] summary { margin-bottom: 10px; }
 
 /* ---------- sign in ---------- */
 .signin { --acc: var(--tone-me); --on-acc: var(--on-tone); min-height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 18px; max-width: 420px; margin: 0 auto;
-  padding: calc(24px + env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(22px, env(safe-area-inset-left, 0px)); }
+  padding: calc(24px + env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-right, 0px)) calc(24px + var(--safe-b)) max(22px, env(safe-area-inset-left, 0px)); }
 .signin .btn { flex: none; }
 .wordmark { font-family: var(--display); font-weight: 800; font-size: 40px; letter-spacing: -0.04em; }
 .wordmark i { font-style: normal; color: var(--tone-me); }

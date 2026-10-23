@@ -53,5 +53,6 @@ export const ja: Record<MessageKey, string> = {
   signupCode: '登録用の招待コード', signupCodeHint: '管理者にもらってください。1つのコードで1回だけ登録できます。',
   badInvite: 'この招待コードは違うか、期限切れか、使用済みです。新しいコードをもらってください。',
   genericError: 'エラーが発生しました: {m}', offline: 'オフラインです。変更には接続が必要です。', loading: '読み込み中…',
-  installHint: 'インストール: 共有 → ホーム画面に追加',
+  installTitle: 'Lifeyをインストール', installBody: 'ホーム画面から、ほかのアプリと同じように全画面で開けます。', installBtn: 'インストール',
+  installIos: 'Safariの共有ボタンを押して「ホーム画面に追加」を選んでください。', notNow: 'あとで', installed: 'インストールしました',
 }

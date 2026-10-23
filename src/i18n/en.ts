@@ -51,7 +51,8 @@ export const en = {
   signupCode: 'Invitation code', signupCodeHint: 'Ask the owner for one. Each code works once.',
   badInvite: 'That invitation code is wrong, expired or already used. Ask for a new one.',
   genericError: 'Something went wrong: {m}', offline: "You're offline. Changes need a connection.", loading: 'Loading…',
-  installHint: 'Install: Share → Add to Home Screen',
+  installTitle: 'Install Lifey', installBody: 'Open it from your home screen, full screen, like any other app.', installBtn: 'Install',
+  installIos: 'In Safari, tap Share, then Add to Home Screen.', notNow: 'Not now', installed: 'Installed',
 } as const
 
 export type MessageKey = keyof typeof en

@@ -13,6 +13,7 @@ export default defineConfig({
       manifest: {
         name: 'Lifey',
         short_name: 'Lifey',
+        id: './',
         description: 'Money for you and the people you live with.',
         lang: 'en',
         start_url: '.',
