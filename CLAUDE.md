@@ -21,6 +21,23 @@ README.md covers setup; this file is the rules and decisions every session needs
 - Do not touch prod (`lifey-prod`) and do not open or merge a PR to `main` unless the user asks.
   The user releases to prod themselves at v1.0.0.
 
+## Workflow for every request
+
+The user asks for a change; carry it through to dev without being told each step:
+
+1. `git fetch` and work on `rebuild/money-mvp` (or merge it in first if on another branch). Read the code you change.
+2. Make the change. Database changes get a new migration and new checks in `supabase/tests/privacy_test.sql`;
+   money logic gets unit tests in `src/domain/money.test.ts`.
+3. Test it the way the user will use it: build, serve, and drive the screens in Playwright at phone size
+   (390×844). Look at the screenshots, fix what looks wrong, and test the edge cases (errors, empty states,
+   long text, both languages).
+4. Run `npm run typecheck && npm test && npm run build && npm run test:db`; all four must pass.
+5. Commit with a message that says what changed for the user and why, then `git push -u origin rebuild/money-mvp`.
+6. Wait for the Deploy run on that commit to finish (GitHub Actions). If it fails, read the job log, fix and push again.
+   For migrations, confirm in the log that "Apply database migrations" applied them.
+7. Reply briefly: what changed, how it was tested, anything left or worth deciding. Ask before anything risky
+   (prod, `main`, deleting data, changing what others in a space can see).
+
 ## Environments and deploy
 
 | | dev | prod |
