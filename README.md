@@ -39,35 +39,44 @@ With no Supabase settings the app runs in **demo mode**: example data stored on 
 | `npm test` | Unit tests for the money logic (statements, balances, recurring, budgets, streaks) |
 | `npm run test:db` | Runs the migration on a throwaway local Postgres 16 and checks the privacy rules |
 
-## Connect a real backend (Supabase, free tier is enough)
+## Environments
 
-1. Create a project at supabase.com.
-2. Open **SQL Editor**, paste `supabase/migrations/20261023000000_money.sql` and run it
-   (or `supabase link` + `supabase db push` with the Supabase CLI).
-3. **Authentication → Email templates → Magic Link:** include the code, for example
-   `Your Lifey code: {{ .Token }}`. The app signs in with a 6-digit code instead of a link, because on
-   iPhone a link opens in Safari rather than in the installed app.
-4. Copy **Project URL** and the **anon / publishable key** into `.env.local`:
+| | dev | prod |
+| --- | --- | --- |
+| Git branch | any branch except `main` | `main` |
+| Cloudflare Worker | `lifey-dev` | `lifey` |
+| Supabase project (free plan) | `lifey-dev` | `lifey-prod` |
+| GitHub environment | `dev` | `production` |
 
-   ```sh
-   VITE_SUPABASE_URL=https://xxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=...
-   ```
+`.github/workflows/deploy.yml` runs on every push: it applies database migrations, builds with that
+environment's Supabase settings and deploys to Cloudflare (Workers static assets, see `wrangler.jsonc`).
+Steps whose credentials are missing are skipped, so the workflow is safe to run before setup is done.
+
+### One-time setup
+
+1. **Supabase:** create two free projects, `lifey-dev` and `lifey-prod`. In each, under
+   **Authentication → Email templates → Magic Link**, include the code, e.g. `Your Lifey code: {{ .Token }}`
+   (the app signs in with a 6-digit code: on iPhone a link would open Safari instead of the installed app).
+   Under **Authentication → URL configuration**, set the Site URL to that environment's Cloudflare URL.
+2. **Cloudflare:** create an API token with the *Edit Cloudflare Workers* template and note your account ID.
+3. **GitHub → Settings → Secrets and variables → Actions:**
+   - Repository secrets: `CLOUDFLARE_API_TOKEN`, `SUPABASE_ACCESS_TOKEN` (supabase.com → Account → Access tokens).
+   - Repository variable: `CLOUDFLARE_ACCOUNT_ID`.
+   - In **Settings → Environments**, for both `dev` and `production`:
+     variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_PROJECT_REF`
+     and secret `SUPABASE_DB_PASSWORD`, each from the matching Supabase project.
 
 The anon key is safe in the browser: every table has row-level security, and the privacy rules
 are enforced by the database (see the comments at the top of the migration).
 
-## Deploy (GitHub Pages)
+### Local development against dev
 
-`.github/workflows/deploy.yml` builds and publishes on every push to `main`.
+Put the dev project's values in `.env.local`:
 
-1. **Settings → Pages → Source:** GitHub Actions.
-2. **Settings → Secrets and variables → Actions → Variables:** add `VITE_SUPABASE_URL` and
-   `VITE_SUPABASE_ANON_KEY`. Without them the site is the demo build.
-3. In Supabase, **Authentication → URL configuration:** set the Site URL to the Pages address.
-
-Any static host (Netlify, Vercel, Cloudflare Pages) works the same way: build command
-`npm run build`, output `dist`.
+```sh
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=...
+```
 
 ## Install on a phone
 
