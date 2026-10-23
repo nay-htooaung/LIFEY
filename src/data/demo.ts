@@ -156,6 +156,10 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
       if (due.length) commit({ ...snap, entries: [...snap.entries, ...due] })
       return structuredClone(snap)
     },
+    async loadMonth(month: string) {
+      // demo data is small, so load() already returns every month
+      return structuredClone(snap.entries.filter((e) => e.occurredOn.startsWith(month)))
+    },
     async addEntries(list) {
       commit({ ...snap, entries: [...snap.entries, ...list.map((e) => ({ ...e, id: uid(), createdBy: ME }))] })
     },

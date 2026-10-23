@@ -134,8 +134,31 @@ button { cursor: pointer; }
 .chars button { aspect-ratio: 1; border: 1px solid var(--line); background: var(--paper); border-radius: 14px; font-size: 22px; font-weight: 700; display: grid; place-items: center; }
 .chars button[aria-pressed='true'] { border-color: var(--acc); background: var(--acc-soft); }
 .av.char { background: color-mix(in srgb, var(--pc) 35%, var(--card-2)); font-size: 15px; }
-.row .s.left-after { margin-top: 2px; }
-.row .s.left-after.short { color: var(--neg); font-weight: 600; }
+.forecast { display: flex; flex-direction: column; gap: 10px; }
+.fc-row + .fc-row { border-top: 1px solid var(--line); padding-top: 10px; }
+.fc-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.fc-top b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-after { font-size: 18px; font-weight: 500; }
+.fc-after.short { color: var(--neg); }
+.fc-sub { display: flex; gap: 10px; font-size: 12px; color: var(--muted); }
+/* ---------- history calendar ---------- */
+.cal-nav { display: flex; align-items: center; gap: 8px; }
+.cal-pick { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; min-width: 0; }
+.icon-round { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--card); display: grid; place-items: center; }
+.month-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.month-sum .num { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; padding: 8px; transition: opacity 0.15s; }
+.cal.loading { opacity: 0.5; }
+.cal-wd { text-align: center; font-size: 11px; font-weight: 700; color: var(--muted); padding: 2px 0 6px; }
+.cal-d { min-height: 58px; border: 1px solid transparent; background: none; border-radius: 10px; padding: 4px 2px; display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.cal-d .dn { font-size: 13px; font-weight: 600; }
+.cal-d.wd0 .dn, .cal-wd.wd0 { color: var(--neg); }
+.cal-d.wd6 .dn, .cal-wd.wd6 { color: var(--tone-c); }
+.cal-d.other { opacity: 0.35; }
+.cal-d[aria-current='date'] .dn { background: var(--acc); color: var(--on-acc); border-radius: 999px; padding: 0 6px; }
+.cal-d[aria-pressed='true'] { border-color: var(--acc); background: var(--acc-soft); }
+.cal-out, .cal-in { font-size: 10px; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-in { color: var(--pos); }
 .picks { display: flex; flex-direction: column; gap: 10px; }
 .pick { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); align-items: center; gap: 10px; }
 .pick-l { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.25; }
@@ -148,8 +171,6 @@ button { cursor: pointer; }
 .chip .sw { width: 10px; height: 10px; border-radius: 3px; }
 .chip .tag { font-size: 10px; color: var(--muted); font-weight: 600; }
 .chip[aria-pressed='true'] .tag { color: inherit; opacity: 0.7; }
-.search { display: flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 9px 12px; }
-.search input { border: 0; background: none; outline: none; flex: 1; min-width: 0; }
 .day-h { font-size: 12px; font-weight: 700; color: var(--muted); display: flex; justify-content: space-between; margin: 6px 2px 0; }
 
 /* ---------- today ---------- */

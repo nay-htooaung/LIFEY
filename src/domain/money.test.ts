@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { balancesAfter, creditLimitUse, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { accountForecast, creditLimitUse, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { dueOccurrences, nextOccurrence } from './recurring'
 import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 
@@ -124,15 +124,15 @@ describe('bank transfers', () => {
   })
 })
 
-describe('balance after upcoming items', () => {
+describe('account forecast', () => {
   const up = (kind: 'bill' | 'income' | 'card', amount: number, on: string, sourceId: string | null) =>
-    ({ key: `${kind}${on}`, kind, name: kind, amount, on, categoryId: null, sourceId })
+    ({ key: `${kind}${on}${amount}`, kind, name: kind, amount, on, categoryId: null, sourceId })
   const snap = { sources: [chk], methods: [], flows: [] } as unknown as Snapshot
-  it('runs each account forward in date order', () => {
-    const items = [up('card', 30000, '2026-10-10', 'chk'), up('income', 250000, '2026-10-25', 'chk'), up('bill', 80000, '2026-10-27', 'chk')]
-    expect(balancesAfter(items, snap, '2026-10-01').map((r) => r.after)).toEqual([70000, 320000, 240000])
+  it('sums every item on one account into one line', () => {
+    const items = [up('card', 30000, '2026-10-10', 'chk'), up('card', 12000, '2026-10-27', 'chk'), up('income', 250000, '2026-10-25', 'chk')]
+    expect(accountForecast(items, snap, '2026-10-01')).toMatchObject([{ now: 100000, in: 250000, out: 42000, after: 308000 }])
   })
-  it('leaves card-charged bills without an account', () => {
-    expect(balancesAfter([up('bill', 1000, '2026-10-10', null)], snap, '2026-10-01')[0].after).toBeNull()
+  it('leaves out bills charged to a card', () => {
+    expect(accountForecast([up('bill', 1000, '2026-10-10', null)], snap, '2026-10-01')).toEqual([])
   })
 })

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { addDays, today } from '../domain/dates'
+import { dayInMonth, monthKey, today } from '../domain/dates'
 import type { Category, Entry, Flow, PaymentMethod, Profile, Snapshot, Source, Space } from '../domain/types'
 import { RepoError, type Repo } from './repo'
 
@@ -46,7 +46,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
   return {
     mode: 'cloud',
     async load(): Promise<Snapshot> {
-      const since = addDays(today(), -400)
+      const monthStart = `${monthKey(today())}-01`
       const [profiles, spaces, members, sources, methods, cats, entries, flows] = await Promise.all([
         sb.from('profiles').select('*'),
         sb.from('spaces').select('*').order('created_at'),
@@ -54,7 +54,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         sb.from('sources').select('*').order('created_at'),
         sb.from('payment_methods').select('*').order('created_at'),
         sb.from('categories').select('*').eq('archived', false).order('sort').order('created_at'),
-        sb.from('entries').select('*').or(`occurred_on.gte.${since},repeat.neq.none`).order('occurred_on', { ascending: false }).limit(10000),
+        sb.from('entries').select('*').or(`occurred_on.gte.${monthStart},repeat.neq.none,repeat_of.not.is.null`).order('occurred_on', { ascending: false }).limit(10000),
         sb.rpc('money_flows'),
       ])
       const profs = Object.fromEntries((check(profiles) as Row[]).map((r) => [r.id, toProfile(r)]))
@@ -79,6 +79,13 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
           methodId: r.method_id, sourceId: r.source_id, kind: r.kind, amount: Number(r.amount), occurredOn: r.occurred_on,
         })),
       }
+    },
+    async loadMonth(month) {
+      const [y, m] = month.split('-').map(Number)
+      const rows = check(await sb.from('entries').select('*')
+        .gte('occurred_on', `${month}-01`).lte('occurred_on', dayInMonth(y, m, 31))
+        .order('occurred_on', { ascending: false }).limit(5000))
+      return (rows as Row[]).map(toEntry)
     },
     async addEntries(list) {
       if (!list.length) return

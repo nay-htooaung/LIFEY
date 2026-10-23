@@ -1,5 +1,5 @@
 export const en = {
-  today: 'Today', activity: 'Activity', wallet: 'Wallet', plan: 'Plan', money: 'Money',
+  today: 'Today', activity: 'History', wallet: 'Wallet', plan: 'Plan', money: 'Money',
   safeToday: 'Safe to spend today', leftFor: '{a} left for {d} days · bills included', ofBudget: 'of budget',
   noBudgetsYet: 'Set monthly budgets in Plan to see what you can spend each day.', setBudgets: 'Set budgets',
  
@@ -9,9 +9,9 @@ export const en = {
   whoPaid: 'Spent in {s} this month',
  
   setupTitle: 'Where does your money live?', setupBody: 'Add a bank account, cash or a card so you can log what you spend.', startCash: 'Start with cash', addOwn: 'Add my own',
-  monthOut: 'Spent this month', monthIn: 'Income this month', net: 'Net', search: 'Search notes, categories, tags',
-  fAll: 'All', fSpent: 'Spent', fIncome: 'Income', fRepeat: 'Recurring', fTagged: 'Tagged', fMine: 'Logged by me',
-  noMatch: 'Nothing matches. Try another filter.', yesterday: 'Yesterday',
+  monthOut: 'Spent', monthIn: 'Income', net: 'Net',
+ 
+  yesterday: 'Yesterday',
   netWorth: 'Net worth', netShared: 'Shared money', inSources: '{a} in sources · {b} on credit',
   sources: 'Sources', addSource: '+ Add source', methods: 'Payment methods', addMethod: '+ Add method', noSources: 'No sources yet.',
   bank: 'Bank account', savings: 'Savings', cash: 'Cash', debit: 'Debit', credit: 'Credit', emoney: 'E-money', shared: 'Shared',
@@ -53,11 +53,12 @@ export const en = {
   genericError: 'Something went wrong: {m}', offline: "You're offline. Changes need a connection.", loading: 'Loading…',
   editMethod: 'Edit payment method', limitLabel: 'Limit', ownLimit: 'Its own limit', shareLimit: 'Shares the limit of {x}',
   shareLimitHint: 'Cards on one account, like family or extra cards, often share one limit.', alsoOnLimit: 'Same limit as {x}',
+  prevMonth: 'Previous month', nextMonth: 'Next month', logThisDay: '+ Log for this day', nothingThisDay: 'Nothing logged on this day.',
   profile: 'Profile',
   theme: 'Theme', theme_midnight: 'Midnight', theme_light: 'Light', theme_milky: 'Milky pink', character: 'Character', initialOnly: 'Initial only',
   editSource: 'Edit source', openingBalance: 'Balance when added', deleteSource: 'Delete source', deleteMethod: 'Delete payment method',
   sourceInUse: 'Used by {x}. Delete or move those first.', limitInUse: '{x} share this limit. Change those first.',
-  restoreHint: 'Past entries keep it. You can restore it from Wallet.', deletedItems: 'Deleted', leftAfter: '{s} → {a}',
+  restoreHint: 'Past entries keep it. You can restore it from Wallet.', deletedItems: 'Deleted', inDaysBal: 'Balance in {n} days', nowBal: 'Now {a}',
   spaceSettings: '{x} settings', membersTitle: 'Members', owner: 'Owner', remove: 'Remove', confirmRemove: 'Tap again to remove',
   removed: 'Removed {x}', newCode: 'New code', newCodeHint: 'The old code stops working.', codeReset: 'New invite code ready',
   deleteSpace: 'Delete space', deleteHint: 'Members lose access. You can restore it later with everything in it.',

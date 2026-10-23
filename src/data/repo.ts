@@ -1,4 +1,4 @@
-import type { Category, NewEntry, PaymentMethod, Profile, Snapshot, Source, Tone } from '../domain/types'
+import type { Category, Entry, NewEntry, PaymentMethod, Profile, Snapshot, Source, Tone } from '../domain/types'
 
 export type NewSource = Omit<Source, 'id' | 'createdOn' | 'archived'>
 export type NewMethod = Omit<PaymentMethod, 'id' | 'archived'>
@@ -7,7 +7,13 @@ export type CategoryInput = Omit<Category, 'id'> & { id?: string }
 /** Everything the UI needs from storage. Demo mode and Supabase mode both implement it. */
 export interface Repo {
   mode: 'demo' | 'cloud'
+  /**
+   * Everything except older entries: this month's entries, plus repeating entries and their posted copies
+   * (needed to post what is due without duplicates). Other months come from loadMonth.
+   */
   load(): Promise<Snapshot>
+  /** All entries I can see dated in `month` (YYYY-MM). */
+  loadMonth(month: string): Promise<Entry[]>
   addEntries(entries: NewEntry[]): Promise<void>
   updateEntry(id: string, entry: NewEntry): Promise<void>
   deleteEntry(id: string): Promise<void>

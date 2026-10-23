@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { today as todayFn } from '../domain/dates'
+import { monthKey, today as todayFn } from '../domain/dates'
 import { dueOccurrences } from '../domain/recurring'
-import type { Day, PaymentMethod, Profile, Snapshot, Source, Space } from '../domain/types'
+import type { Day, Entry, PaymentMethod, Profile, Snapshot, Source, Space } from '../domain/types'
 import { I18nContext, makeI18n, useI18n } from '../i18n'
 import { useUI } from '../ui/ui'
 import { RepoError, type Repo } from './repo'
@@ -18,6 +18,10 @@ interface Store {
   /** Runs a change, reloads, and shows a toast. Errors become an error toast. */
   act<T>(fn: (repo: Repo) => Promise<T>, done?: string | ((v: T) => string), opts?: { flame?: boolean }): Promise<T | undefined>
   reload(): Promise<void>
+  /** Fetches a month's entries (YYYY-MM) into snap.entries once; later calls are free. */
+  ensureMonth(month: string): void
+  /** Whether snap.entries holds every entry of `month`. */
+  hasMonth(month: string): boolean
 }
 
 const StoreCtx = createContext<Store | null>(null)
@@ -48,6 +52,11 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
   const [prefs, setPrefsState] = useState<Prefs>({})
   const ui = useUI()
   const loading = useRef(false)
+  // Older months, fetched when History opens them. load() covers the current month.
+  const [months, setMonths] = useState<Record<string, Entry[]>>({})
+  const monthsRef = useRef(months)
+  monthsRef.current = months
+  const fetching = useRef(new Set<string>())
 
   const reload = useCallback(async () => {
     if (loading.current) return
@@ -61,7 +70,11 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
         await repo.addEntries(due)
         s = await repo.load()
       }
+      // refresh the months already open, so edits there show up too
+      const open = Object.keys(monthsRef.current)
+      const fresh = await Promise.all(open.map((m) => repo.loadMonth(m)))
       setSnap(s)
+      setMonths(Object.fromEntries(open.map((m, i) => [m, fresh[i]])))
       setError(null)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -95,7 +108,10 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
     if (!loaded) return null
     // the profile as it is now, including choices still being saved
     const me = { ...loaded.me, ...prefs }
-    const snap: Snapshot = { ...loaded, me, profiles: { ...loaded.profiles, [me.id]: me } }
+    const extra = Object.values(months).flat()
+    const seen = new Set(loaded.entries.map((e) => e.id))
+    const entries = extra.length ? [...loaded.entries, ...extra.filter((e) => !seen.has(e.id) && seen.add(e.id))] : loaded.entries
+    const snap: Snapshot = { ...loaded, me, profiles: { ...loaded.profiles, [me.id]: me }, entries }
     const personal = snap.spaces.find((s) => s.kind === 'personal' && s.ownerId === snap.me.id) ?? snap.spaces[0]
     const space = snap.spaces.find((s) => s.id === spaceId) ?? personal
     return {
@@ -125,6 +141,15 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
           ui.toast(i18n.t('genericError', { m: e instanceof Error ? e.message : String(e) }), { error: true }))
       },
       reload,
+      hasMonth: (m) => m >= monthKey(day) || m in months,
+      ensureMonth(m) {
+        if (m >= monthKey(day) || m in monthsRef.current || fetching.current.has(m)) return
+        fetching.current.add(m)
+        repo.loadMonth(m)
+          .then((list) => setMonths((prev) => ({ ...prev, [m]: list })))
+          .catch((e) => ui.toast(i18n.t('genericError', { m: e instanceof Error ? e.message : String(e) }), { error: true }))
+          .finally(() => fetching.current.delete(m))
+      },
       async act(fn, done, opts) {
         try {
           const v = await fn(repo)
@@ -140,7 +165,7 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
         }
       },
     }
-  }, [loaded, prefs, repo, day, spaceId, reload, ui, i18n])
+  }, [loaded, months, prefs, repo, day, spaceId, reload, ui, i18n])
 
   if (!value) {
     return (

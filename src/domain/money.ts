@@ -114,7 +114,10 @@ export interface Upcoming {
   sourceId: string | null
 }
 
-export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = 45): Upcoming[] {
+/** How far ahead Coming up and its forecast look. */
+export const UPCOMING_DAYS = 45
+
+export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = UPCOMING_DAYS): Upcoming[] {
   const until = addDays(on, horizonDays)
   const out: Upcoming[] = []
   for (const t of s.entries.filter((e) => e.spaceId === spaceId && isTemplate(e))) {
@@ -141,20 +144,36 @@ export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = 45
   return out.sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : 0))
 }
 
+export interface AccountForecast {
+  source: Source
+  /** Balance today. */
+  now: number
+  in: number
+  out: number
+  /** Balance once every upcoming item touching this account has gone through. */
+  after: number
+}
+
 /**
- * What each account will hold right after each upcoming item, applying them in date order on top of today's balance.
- * `after` is null when the item moves no account I can see (a bill charged to a card, someone else's account).
+ * Upcoming items summed per account: several cards paid from one bank show as one line for that bank.
+ * Items that move no account I can see (bills charged to a card, someone else's account) are left out.
  */
-export function balancesAfter(items: Upcoming[], s: Snapshot, on: Day): { item: Upcoming; source?: Source; after: number | null }[] {
-  const running = new Map<string, number>()
-  return items.map((item) => {
+export function accountForecast(items: Upcoming[], s: Snapshot, on: Day): AccountForecast[] {
+  const by = new Map<string, AccountForecast>()
+  for (const item of items) {
     const source = item.sourceId ? s.sources.find((x) => x.id === item.sourceId) : undefined
-    if (!source) return { item, after: null }
-    const before = running.get(source.id) ?? sourceBalance(source, s.methods, s.flows, on)
-    const after = before + (item.kind === 'income' ? item.amount : -item.amount)
-    running.set(source.id, after)
-    return { item, source, after }
-  })
+    if (!source) continue
+    let f = by.get(source.id)
+    if (!f) {
+      const now = sourceBalance(source, s.methods, s.flows, on)
+      f = { source, now, in: 0, out: 0, after: now }
+      by.set(source.id, f)
+    }
+    if (item.kind === 'income') f.in += item.amount
+    else f.out += item.amount
+    f.after = f.now + f.in - f.out
+  }
+  return [...by.values()]
 }
 
 export interface SafeToSpend {

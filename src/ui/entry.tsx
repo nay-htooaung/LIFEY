@@ -58,8 +58,8 @@ export function EntryRow({ entry, showDate }: { entry: Entry; showDate?: boolean
   )
 }
 
-/** `after`: what `sourceName` will hold once this item has gone through (see balancesAfter). */
-export function UpcomingRow({ item, after, sourceName }: { item: Upcoming; after?: number | null; sourceName?: string }) {
+/** `sourceName`: the account the money moves through, when there is one. */
+export function UpcomingRow({ item, sourceName }: { item: Upcoming; sourceName?: string }) {
   const { today } = useStore()
   const { t, month } = useI18n()
   const [, m, d] = parts(item.on)
@@ -75,9 +75,7 @@ export function UpcomingRow({ item, after, sourceName }: { item: Upcoming; after
             : item.kind === 'income' ? <span className="pill">{t('income')}</span>
             : <span className="pill mute"><IconRepeat /> {t('repeats')}</span>}
         </div>
-        {after != null && sourceName && (
-          <div className={'s left-after' + (after < 0 ? ' short' : '')}>{t('leftAfter', { s: sourceName, a: yen(after) })}</div>
-        )}
+        {sourceName && <div className="s">{sourceName}</div>}
       </div>
       <span className={'amt num' + (item.kind === 'income' ? ' amt-in' : '')}>{item.kind === 'income' ? '+' : ''}{yen(item.amount)}</span>
     </div>

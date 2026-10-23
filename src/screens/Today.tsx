@@ -1,5 +1,5 @@
 import { parts } from '../domain/dates'
-import { balancesAfter, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
+import { accountForecast, UPCOMING_DAYS, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
 import { usePersonName, useStore } from '../data/store'
 import { SourceSheet } from '../sheets/SourceSheet'
@@ -91,13 +91,38 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
         <>
           <div className="sec-h"><h3>{t('comingUp')}</h3><button className="link" onClick={() => go('plan')}>{t('allBills')}</button></div>
           <div className="card list">
-            {balancesAfter(up.slice(0, 6), snap, today).map(({ item, source, after }) => (
-              <UpcomingRow key={item.key} item={item} after={after} sourceName={source?.name} />
-            ))}
+            {up.slice(0, 6).map((u) => <UpcomingRow key={u.key} item={u} sourceName={snap.sources.find((x) => x.id === u.sourceId)?.name} />)}
           </div>
+          <Forecast items={up} />
         </>
       )}
     </>
+  )
+}
+
+/** Each account once: today's balance, what comes in and goes out over the coming days, and what is left. */
+function Forecast({ items }: { items: ReturnType<typeof upcoming> }) {
+  const { snap, today } = useStore()
+  const { t } = useI18n()
+  const rows = accountForecast(items, snap, today)
+  if (!rows.length) return null
+  return (
+    <div className="card forecast">
+      <div className="label">{t('inDaysBal', { n: UPCOMING_DAYS })}</div>
+      {rows.map((f) => (
+        <div key={f.source.id} className="fc-row">
+          <div className="fc-top">
+            <b>{f.source.name}</b>
+            <span className={'num fc-after' + (f.after < 0 ? ' short' : '')}>{yen(f.after)}</span>
+          </div>
+          <div className="fc-sub num">
+            <span>{t('nowBal', { a: yen(f.now) })}</span>
+            {f.in > 0 && <span className="amt-in">+{yen(f.in)}</span>}
+            {f.out > 0 && <span>-{yen(f.out)}</span>}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
