@@ -1,15 +1,16 @@
-// Serves the app's static build, plus /api/chat: the assistant's model calls.
+// Serves the app's static build, plus /api/chat (the assistant's model calls) and /api/models (which free models
+// it may use).
 // The model's API key lives here as a secret and never reaches the app. Each request first calls ai_use() with
 // the person's Supabase token, which checks who they are and counts it against their daily allowance.
 // The tools themselves run in the app (src/assistant/run.ts), on the data the person can already see.
 import { systemPrompt, TOOLS, type ChatContext } from '../src/assistant/tools'
+import { freeModels } from './models'
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> }
-  /** Secret: an OpenCode Go API key. */
+  /** Secret: an OpenCode (Zen) API key. Only free models are used, so it is never charged. */
   OPENCODE_API_KEY?: string
   AI_BASE_URL: string
-  AI_MODEL: string
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
 }
@@ -26,6 +27,10 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url)
     if (url.pathname === '/api/chat') return req.method === 'POST' ? chat(req, env) : fail(405, 'method')
+    if (url.pathname === '/api/models') {
+      if (!env.OPENCODE_API_KEY) return fail(503, 'not_configured')
+      return Response.json(await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY), { headers: { 'cache-control': 'no-store' } })
+    }
     if (url.pathname.startsWith('/api/')) return fail(404, 'not_found')
     return env.ASSETS.fetch(req)
   },
@@ -38,7 +43,7 @@ async function chat(req: Request, env: Env): Promise<Response> {
 
   const raw = await req.text()
   if (raw.length > MAX_BODY) return fail(413, 'too_long')
-  let body: { messages?: Msg[]; context?: ChatContext; session?: string }
+  let body: { messages?: Msg[]; context?: ChatContext; session?: string; model?: string }
   try {
     body = JSON.parse(raw)
   } catch {
@@ -72,6 +77,11 @@ async function chat(req: Request, env: Env): Promise<Response> {
     return fail(502, 'usage_check')
   }
 
+  // the model picked in the app, if it is still a free one; otherwise the recommended one
+  const { models, recommended } = await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY)
+  const model = models.some((m) => m.id === body.model) ? body.model! : recommended
+  if (!model) return fail(503, 'no_model')
+
   const upstream = await fetch(`${env.AI_BASE_URL}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -79,7 +89,7 @@ async function chat(req: Request, env: Env): Promise<Response> {
       'x-opencode-session': session, 'user-agent': 'lifey-assistant/0.1',
     },
     body: JSON.stringify({
-      model: env.AI_MODEL,
+      model,
       messages: [{ role: 'system', content: systemPrompt(ctx) }, ...convo],
       tools: TOOLS,
       tool_choice: 'auto',

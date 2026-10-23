@@ -53,9 +53,12 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
 | Supabase | `lifey-dev` `uezezkydnlbksrqvaipr` | `lifey-prod` `klxhdsravxkprqxdgebv` |
 | Site | https://lifey-dev.naytech001.workers.dev | Worker `lifey` (not deployed yet) |
 
-- The Worker (`worker/index.ts`) serves the static build and `/api/chat`, the assistant's model proxy (OpenCode Go,
-  model in `wrangler.jsonc` vars). Each environment needs the secret `OPENCODE_API_KEY` (`wrangler secret put
-  OPENCODE_API_KEY --env dev`); without it the assistant answers "not set up". This sandbox cannot reach opencode.ai.
+- The Worker (`worker/index.ts`) serves the static build, `/api/chat` (the assistant's model proxy) and `/api/models`.
+  It uses OpenCode Zen's free models only (the user has no paid OpenCode plan; paid models would bill the key):
+  `worker/models.ts` lists Zen's live models, keeps the free tool-calling ones (models.dev catalogue) and picks a
+  recommended one; the app's model dropdown remembers a pick per device. Each environment needs the secret
+  `OPENCODE_API_KEY`, added as type Secret (a Text variable is wiped by the next deploy). Requests carry an
+  `x-opencode-session` id per conversation (required). This sandbox cannot reach opencode.ai or models.dev.
 - `.github/workflows/deploy.yml` runs on pushes to `develop` and `main`: checks, then `node scripts/migrate.mjs <ref>` applies pending migrations
   through the Supabase Management API (only `SUPABASE_ACCESS_TOKEN` is needed; GitHub runners cannot reach the
   IPv6-only database), then builds and deploys to Cloudflare. Refs, URLs and publishable keys are public and live in the workflow.
