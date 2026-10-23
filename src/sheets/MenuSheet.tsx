@@ -9,7 +9,6 @@ export function MenuSheet() {
   return (
     <>
       <h2>lifey</h2>
-      <p className="lead">{t('modsSub')}</p>
       <div className="mods">
         <button className="mod on" onClick={ui.close}><b>{t('money')}</b><small>{t('mMoney')}</small><span className="pill">{t('openL')}</span></button>
         <div className="mod"><b>{t('recipes')}</b><small>{t('mRecipes')}</small><span className="pill mute">{t('later')}</span></div>

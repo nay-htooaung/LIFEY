@@ -155,7 +155,6 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
       {series && (
         <div>
           <h2>{t('editSchedule')}</h2>
-          <p className="lead" style={{ margin: '2px 0 0' }}>{t('scheduleHint')}</p>
         </div>
       )}
       <div className="seg" role="group">
@@ -218,8 +217,6 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
               onNew={() => ui.push(<SourceSheet spaceId={spaceId} onSaved={setToVia} />, toneVar(target))} newLabel={t('addSource')} />
           </div>
         )}
-        {chosen?.personal && <span className="privacy">{t('hiddenHint')}</span>}
-        {chosen && chosen.spaceId !== spaceId && !chosen.personal && <span className="privacy">{t('sharedHint')}</span>}
       </div>
 
       <div className="keypad">

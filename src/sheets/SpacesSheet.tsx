@@ -40,7 +40,6 @@ export function SpacesSheet() {
   return (
     <>
       <h2>{t('spacesTitle')}</h2>
-      <p className="lead">{t('spacesSub')}</p>
       {snap.spaces.map((s) => (
         <div key={s.id} className="sp-item" style={{ ['--acc' as string]: toneVar(s) }}>
           <button className="sp-row" aria-pressed={space.id === s.id} onClick={() => pick(s.id)}>

@@ -84,7 +84,6 @@ export function SpaceSheet({ id }: { id: string }) {
           {owner && (
             <span className="tiny muted">
               <button className="link" disabled={busy} aria-busy={pending === 'code'} onClick={() => submit('code', (r) => r.resetInviteCode(sp.id), t('codeReset'))}>{t('newCode')}</button>
-              {' · '}{t('newCodeHint')}
             </span>
           )}
         </div>
@@ -102,7 +101,6 @@ export function SpaceSheet({ id }: { id: string }) {
             {confirm === 'leave' ? t('confirmLeave') : t('leave')}
           </button>
         )}
-        <span className="tiny muted">{owner ? t('deleteHint') : t('leaveHint')}</span>
       </div>
     </>
   )

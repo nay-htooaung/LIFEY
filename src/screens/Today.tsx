@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { parts } from '../domain/dates'
 import { spaceForecast, UPCOMING_DAYS, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
@@ -6,10 +7,14 @@ import { UpcomingRow } from '../ui/entry'
 import { IconLock } from '../ui/icons'
 import { InstallCard } from '../ui/InstallCard'
 
+/** Coming up shows this many until "All" is tapped. */
+const FEW = 5
+
 export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void }) {
   const store = useStore()
   const { snap, space, personal, today } = store
   const { t } = useI18n()
+  const [allUp, setAllUp] = useState(false)
 
   const sts = safeToSpend(space.id, snap, today)
   const up = upcoming(space.id, snap, today)
@@ -69,9 +74,12 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
 
       {up.length > 0 && (
         <>
-          <div className="sec-h"><h3>{t('comingUp')}</h3><button className="link" onClick={() => go('plan')}>{t('allBills')}</button></div>
+          <div className="sec-h">
+            <h3>{t('comingUp')}</h3>
+            {!allUp && up.length > FEW && <button className="link" onClick={() => setAllUp(true)}>{t('allBills')} ({up.length})</button>}
+          </div>
           <div className="card list">
-            {up.slice(0, 6).map((u) => {
+            {(allUp ? up : up.slice(0, FEW)).map((u) => {
               const src = (id?: string | null) => snap.sources.find((x) => x.id === id)
               const ends = u.kind === 'transfer' ? [src(u.sourceId), src(u.toSourceId)] : [src(u.sourceId)]
               const via = ends.filter(Boolean).map((x) => x!.name).join(' → ')
@@ -97,12 +105,9 @@ function Forecast() {
       {rows.map((f) => (
         <div key={f.source.id} className="fc-row">
           <div className="fc-top">
-            <b>{f.source.name}</b>
+            <b>{space.kind === 'household' && f.source.spaceId === personal.id && <IconLock />}{f.source.name}</b>
             <span className={'num fc-after' + (f.after < 0 ? ' short' : '')}>{yen(f.after)}</span>
           </div>
-          {space.kind === 'household' && f.source.spaceId === personal.id && (
-            <div className="privacy fc-private"><IconLock /><span>{t('onlyYou')}</span></div>
-          )}
           <div className="fc-sub num">
             <span>{t('nowBal', { a: yen(f.now) })}</span>
             {f.in > 0 && <span className="amt-in">+{yen(f.in)}</span>}

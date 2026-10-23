@@ -83,14 +83,14 @@ export function UpcomingRow({ item, sourceName, onlyMe }: { item: Upcoming; sour
       <div className="main">
         <div className="t">{item.name || (item.kind === 'transfer' ? t('transfer') : '')}</div>
         <div className="s">
-          {n === 0 ? t('today') : n === 1 ? t('tomorrow') : t('inDays', { n })} ·{' '}
+          {n === 0 ? t('today') : n === 1 ? t('tomorrow') : t('inDays', { n })}{item.kind !== 'bill' && ' · '}
           {item.kind === 'card' ? <span className="pill warn">{t('cardPay')}</span>
             : item.kind === 'income' ? <span className="pill">{t('income')}</span>
             : item.kind === 'transfer' ? <span className="pill mute">⇄ {t('transfer')}</span>
-            : <span className="pill mute"><IconRepeat /> {t('repeats')}</span>}
+            : null}
         </div>
         {sourceName && (
-          <div className="s">{onlyMe && <IconLock />}<span>{sourceName}</span>{onlyMe && <span>· {t('onlyYouShort')}</span>}</div>
+          <div className="s">{onlyMe && <IconLock />}<span>{sourceName}</span></div>
         )}
       </div>
       <span className={'amt num' + (item.kind === 'income' ? ' amt-in' : '')}>{item.kind === 'income' ? '+' : ''}{yen(item.amount)}</span>

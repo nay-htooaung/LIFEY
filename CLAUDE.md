@@ -25,20 +25,25 @@ README.md covers setup; this file is the rules and decisions every session needs
 
 ## Workflow for every request
 
-The user asks for a change; carry it through to dev without being told each step:
+The user asks for a change; carry it through to a review, and deploy only when they say so:
 
-1. `git fetch` and work on `develop` (a session given another branch merges `develop` in first and merges back into it). Read the code you change.
+1. `git fetch` and start from the latest `develop` on the session's branch (a `ccr-*` branch, or a work branch
+   cut from `develop`; merge `develop` in first). Read the code you change.
 2. Make the change. Database changes get a new migration and new checks in `supabase/tests/privacy_test.sql`;
    money logic gets unit tests in `src/domain/money.test.ts`.
 3. Test it the way the user will use it: build, serve, and drive the screens in Playwright at phone size
    (390×844). Look at the screenshots, fix what looks wrong, and test the edge cases (errors, empty states,
    long text, both languages).
 4. Run `npm run typecheck && npm test && npm run build && npm run test:db`; all four must pass.
-5. Commit with a message that says what changed for the user and why, then `git push -u origin develop`.
-6. Wait for the Deploy run on that commit to finish (GitHub Actions). If it fails, read the job log, fix and push again.
-   For migrations, confirm in the log that "Apply database migrations" applied them.
-7. Reply briefly: what changed, how it was tested, anything left or worth deciding. Ask before anything risky
-   (prod, `main`, deleting data, changing what others in a space can see).
+5. Commit with a message that says what changed for the user and why, and push the work branch (not `develop`;
+   other branches only run the checks, no deploy).
+6. Send the user screenshots of the changed screens (before/after where it helps, Japanese first) and reply
+   briefly: what changed, how it was tested, anything left or worth deciding.
+7. Deploy only when the user asks: merge the work branch into `develop`, `git push origin develop`, and wait for
+   the Deploy run. If it fails, read the job log, fix and push again. For migrations, confirm in the log that
+   "Apply database migrations" applied them.
+
+Ask before anything risky (prod, `main`, deleting data, changing what others in a space can see).
 
 ## Environments and deploy
 
@@ -57,7 +62,7 @@ The user asks for a change; carry it through to dev without being told each step
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
 - Latest migration: `20261023100000_card_charge.sql`.
-- Pushing deploys dev; to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
+- Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
 - The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
 - Dev has throwaway test accounts (`smoke.*@example.com`); leave them.

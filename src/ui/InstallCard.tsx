@@ -37,7 +37,7 @@ export function InstallCard({ dismissible = false }: { dismissible?: boolean }) 
     <div className="card stack">
       <div>
         <b>{t('installTitle')}</b>
-        <div className="small muted">{state === 'ios' ? t('installIos') : t('installBody')}</div>
+        {state === 'ios' && <div className="small muted">{t('installIos')}</div>}
       </div>
       {(state === 'prompt' || dismissible) && (
         <div className="btn-row">

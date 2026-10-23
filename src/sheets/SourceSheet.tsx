@@ -44,7 +44,6 @@ export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
   return (
     <>
       <h2>{editId ? t('editSource') : t('srcTitle')}</h2>
-      <p className="lead">{t('srcSub', { s: space.name })}</p>
       <div className="field">
         <label className="label" htmlFor="src-name">{t('name')}</label>
         <input id="src-name" value={name} disabled={fixed} maxLength={60} placeholder={t('srcPh')} onChange={(e) => setName(e.target.value)} />
@@ -60,14 +59,11 @@ export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
           <input id="src-bal" inputMode="numeric" value={bal} placeholder="¥0" onChange={(e) => setBal(e.target.value)} />
         </div>
       </div>
-      {fixed && <p className="tiny muted" style={{ margin: 0 }}>{t('cashFixed')}</p>}
       <button className="btn primary big" disabled={busy} aria-busy={pending === 'save'} onClick={save}>{editId ? t('save') : t('srcTitle')}</button>
       {editId && !fixed && (
         <div className="field">
           <button className="btn danger" disabled={users.length > 0 || busy} aria-busy={pending === 'delete'} onClick={remove}>{confirm ? t('confirmDel') : t('deleteSource')}</button>
-          <span className="tiny muted">
-            {users.length ? t('sourceInUse', { x: users.map((m) => m.name).join(', ') }) : t('restoreHint')}
-          </span>
+          {users.length > 0 && <span className="tiny muted">{t('sourceInUse', { x: users.map((m) => m.name).join(', ') })}</span>}
         </div>
       )}
     </>

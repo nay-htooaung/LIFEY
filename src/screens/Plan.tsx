@@ -1,11 +1,10 @@
-import { categorySpent, monthPace, upcoming } from '../domain/money'
+import { categorySpent, monthPace } from '../domain/money'
 import { isTemplate, nextOccurrence } from '../domain/recurring'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useLookups, useStore } from '../data/store'
 import { CategorySheet } from '../sheets/CategorySheet'
 import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
-import { UpcomingRow } from '../ui/entry'
 import { IconRepeat } from '../ui/icons'
 import { useUI } from '../ui/ui'
 import type { Category } from '../domain/types'
@@ -17,13 +16,12 @@ export function Plan() {
   const { t, dateShort } = useI18n()
   const cats = snap.categories.filter((c) => c.spaceId === space.id)
   const pace = monthPace(today)
-  const up = upcoming(space.id, snap, today)
   const templates = snap.entries.filter((e) => e.spaceId === space.id && isTemplate(e))
   const edit = (c?: Category) => ui.open(<CategorySheet category={c} />, toneVar(space))
 
   return (
     <>
-      <div className="sec-h"><h3>{t('budgets')}</h3><span className="hint">{t('paceHint')}</span></div>
+      <div className="sec-h"><h3>{t('budgets')}</h3></div>
       <div className="card" style={{ paddingBlock: 6 }}>
         {cats.filter((c) => c.kind === 'expense').map((c) => {
           const spent = categorySpent(snap.entries, c, today)
@@ -34,16 +32,12 @@ export function Plan() {
             <button key={c.id} className="bud" onClick={() => edit(c)}>
               <div className="h">
                 <span><span className="sw" style={{ background: c.color }} /><b>{c.name}</b></span>
-                {!b ? <span className="pill mute">{t('noBudget')}</span>
-                  : r > 1 ? <span className="pill neg">{t('overBy', { a: yen(spent - b) })}</span>
-                  : r > pace + 0.1 ? <span className="pill warn">{t('ahead')}</span>
-                  : <span className="pill pos">{t('onTrack')}</span>}
+                <span className="num use"><span style={r > 1 ? { color: 'var(--neg)' } : undefined}>{yen(spent)}</span>{b ? <span className="of"> / {yen(b)}</span> : null}</span>
               </div>
               <div className="bar">
                 <i style={{ width: `${Math.min(100, r * 100)}%`, background: col }} />
                 {b ? <span className="pace" style={{ left: `${pace * 100}%` }} /> : null}
               </div>
-              <div className="f"><span className="num">{t('spentX', { a: yen(spent) })}</span><span className="num">{b ? t('budgetX', { a: yen(b) }) : ''}</span></div>
             </button>
           )
         })}
@@ -58,13 +52,6 @@ export function Plan() {
               <button key={c.id} className="chip" onClick={() => edit(c)}><span className="sw" style={{ background: c.color }} />{c.name}</button>
             ))}
           </div>
-        </>
-      )}
-
-      {up.length > 0 && (
-        <>
-          <div className="sec-h"><h3>{t('bills')}</h3><span className="hint">{t('remind')}</span></div>
-          <div className="card list">{up.map((u) => <UpcomingRow key={u.key} item={u} />)}</div>
         </>
       )}
 

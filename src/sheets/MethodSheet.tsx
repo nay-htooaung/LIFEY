@@ -96,7 +96,6 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
               <label className="label" htmlFor="m-share">{t('limitLabel')}</label>
               <Select id="m-share" value={sharedWith} onChange={setSharedWith}
                 options={[{ value: '', label: t('ownLimit') }, ...owners.map((m) => ({ value: m.id, label: t('shareLimit', { x: m.name }) }))]} />
-              <span className="tiny muted">{t('shareLimitHint')}</span>
             </div>
           )}
           {!sharedWith && (
@@ -116,7 +115,6 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
               <Select id="m-pay" value={String(pay)} onChange={(v) => setPay(+v)} options={dayOptions} />
             </div>
           </div>
-          <p className="tiny muted" style={{ margin: 0 }}>{t('dueHint')}</p>
         </div>
       )}
       <button className="btn primary big" disabled={busy} aria-busy={pending === 'save'} onClick={save}>{editId ? t('save') : t('mTitle')}</button>
@@ -130,7 +128,7 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
             }}>
             {confirm ? t('confirmDel') : t('deleteMethod')}
           </button>
-          <span className="tiny muted">{sharers.length ? t('limitInUse', { x: sharers.map((m) => m.name).join(', ') }) : t('restoreHint')}</span>
+          {sharers.length > 0 && <span className="tiny muted">{t('limitInUse', { x: sharers.map((m) => m.name).join(', ') })}</span>}
         </div>
       )}
     </>

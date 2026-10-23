@@ -57,7 +57,6 @@ export function SignIn({ sb, locale, setLocale, onTheme }: { sb: SupabaseClient;
               <label className="label" htmlFor="si-invite">{t('signupCode')}</label>
               <input id="si-invite" className="num" required autoComplete="off" autoCapitalize="characters" spellCheck={false}
                 placeholder="INV-XXXXX-XXXXX" value={invite} onChange={(e) => setInvite(e.target.value)} />
-              <span className="tiny muted">{t('signupCodeHint')}</span>
             </div>
           )}
           <div className="field">

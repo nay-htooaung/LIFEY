@@ -51,7 +51,6 @@ export function EntryDetail({ id }: { id: string }) {
           <span>{e.kind === 'income' ? t('into') : e.kind === 'transfer' ? t('transfer') : t('paidWith')}</span>
           <span>
             {shared && pw.personal && <IconLock />} {pw.label}
-            {shared && pw.mine && <><br /><small className="muted">{t('onlyYou')}</small></>}
           </span>
         </div>
         {e.fee > 0 && <div className="kv"><span>{t('fee')}</span><span className="num">{yen(e.fee)}</span></div>}

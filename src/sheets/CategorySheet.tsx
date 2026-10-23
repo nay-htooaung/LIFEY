@@ -37,7 +37,6 @@ export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }:
   return (
     <>
       <h2>{category ? t('catEdit') : t('catTitle')}</h2>
-      <p className="lead">{t('catFor', { s: target.name })}</p>
       <div className="field">
         <label className="label" htmlFor="cat-name">{t('name')}</label>
         <input id="cat-name" value={name} maxLength={40} placeholder={t('catPh')} onChange={(e) => setName(e.target.value)} />

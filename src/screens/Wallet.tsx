@@ -5,7 +5,6 @@ import { useI18n, yen } from '../i18n'
 import { useLookups, useStore, useSubmit } from '../data/store'
 import { MethodSheet } from '../sheets/MethodSheet'
 import { SourceSheet } from '../sheets/SourceSheet'
-import { IconLock } from '../ui/icons'
 import { useUI } from '../ui/ui'
 
 const SRC_GLYPH: Record<SourceKind, string> = { bank: '銀', cash: '¥', emoney: 'e' }
@@ -36,7 +35,6 @@ export function Wallet() {
         <div className="big num">{yen(pos.net)}</div>
         <div className="small muted">{t('inSources', { a: yen(pos.assets), b: yen(pos.credit) })}</div>
       </div>
-      {space.kind === 'household' && <div className="privacy"><IconLock /><span>{t('privacyNote')}</span></div>}
 
       <div className="sec-h"><h3>{t('sources')}</h3><button className="link" onClick={() => ui.open(<SourceSheet />)}>{t('addSource')}</button></div>
       <div className="card list">
