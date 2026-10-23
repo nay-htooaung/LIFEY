@@ -161,6 +161,8 @@ button { cursor: pointer; }
   display: flex; flex-direction: column; gap: 14px; animation: up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   padding: 10px max(18px, env(safe-area-inset-right, 0px)) calc(22px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
 }
+/* A tall sheet scrolls; without this, rows that scroll sideways (.chips) shrink to nothing. */
+.sheet > * { flex-shrink: 0; }
 .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto; flex: none; }
 .sheet h2 { margin: 0; font-family: var(--display); font-size: 22px; letter-spacing: -0.02em; }
 .sheet .lead { margin: -6px 0 0; color: var(--muted); font-size: 14px; }
