@@ -24,9 +24,9 @@ select t.ok(current_setting('t.inv1') ~ '^INV-[0-9A-F]{5}-[0-9A-F]{5}$', 'invita
 
 insert into auth.users (id, email, raw_user_meta_data) values
   (current_setting('t.you')::uuid, 'you@example.com',
-   jsonb_build_object('locale', 'ja', 'display_name', 'You', 'invite_code', current_setting('t.inv1'))),
+   jsonb_build_object('locale', 'ja', 'theme', 'light', 'display_name', 'You', 'invite_code', current_setting('t.inv1'))),
   (current_setting('t.sam')::uuid, 'sam@example.com', jsonb_build_object('invite_code', lower(current_setting('t.inv2')))),
-  (current_setting('t.eve')::uuid, 'eve@example.com', jsonb_build_object('invite_code', ' ' || current_setting('t.inv3') || ' '));
+  (current_setting('t.eve')::uuid, 'eve@example.com', jsonb_build_object('theme', 'neon', 'invite_code', ' ' || current_setting('t.inv3') || ' '));
 
 select t.ok((select count(*) from public.signup_invites where used_at is not null) = 3, 'codes are spent on sign-up');
 select t.ok((select used_by from public.signup_invites where code = current_setting('t.inv2')) = current_setting('t.sam')::uuid,
@@ -57,6 +57,8 @@ select t.ok((select count(*) from public.spaces where kind = 'personal') = 3, 's
 select t.ok(exists (select 1 from public.categories c join public.spaces s on s.id = c.space_id
                           where s.owner_id = current_setting('t.you')::uuid and c.name = '食費'), 'categories seeded in Japanese');
 select t.ok((select display_name from public.profiles where id = current_setting('t.sam')::uuid) = 'sam', 'display name falls back to email');
+select t.ok((select theme from public.profiles where id = current_setting('t.you')::uuid) = 'light', 'sign-up keeps the theme picked');
+select t.ok((select theme from public.profiles where id = current_setting('t.eve')::uuid) = 'midnight', 'an unknown sign-up theme falls back');
 
 set role authenticated;
 

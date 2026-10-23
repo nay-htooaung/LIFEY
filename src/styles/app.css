@@ -4,7 +4,7 @@
 @media (display-mode: browser) { :root { --safe-b: 0px; } }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; }
-body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.5; overscroll-behavior: none; }
+body { margin: 0; background: var(--bg); color: var(--ink); transition: background-color 0.25s, color 0.25s; font-family: var(--body); font-size: 15px; line-height: 1.5; overscroll-behavior: none; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
 :focus-visible { outline: 2px solid var(--acc, var(--tone-me)); outline-offset: 2px; }
@@ -17,7 +17,7 @@ button { cursor: pointer; }
   position: relative; height: 100%; max-width: 520px; margin: 0 auto; background: var(--paper);
   display: flex; flex-direction: column; overflow: hidden;
 }
-.app, .sheet-wrap {
+.app, .sheet-wrap, .signin {
   --acc-soft: color-mix(in srgb, var(--acc) 14%, var(--card));
   --acc-line: color-mix(in srgb, var(--acc) 40%, var(--line));
 }
@@ -299,6 +299,7 @@ details[open] summary { margin-bottom: 10px; }
 .signin .btn { flex: none; }
 .wordmark { font-family: var(--display); font-weight: 800; font-size: 40px; letter-spacing: -0.04em; }
 .wordmark i { font-style: normal; color: var(--tone-me); }
+.signin-prefs { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; padding-top: 18px; border-top: 1px solid var(--line); }
 .signin h1 { font-family: var(--display); font-size: 28px; line-height: 1.1; letter-spacing: -0.03em; margin: 0; text-wrap: balance; }
 .splash { height: 100%; display: grid; place-items: center; color: var(--muted); animation: breathe 1.4s ease-in-out infinite; }
 @keyframes breathe { 50% { opacity: 0.45; } }
