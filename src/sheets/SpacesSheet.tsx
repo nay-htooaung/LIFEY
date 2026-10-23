@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Tone } from '../domain/types'
 import { useI18n } from '../i18n'
-import { toneVar, usePersonName, useStore } from '../data/store'
+import { toneVar, usePersonName, useStore, useSubmit } from '../data/store'
 import { Avatar, SpaceDot } from '../ui/bits'
 import { IconEdit } from '../ui/icons'
 import { useUI } from '../ui/ui'
@@ -11,7 +11,8 @@ const TONES: Tone[] = ['a', 'b', 'c', 'd']
 
 /** Pick a space, open a shared space's settings, create or join one, restore a deleted one. */
 export function SpacesSheet() {
-  const { snap, space, setSpace, act } = useStore()
+  const { snap, space, setSpace } = useStore()
+  const { submit, pending, busy } = useSubmit()
   const ui = useUI()
   const { t } = useI18n()
   const person = usePersonName()
@@ -26,19 +27,14 @@ export function SpacesSheet() {
     const n = name.trim()
     if (!n) return document.getElementById('hh-name')?.focus()
     const tone = TONES[(snap.spaces.length - 1) % TONES.length]
-    ui.close()
-    const id = await act((r) => r.createHousehold(n, tone), t('hhCreated', { x: n }))
-    if (id) setSpace(id)
+    const r = await submit('create', (repo) => repo.createHousehold(n, tone), t('hhCreated', { x: n }), { close: true })
+    if (r?.ok) setSpace(r.value)
   }
   const join = async () => {
     const c = code.trim()
     if (!c) return document.getElementById('hh-code')?.focus()
-    const id = await act((r) => r.joinHousehold(c))
-    if (id) {
-      setSpace(id)
-      ui.close()
-      ui.toast(t('joined', { x: c.toUpperCase() }))
-    }
+    const r = await submit('join', (repo) => repo.joinHousehold(c), t('joined', { x: c.toUpperCase() }), { close: true })
+    if (r?.ok) setSpace(r.value)
   }
 
   return (
@@ -69,14 +65,14 @@ export function SpacesSheet() {
         <label className="label" htmlFor="hh-name">{t('hhName')}</label>
         <div className="btn-row">
           <input id="hh-name" className="input" value={name} maxLength={60} placeholder={t('hhPh')} onChange={(e) => setName(e.target.value)} />
-          <button className="btn primary" style={{ flex: 'none' }} onClick={create}>{t('createBtn')}</button>
+          <button className="btn primary" style={{ flex: 'none' }} disabled={busy} aria-busy={pending === 'create'} onClick={create}>{t('createBtn')}</button>
         </div>
       </div>
       <div className="field">
         <label className="label" htmlFor="hh-code">{t('joinTitle')}</label>
         <div className="btn-row">
           <input id="hh-code" className="input num" value={code} placeholder={t('joinPh')} autoCapitalize="characters" onChange={(e) => setCode(e.target.value)} />
-          <button className="btn" style={{ flex: 'none' }} onClick={join}>{t('joinBtn')}</button>
+          <button className="btn" style={{ flex: 'none' }} disabled={busy} aria-busy={pending === 'join'} onClick={join}>{t('joinBtn')}</button>
         </div>
       </div>
 
@@ -88,7 +84,8 @@ export function SpacesSheet() {
               <div key={s.id} className="row">
                 <SpaceDot name={s.name} tone={s.tone} />
                 <div className="main"><div className="t">{s.name}</div></div>
-                <button className="btn sm" onClick={() => act((r) => r.setSpaceDeleted(s.id, false), t('spaceRestored', { x: s.name }))}>
+                <button className="btn sm" disabled={busy} aria-busy={pending === `restore:${s.id}`}
+                  onClick={() => submit(`restore:${s.id}`, (r) => r.setSpaceDeleted(s.id, false), t('spaceRestored', { x: s.name }))}>
                   {t('restore')}
                 </button>
               </div>

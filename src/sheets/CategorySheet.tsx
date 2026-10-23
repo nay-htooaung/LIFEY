@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import type { Category, EntryKind } from '../domain/types'
 import { useI18n } from '../i18n'
-import { useStore } from '../data/store'
+import { useStore, useSubmit } from '../data/store'
 import { parseYen, SWATCHES } from '../ui/bits'
-import { useUI } from '../ui/ui'
 import { Select } from '../ui/Select'
 
 interface Props {
@@ -15,8 +14,8 @@ interface Props {
 }
 
 export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }: Props) {
-  const { snap, space, act } = useStore()
-  const ui = useUI()
+  const { snap, space } = useStore()
+  const { submit, pending, busy } = useSubmit()
   const { t } = useI18n()
   const target = snap.spaces.find((s) => s.id === (category?.spaceId ?? spaceId)) ?? space
   const [name, setName] = useState(category?.name ?? '')
@@ -29,12 +28,10 @@ export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }:
     const n = name.trim()
     if (!n) return document.getElementById('cat-name')?.focus()
     const sort = category?.sort ?? snap.categories.filter((c) => c.spaceId === target.id).length + 1
-    ui.close()
-    const id = await act(
-      (r) => r.saveCategory({ id: category?.id, spaceId: target.id, name: n, color, kind, monthlyBudget: kind === 'expense' ? parseYen(budget) : 0, sort }),
-      category ? t('saved') : t('created', { x: n }),
-    )
-    if (id) onSaved?.(id)
+    const r = await submit('save',
+      (repo) => repo.saveCategory({ id: category?.id, spaceId: target.id, name: n, color, kind, monthlyBudget: kind === 'expense' ? parseYen(budget) : 0, sort }),
+      category ? t('saved') : t('created', { x: n }), { close: true })
+    if (r?.ok) onSaved?.(r.value)
   }
 
   return (
@@ -66,14 +63,15 @@ export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }:
           </div>
         )}
       </div>
-      <button className="btn primary big" onClick={save}>{category ? t('save') : t('create')}</button>
+      <button className="btn primary big" disabled={busy} aria-busy={pending === 'save'} onClick={save}>{category ? t('save') : t('create')}</button>
       {category && (
         <button
           className="btn danger"
+          disabled={busy}
+          aria-busy={pending === 'archive'}
           onClick={() => {
             if (!confirm) return setConfirm(true)
-            ui.close()
-            void act((r) => r.archiveCategory(category.id), t('archived', { x: category.name }))
+            void submit('archive', (r) => r.archiveCategory(category.id), t('archived', { x: category.name }), { close: true })
           }}
         >
           {confirm ? t('confirmDel') : t('archive')}

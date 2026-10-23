@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n'
-import { useStore } from '../data/store'
+import { useStore, useSubmit } from '../data/store'
 import { AVATARS, Avatar, THEMES } from '../ui/bits'
 import { InstallCard } from '../ui/InstallCard'
 import { useUI } from '../ui/ui'
 
 /** You: character, name, language, theme, installing the app, signing out. Opened from the avatar in the top bar. */
-export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => void; onResetDemo?: () => void }) {
-  const { snap, repo, act, setPrefs } = useStore()
+export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => Promise<void>; onResetDemo?: () => void }) {
+  const { snap, repo, setPrefs } = useStore()
+  const { submit, pending, busy } = useSubmit()
+  const [signingOut, setSigningOut] = useState(false)
   const ui = useUI()
   const { t, locale } = useI18n()
   const [name, setName] = useState(snap.me.displayName)
@@ -22,8 +24,8 @@ export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => voi
         <label className="label" htmlFor="me-name">{t('yourName')}</label>
         <div className="btn-row">
           <input id="me-name" className="input" value={name} maxLength={40} onChange={(e) => setName(e.target.value)} />
-          <button className="btn" style={{ flex: 'none' }} disabled={!name.trim() || name === snap.me.displayName}
-            onClick={() => act((r) => r.updateProfile({ displayName: name.trim() }), t('saved'))}>{t('save')}</button>
+          <button className="btn" style={{ flex: 'none' }} disabled={!name.trim() || name === snap.me.displayName || busy} aria-busy={pending === 'name'}
+            onClick={() => submit('name', (r) => r.updateProfile({ displayName: name.trim() }), t('saved'))}>{t('save')}</button>
         </div>
       </div>
       <div className="field">
@@ -60,7 +62,10 @@ export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => voi
       {repo.mode === 'demo' && <p className="privacy">{t('demoMode')}</p>}
       <div className="btn-row">
         {onResetDemo && <button className="btn" onClick={() => { ui.close(); onResetDemo() }}>{t('resetDemo')}</button>}
-        {onSignOut && <button className="btn" onClick={() => { ui.close(); onSignOut() }}>{t('signOut')}</button>}
+        {/* the sign-in screen replaces everything once signed out; until then the button shows it is working */}
+        {onSignOut && (
+          <button className="btn" disabled={signingOut} aria-busy={signingOut} onClick={() => { setSigningOut(true); void onSignOut() }}>{t('signOut')}</button>
+        )}
       </div>
     </>
   )

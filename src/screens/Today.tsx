@@ -1,7 +1,7 @@
 import { parts } from '../domain/dates'
 import { accountForecast, UPCOMING_DAYS, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
-import { usePersonName, useStore } from '../data/store'
+import { usePersonName, useStore, useSubmit } from '../data/store'
 import { SourceSheet } from '../sheets/SourceSheet'
 import { UpcomingRow } from '../ui/entry'
 import { InstallCard } from '../ui/InstallCard'
@@ -9,7 +9,8 @@ import { useUI } from '../ui/ui'
 
 export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void }) {
   const store = useStore()
-  const { snap, space, personal, today, act } = store
+  const { snap, space, personal, today } = store
+  const { submit, pending, busy } = useSubmit()
   const ui = useUI()
   const { t } = useI18n()
 
@@ -25,7 +26,7 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   const needsSetup = space.kind === 'personal' && !snap.methods.some((m) => m.spaceId === personal.id && !m.archived)
 
   const startCash = () =>
-    act(async (r) => {
+    submit('cash', async (r) => {
       const src = await r.addSource({ spaceId: personal.id, name: t('cash'), kind: 'cash', openingBalance: 0 })
       await r.addMethod({ spaceId: personal.id, name: t('cash'), kind: 'cash', sourceId: src, creditLimit: null, limitSharedWith: null, closingDay: null, paymentDay: null })
     }, t('added', { x: t('cash') }))
@@ -77,7 +78,7 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
             <div className="small muted">{t('setupBody')}</div>
           </div>
           <div className="btn-row">
-            <button className="btn primary" onClick={startCash}>{t('startCash')}</button>
+            <button className="btn primary" disabled={busy} aria-busy={pending === 'cash'} onClick={startCash}>{t('startCash')}</button>
             <button className="btn" onClick={() => ui.open(<SourceSheet />)}>{t('addOwn')}</button>
           </div>
         </div>

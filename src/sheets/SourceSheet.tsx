@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import type { SourceKind } from '../domain/types'
 import { useI18n } from '../i18n'
-import { useStore } from '../data/store'
+import { useStore, useSubmit } from '../data/store'
 import { parseYen } from '../ui/bits'
-import { useUI } from '../ui/ui'
 import { Select } from '../ui/Select'
 
 interface Props {
@@ -16,10 +15,10 @@ interface Props {
 }
 
 export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
-  const { snap, space: current, act } = useStore()
+  const { snap, space: current } = useStore()
+  const { submit, pending, busy } = useSubmit()
   const base = editId ? snap.sources.find((s) => s.id === editId) : undefined
   const space = snap.spaces.find((s) => s.id === (base?.spaceId ?? spaceId)) ?? current
-  const ui = useUI()
   const { t } = useI18n()
   const [name, setName] = useState(base?.name ?? '')
   const [kind, setKind] = useState<SourceKind>(base?.kind ?? 'bank')
@@ -32,14 +31,12 @@ export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
     const n = name.trim()
     if (!n) return document.getElementById('src-name')?.focus()
     const source = { spaceId: space.id, name: n, kind, openingBalance: parseYen(bal) }
-    ui.close()
-    if (editId) return void act((r) => r.updateSource(editId, source), t('saved'))
-    void act((r) => r.addSource(source), t('added', { x: n })).then((id) => id && onSaved?.(id))
+    if (editId) return void submit('save', (r) => r.updateSource(editId, source), t('saved'), { close: true })
+    void submit('save', (r) => r.addSource(source), t('added', { x: n }), { close: true }).then((r) => r?.ok && onSaved?.(r.value))
   }
   const remove = () => {
     if (!confirm) return setConfirm(true)
-    ui.close()
-    void act((r) => r.setSourceArchived(editId!, true), t('archived', { x: base!.name }))
+    void submit('delete', (r) => r.setSourceArchived(editId!, true), t('archived', { x: base!.name }), { close: true })
   }
 
   return (
@@ -61,10 +58,10 @@ export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
           <input id="src-bal" inputMode="numeric" value={bal} placeholder="¥0" onChange={(e) => setBal(e.target.value)} />
         </div>
       </div>
-      <button className="btn primary big" onClick={save}>{editId ? t('save') : t('srcTitle')}</button>
+      <button className="btn primary big" disabled={busy} aria-busy={pending === 'save'} onClick={save}>{editId ? t('save') : t('srcTitle')}</button>
       {editId && (
         <div className="field">
-          <button className="btn danger" disabled={users.length > 0} onClick={remove}>{confirm ? t('confirmDel') : t('deleteSource')}</button>
+          <button className="btn danger" disabled={users.length > 0 || busy} aria-busy={pending === 'delete'} onClick={remove}>{confirm ? t('confirmDel') : t('deleteSource')}</button>
           <span className="tiny muted">
             {users.length ? t('sourceInUse', { x: users.map((m) => m.name).join(', ') }) : t('restoreHint')}
           </span>

@@ -114,8 +114,8 @@ export function App() {
   )
 }
 
-function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): void; onResetDemo?: () => void; canSignOut: boolean }) {
-  const { space, snap } = useStore()
+function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): Promise<void>; onResetDemo?: () => void; canSignOut: boolean }) {
+  const { space, snap, syncing } = useStore()
   const ui = useUI()
   const { t, locale } = useI18n()
   // Other tabs sit one history entry above Today, so Android's back returns to Today before leaving.
@@ -167,6 +167,8 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): void; onRe
           </button>
         </div>
       </header>
+      {/* shows only when saving or loading takes more than a moment */}
+      <div className={'sync-bar' + (syncing ? ' on' : '')} role="progressbar" aria-hidden={!syncing} aria-label={t('loading')} />
       <main className="scroll" key={tab + space.id}>
         {tab === 'today' && <Today go={go} />}
         {tab === 'activity' && <Activity />}

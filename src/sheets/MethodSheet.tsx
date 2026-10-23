@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { MethodKind } from '../domain/types'
 import { useI18n } from '../i18n'
-import { useStore } from '../data/store'
+import { useStore, useSubmit } from '../data/store'
 import { parseYen } from '../ui/bits'
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
@@ -17,7 +17,8 @@ interface Props {
 }
 
 export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
-  const { snap, space, act } = useStore()
+  const { snap, space } = useStore()
+  const { submit, pending, busy } = useSubmit()
   const ui = useUI()
   const { t, ordinal } = useI18n()
   const base = editId ? snap.methods.find((m) => m.id === editId) : undefined
@@ -61,9 +62,8 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
       creditLimit: credit && !shared ? parseYen(limit) || null : null, limitSharedWith: shared,
       closingDay: credit ? close : null, paymentDay: credit ? pay : null,
     }
-    ui.close()
-    if (editId) return void act((r) => r.updateMethod(editId, method), t('saved'))
-    void act((r) => r.addMethod(method), t('added', { x: n })).then((id) => id && onSaved?.(id))
+    if (editId) return void submit('save', (r) => r.updateMethod(editId, method), t('saved'), { close: true })
+    void submit('save', (r) => r.addMethod(method), t('added', { x: n }), { close: true }).then((r) => r?.ok && onSaved?.(r.value))
   }
 
   return (
@@ -119,15 +119,14 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
           <p className="tiny muted" style={{ margin: 0 }}>{t('dueHint')}</p>
         </div>
       )}
-      <button className="btn primary big" onClick={save}>{editId ? t('save') : t('mTitle')}</button>
+      <button className="btn primary big" disabled={busy} aria-busy={pending === 'save'} onClick={save}>{editId ? t('save') : t('mTitle')}</button>
       {editId && (
         <div className="field">
           {/* a card others share a limit with stays until they no longer depend on it */}
-          <button className="btn danger" disabled={sharers.length > 0}
+          <button className="btn danger" disabled={sharers.length > 0 || busy} aria-busy={pending === 'delete'}
             onClick={() => {
               if (!confirm) return setConfirm(true)
-              ui.close()
-              void act((r) => r.setMethodArchived(editId, true), t('archived', { x: base!.name }))
+              void submit('delete', (r) => r.setMethodArchived(editId, true), t('archived', { x: base!.name }), { close: true })
             }}>
             {confirm ? t('confirmDel') : t('deleteMethod')}
           </button>

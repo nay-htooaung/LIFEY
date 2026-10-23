@@ -15,8 +15,10 @@ interface Store {
   setSpace(id: string): void
   /** Applies language, theme or character at once and saves them to the profile in the background. */
   setPrefs(patch: Prefs): void
-  /** Runs a change, reloads, and shows a toast. Errors become an error toast. */
-  act<T>(fn: (repo: Repo) => Promise<T>, done?: string | ((v: T) => string), opts?: { flame?: boolean }): Promise<T | undefined>
+  /** Runs a change, reloads, then shows `done` as a toast; errors become an error toast. Prefer useSubmit in components. */
+  attempt<T>(fn: (repo: Repo) => Promise<T>, done?: string | ((v: T) => string)): Promise<{ ok: true; value: T } | { ok: false }>
+  /** True while anything is being saved or loaded, for the progress bar. */
+  syncing: boolean
   reload(): Promise<void>
   /** Fetches a month's entries (YYYY-MM) into snap.entries once; later calls are free. */
   ensureMonth(month: string): void
@@ -52,6 +54,16 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
   const [prefs, setPrefsState] = useState<Prefs>({})
   const ui = useUI()
   const loading = useRef(false)
+  // how many saves and loads are in flight
+  const [work, setWork] = useState(0)
+  const track = useCallback(async <T,>(p: Promise<T>) => {
+    setWork((n) => n + 1)
+    try {
+      return await p
+    } finally {
+      setWork((n) => n - 1)
+    }
+  }, [])
   // Older months, fetched when History opens them. load() covers the current month.
   const [months, setMonths] = useState<Record<string, Entry[]>>({})
   const monthsRef = useRef(months)
@@ -61,6 +73,7 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
   const reload = useCallback(async () => {
     if (loading.current) return
     loading.current = true
+    setWork((n) => n + 1)
     try {
       const d = todayFn()
       setDay(d)
@@ -77,11 +90,15 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
       setMonths(Object.fromEntries(open.map((m, i) => [m, fresh[i]])))
       setError(null)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      const msg = e instanceof Error ? e.message : String(e)
+      // once there is data on screen, keep it and say what failed instead of replacing the app
+      if (hasData.current) ui.toast(makeI18n(localeRef.current).t('genericError', { m: msg }), { error: true })
+      else setError(msg)
     } finally {
       loading.current = false
+      setWork((n) => n - 1)
     }
-  }, [repo])
+  }, [repo, ui])
 
   useEffect(() => {
     void reload()
@@ -90,6 +107,10 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
 
   const locale = prefs.locale ?? loaded?.me.locale ?? 'en'
   const i18n = useMemo(() => makeI18n(locale), [locale])
+  const hasData = useRef(false)
+  hasData.current = !!loaded
+  const localeRef = useRef(locale)
+  localeRef.current = locale
   const theme = prefs.theme ?? loaded?.me.theme
 
   useEffect(() => {
@@ -112,6 +133,21 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
     const seen = new Set(loaded.entries.map((e) => e.id))
     const entries = extra.length ? [...loaded.entries, ...extra.filter((e) => !seen.has(e.id) && seen.add(e.id))] : loaded.entries
     const snap: Snapshot = { ...loaded, me, profiles: { ...loaded.profiles, [me.id]: me }, entries }
+    const attempt: Store['attempt'] = async (fn, done) => {
+      try {
+        const value = await track(fn(repo))
+        await reload()
+        if (done) ui.toast(typeof done === 'string' ? done : done(value))
+        return { ok: true as const, value }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e)
+        if (e instanceof RepoError && e.code === 'bad_invite') ui.toast(i18n.t('badCode'), { error: true })
+        else if (e instanceof RepoError && e.code === 'offline') ui.toast(i18n.t('offline'), { error: true })
+        else ui.toast(i18n.t('genericError', { m: msg }), { error: true })
+        return { ok: false as const }
+      }
+    }
+
     const personal = snap.spaces.find((s) => s.kind === 'personal' && s.ownerId === snap.me.id) ?? snap.spaces[0]
     const space = snap.spaces.find((s) => s.id === spaceId) ?? personal
     return {
@@ -145,27 +181,15 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
       ensureMonth(m) {
         if (m >= monthKey(day) || m in monthsRef.current || fetching.current.has(m)) return
         fetching.current.add(m)
-        repo.loadMonth(m)
+        void track(repo.loadMonth(m))
           .then((list) => setMonths((prev) => ({ ...prev, [m]: list })))
           .catch((e) => ui.toast(i18n.t('genericError', { m: e instanceof Error ? e.message : String(e) }), { error: true }))
           .finally(() => fetching.current.delete(m))
       },
-      async act(fn, done, opts) {
-        try {
-          const v = await fn(repo)
-          await reload()
-          if (done) ui.toast(typeof done === 'string' ? done : done(v), opts)
-          return v
-        } catch (e) {
-          const msg = e instanceof Error ? e.message : String(e)
-          if (e instanceof RepoError && e.code === 'bad_invite') ui.toast(i18n.t('badCode'), { error: true })
-          else if (e instanceof RepoError && e.code === 'offline') ui.toast(i18n.t('offline'), { error: true })
-          else ui.toast(i18n.t('genericError', { m: msg }), { error: true })
-          return undefined
-        }
-      },
+      syncing: work > 0,
+      attempt,
     }
-  }, [loaded, months, prefs, repo, day, spaceId, reload, ui, i18n])
+  }, [loaded, months, prefs, repo, day, spaceId, reload, ui, i18n, work, track])
 
   if (!value) {
     return (
@@ -179,6 +203,32 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
       <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>
     </I18nContext.Provider>
   )
+}
+
+/**
+ * Saving from a sheet or button: the control shows a spinner and every submit in the same component is
+ * disabled until the save and the reload after it finish. With `close`, the sheet closes only after
+ * success, so the screen behind already shows the change; on error it stays open with what was typed.
+ */
+export function useSubmit() {
+  const { attempt } = useStore()
+  const ui = useUI()
+  const [pending, setPending] = useState<string | null>(null)
+  const busy = useRef(false)
+  const submit = useCallback(
+    async <T,>(key: string, fn: (repo: Repo) => Promise<T>, done?: string | ((v: T) => string), opts: { close?: boolean } = {}) => {
+      if (busy.current) return undefined
+      busy.current = true
+      setPending(key)
+      const r = await attempt(fn, done)
+      busy.current = false
+      setPending(null)
+      if (r.ok && opts.close) ui.close()
+      return r
+    },
+    [attempt, ui],
+  )
+  return { submit, pending, busy: pending !== null }
 }
 
 // ------------------------------------------------------------ selectors

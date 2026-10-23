@@ -2,7 +2,7 @@ import { creditLimitUse, creditOutstanding, netPosition, nextCardPayment, source
 import type { MethodKind, SourceKind } from '../domain/types'
 import { parts } from '../domain/dates'
 import { useI18n, yen } from '../i18n'
-import { useLookups, useStore } from '../data/store'
+import { useLookups, useStore, useSubmit } from '../data/store'
 import { MethodSheet } from '../sheets/MethodSheet'
 import { SourceSheet } from '../sheets/SourceSheet'
 import { IconLock } from '../ui/icons'
@@ -12,7 +12,8 @@ const SRC_GLYPH: Record<SourceKind, string> = { bank: '銀', savings: '貯', cas
 const METHOD_GLYPH: Record<MethodKind, string> = { cash: '¥', debit: 'D', emoney: 'e', credit: 'C' }
 
 export function Wallet() {
-  const { snap, space, today, act } = useStore()
+  const { snap, space, today } = useStore()
+  const { submit, pending, busy } = useSubmit()
   const { source } = useLookups()
   const ui = useUI()
   const { t, ordinal, month } = useI18n()
@@ -88,7 +89,8 @@ export function Wallet() {
             {deleted.map((d) => (
               <div key={d.id} className="row">
                 <div className="main"><div className="t muted">{d.name}</div></div>
-                <button className="btn sm" onClick={() => act((r) => (d.source ? r.setSourceArchived(d.id, false) : r.setMethodArchived(d.id, false)), t('spaceRestored', { x: d.name }))}>
+                <button className="btn sm" disabled={busy} aria-busy={pending === d.id}
+                  onClick={() => submit(d.id, (r) => (d.source ? r.setSourceArchived(d.id, false) : r.setMethodArchived(d.id, false)), t('spaceRestored', { x: d.name }))}>
                   {t('restore')}
                 </button>
               </div>

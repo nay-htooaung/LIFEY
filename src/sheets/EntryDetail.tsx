@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useI18n, yen } from '../i18n'
-import { toneVar, useLookups, usePersonName, useStore } from '../data/store'
+import { toneVar, useLookups, usePersonName, useStore, useSubmit } from '../data/store'
 import { Glyph } from '../ui/bits'
 import { usePaidWith } from '../ui/entry'
 import { IconLock } from '../ui/icons'
@@ -8,7 +8,8 @@ import { useUI } from '../ui/ui'
 import { EntrySheet } from './EntrySheet'
 
 export function EntryDetail({ id }: { id: string }) {
-  const { snap, today, act } = useStore()
+  const { snap, today } = useStore()
+  const { submit, pending, busy } = useSubmit()
   const { cat, space: spaceOf } = useLookups()
   const ui = useUI()
   const { t, dateLong } = useI18n()
@@ -61,10 +62,11 @@ export function EntryDetail({ id }: { id: string }) {
           <button className="btn" onClick={() => ui.open(<EntrySheet editId={e.id} />, toneVar(sp))}>{t('edit')}</button>
           <button
             className="btn danger"
+            disabled={busy}
+            aria-busy={pending === 'delete'}
             onClick={() => {
               if (!confirm) return setConfirm(true)
-              ui.close()
-              void act((r) => r.deleteEntry(e.id), t('deleted'))
+              void submit('delete', (r) => r.deleteEntry(e.id), t('deleted'), { close: true })
             }}
           >
             {confirm ? t('confirmDel') : t('del')}

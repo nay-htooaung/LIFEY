@@ -61,7 +61,7 @@ export function SignIn({ sb, locale, setLocale, onDemo }: { sb: SupabaseClient; 
             value={password} onChange={(e) => setPassword(e.target.value)} />
           {mode === 'signup' && <span className="tiny muted">{t('passwordHint')}</span>}
         </div>
-        <button className="btn primary big" disabled={busy}>{mode === 'signin' ? t('signInTab') : t('signUpTab')}</button>
+        <button className="btn primary big" disabled={busy} aria-busy={busy}>{mode === 'signin' ? t('signInTab') : t('signUpTab')}</button>
       </form>
       {error && <p className="small" style={{ color: 'var(--neg)', margin: 0 }} role="alert">{error}</p>}
       {info && <p className="small muted" style={{ margin: 0 }} role="status">{info}</p>}

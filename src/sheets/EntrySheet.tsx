@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { addDays } from '../domain/dates'
 import type { EntryKind, NewEntry, Repeat } from '../domain/types'
 import { useI18n, yen } from '../i18n'
-import { toneVar, useStore } from '../data/store'
+import { toneVar, useStore, useSubmit } from '../data/store'
 import { CategorySheet } from './CategorySheet'
 import { MethodSheet } from './MethodSheet'
 import { SourceSheet } from './SourceSheet'
@@ -26,7 +26,8 @@ interface Props {
 }
 
 export function EntrySheet({ editId, prefill }: Props) {
-  const { snap, space, personal, today, act } = useStore()
+  const { snap, space, personal, today } = useStore()
+  const { submit, pending } = useSubmit()
   const ui = useUI()
   const { t } = useI18n()
   const base = editId ? snap.entries.find((e) => e.id === editId) : undefined
@@ -92,8 +93,8 @@ export function EntrySheet({ editId, prefill }: Props) {
     } catch {
       /* ignore */
     }
-    ui.close()
-    await act((r) => (editId ? r.updateEntry(editId, entry) : r.addEntries([entry])), editId ? t('saved') : t('loggedTo', { a: yen(n), s: target.name }))
+    await submit('save', (r) => (editId ? r.updateEntry(editId, entry) : r.addEntries([entry])),
+      editId ? t('saved') : t('loggedTo', { a: yen(n), s: target.name }), { close: true })
   }
 
   return (
@@ -174,7 +175,7 @@ export function EntrySheet({ editId, prefill }: Props) {
         </div>
       </details>
 
-      <button className="btn primary big" disabled={!n || !viaId} onClick={save}>
+      <button className="btn primary big" disabled={!n || !viaId || !!pending} aria-busy={pending === 'save'} onClick={save}>
         {n ? t(editId ? 'saveX' : 'logX', { a: yen(n) }) : t('enterAmt')}
       </button>
     </>

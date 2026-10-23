@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useI18n } from '../i18n'
-import { usePersonName, useStore } from '../data/store'
+import { usePersonName, useStore, useSubmit } from '../data/store'
 import { Avatar, SpaceDot } from '../ui/bits'
 import { useUI } from '../ui/ui'
 
@@ -9,11 +9,15 @@ import { useUI } from '../ui/ui'
  * Nothing here erases data: leaving, removal and deletion can all be undone by rejoining or restoring.
  */
 export function SpaceSheet({ id }: { id: string }) {
-  const { snap, space: current, personal, setSpace, act } = useStore()
+  const { snap, space: current, personal, setSpace } = useStore()
+  const { submit, pending, busy } = useSubmit()
   const ui = useUI()
   const { t } = useI18n()
   const person = usePersonName()
-  const sp = snap.spaces.find((s) => s.id === id)
+  // keep showing the space while leaving or deleting it, until the sheet closes
+  const last = useRef(snap.spaces.find((s) => s.id === id))
+  const sp = snap.spaces.find((s) => s.id === id) ?? last.current
+  last.current = sp
   const [name, setName] = useState(sp?.name ?? '')
   const [confirm, setConfirm] = useState<string | null>(null)
   if (!sp) return null
@@ -29,10 +33,10 @@ export function SpaceSheet({ id }: { id: string }) {
       /* the code is selectable as a fallback */
     }
   }
-  const goneFromHere = async (run: Promise<unknown>) => {
-    ui.close()
-    await run
-    if (current.id === sp.id) setSpace(personal.id)
+  // leaving or deleting: once done, close and move off the space if it was the one on screen
+  const goneFromHere = async (key: string, fn: Parameters<typeof submit>[1], done: string) => {
+    const r = await submit(key, fn, done, { close: true })
+    if (r?.ok && current.id === sp.id) setSpace(personal.id)
   }
 
   return (
@@ -46,8 +50,8 @@ export function SpaceSheet({ id }: { id: string }) {
         <label className="label" htmlFor="sp-name">{t('name')}</label>
         <div className="btn-row">
           <input id="sp-name" className="input" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
-          <button className="btn" style={{ flex: 'none' }} disabled={!name.trim() || name.trim() === sp.name}
-            onClick={() => act((r) => r.renameSpace(sp.id, name.trim()), t('saved'))}>{t('save')}</button>
+          <button className="btn" style={{ flex: 'none' }} disabled={!name.trim() || name.trim() === sp.name || busy} aria-busy={pending === 'rename'}
+            onClick={() => submit('rename', (r) => r.renameSpace(sp.id, name.trim()), t('saved'))}>{t('save')}</button>
         </div>
       </div>
 
@@ -60,8 +64,8 @@ export function SpaceSheet({ id }: { id: string }) {
               <div className="main"><div className="t">{person(m)}</div></div>
               {m === sp.ownerId && <span className="pill">{t('owner')}</span>}
               {owner && m !== snap.me.id && (
-                <button className="btn sm danger"
-                  onClick={() => twice(`rm:${m}`, () => void act((r) => r.removeMember(sp.id, m), t('removed', { x: person(m) })))}>
+                <button className="btn sm danger" disabled={busy} aria-busy={pending === `rm:${m}`}
+                  onClick={() => twice(`rm:${m}`, () => void submit(`rm:${m}`, (r) => r.removeMember(sp.id, m), t('removed', { x: person(m) })))}>
                   {confirm === `rm:${m}` ? t('confirmRemove') : t('remove')}
                 </button>
               )}
@@ -79,7 +83,7 @@ export function SpaceSheet({ id }: { id: string }) {
           </div>
           {owner && (
             <span className="tiny muted">
-              <button className="link" onClick={() => act((r) => r.resetInviteCode(sp.id), t('codeReset'))}>{t('newCode')}</button>
+              <button className="link" disabled={busy} aria-busy={pending === 'code'} onClick={() => submit('code', (r) => r.resetInviteCode(sp.id), t('codeReset'))}>{t('newCode')}</button>
               {' · '}{t('newCodeHint')}
             </span>
           )}
@@ -88,11 +92,13 @@ export function SpaceSheet({ id }: { id: string }) {
 
       <div className="field">
         {owner ? (
-          <button className="btn danger" onClick={() => twice('delete', () => void goneFromHere(act((r) => r.setSpaceDeleted(sp.id, true), t('spaceDeleted', { x: sp.name }))))}>
+          <button className="btn danger" disabled={busy} aria-busy={pending === 'delete'}
+            onClick={() => twice('delete', () => void goneFromHere('delete', (r) => r.setSpaceDeleted(sp.id, true), t('spaceDeleted', { x: sp.name })))}>
             {confirm === 'delete' ? t('confirmDel') : t('deleteSpace')}
           </button>
         ) : (
-          <button className="btn danger" onClick={() => twice('leave', () => void goneFromHere(act((r) => r.leaveHousehold(sp.id), t('left', { x: sp.name }))))}>
+          <button className="btn danger" disabled={busy} aria-busy={pending === 'leave'}
+            onClick={() => twice('leave', () => void goneFromHere('leave', (r) => r.leaveHousehold(sp.id), t('left', { x: sp.name })))}>
             {confirm === 'leave' ? t('confirmLeave') : t('leave')}
           </button>
         )}
