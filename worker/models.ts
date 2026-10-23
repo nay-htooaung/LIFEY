@@ -22,8 +22,9 @@ const KEEP_MS = 3600_000
 const looksFree = (id: string) => /-free$/.test(id) || id === 'big-pickle'
 
 /** The free, tool-calling models from both lists, best first. Pure, for tests. */
-export function pickModels(live: string[] | null, catalogue: Record<string, Catalogue> | null): ModelList {
+export function pickModels(live: string[] | null, catalogue: Record<string, Catalogue> | null, preferred: string[] = []): ModelList {
   const ids = live ?? Object.keys(catalogue ?? {})
+  const rank = (id: string) => (preferred.includes(id) ? preferred.indexOf(id) : preferred.length)
   const models = ids
     .map((id) => ({ id, c: catalogue?.[id] }))
     .filter(({ id, c }) => {
@@ -32,8 +33,8 @@ export function pickModels(live: string[] | null, catalogue: Record<string, Cata
       const chat = !c.provider?.npm || c.provider.npm === '@ai-sdk/openai-compatible'
       return free && c.tool_call !== false && chat && c.status !== 'deprecated'
     })
-    // recommended first: can reason, then the most context
-    .sort((a, b) => Number(!!b.c?.reasoning) - Number(!!a.c?.reasoning) || (b.c?.limit?.context ?? 0) - (a.c?.limit?.context ?? 0) || a.id.localeCompare(b.id))
+    // the preferred ones first in their order, then those that can reason, then the most context
+    .sort((a, b) => rank(a.id) - rank(b.id) || Number(!!b.c?.reasoning) - Number(!!a.c?.reasoning) || (b.c?.limit?.context ?? 0) - (a.c?.limit?.context ?? 0) || a.id.localeCompare(b.id))
     .map(({ id, c }) => ({ id, name: c?.name ?? id, ...(c?.limit?.context ? { context: c.limit.context } : {}) }))
   return { models, recommended: models[0]?.id ?? null }
 }
@@ -50,13 +51,14 @@ async function getJson<T>(url: string, init?: RequestInit): Promise<T | null> {
 /** The list, kept in memory for an hour (the Cache API does nothing on workers.dev). */
 let kept: { at: number; list: ModelList } | null = null
 
-export async function freeModels(baseUrl: string, key: string): Promise<ModelList> {
+/** `preferred`: model ids to recommend first, in order (AI_PREFERRED), when they are free and offered. */
+export async function freeModels(baseUrl: string, key: string, preferred: string[]): Promise<ModelList> {
   if (kept && Date.now() - kept.at < KEEP_MS) return kept.list
   const [live, cat] = await Promise.all([
     getJson<{ data?: { id: string }[] }>(`${baseUrl}/models`, { headers: { authorization: `Bearer ${key}` } }),
     getJson<Record<string, { models?: Record<string, Catalogue> }>>(CATALOGUE),
   ])
-  const list = pickModels(live?.data?.map((m) => m.id) ?? null, cat?.opencode?.models ?? null)
+  const list = pickModels(live?.data?.map((m) => m.id) ?? null, cat?.opencode?.models ?? null, preferred)
   // keep only a complete answer, so a hiccup is retried on the next request
   if (live && cat && list.models.length) kept = { at: Date.now(), list }
   return list

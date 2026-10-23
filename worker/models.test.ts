@@ -24,6 +24,11 @@ describe('assistant models', () => {
       recommended: 'big-pickle',
     })
   })
+  it('recommends the preferred ones first when they are offered', () => {
+    const live = ['big-pickle', 'mimo-free', 'gone-free']
+    expect(pickModels(live, catalogue, ['missing-free', 'mimo-free']).recommended).toBe('mimo-free')
+    expect(pickModels(live, catalogue, ['kimi-k3']).recommended).toBe('big-pickle')
+  })
   it('falls back to either list alone', () => {
     expect(pickModels(['kimi-k3', 'x-free'], null).models.map((m) => m.id)).toEqual(['x-free'])
     expect(pickModels(null, catalogue).models.map((m) => m.id)).toEqual(['big-pickle', 'mimo-free', 'gone-free'])

@@ -11,6 +11,8 @@ interface Env {
   /** Secret: an OpenCode (Zen) API key. Only free models are used, so it is never charged. */
   OPENCODE_API_KEY?: string
   AI_BASE_URL: string
+  /** Comma-separated model ids to recommend first, good at calling tools. */
+  AI_PREFERRED?: string
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
 }
@@ -19,6 +21,8 @@ interface Msg { role: 'user' | 'assistant' | 'tool'; content: string | null; too
 
 const MAX_BODY = 400_000
 const MAX_MESSAGES = 120
+
+const preferred = (env: Env) => (env.AI_PREFERRED ?? '').split(',').map((x) => x.trim()).filter(Boolean)
 
 const fail = (status: number, error: string) =>
   new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } })
@@ -29,7 +33,7 @@ export default {
     if (url.pathname === '/api/chat') return req.method === 'POST' ? chat(req, env) : fail(405, 'method')
     if (url.pathname === '/api/models') {
       if (!env.OPENCODE_API_KEY) return fail(503, 'not_configured')
-      return Response.json(await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY), { headers: { 'cache-control': 'no-store' } })
+      return Response.json(await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY, preferred(env)), { headers: { 'cache-control': 'no-store' } })
     }
     if (url.pathname.startsWith('/api/')) return fail(404, 'not_found')
     return env.ASSETS.fetch(req)
@@ -78,7 +82,7 @@ async function chat(req: Request, env: Env): Promise<Response> {
   }
 
   // the model picked in the app, if it is still a free one; otherwise the recommended one
-  const { models, recommended } = await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY)
+  const { models, recommended } = await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY, preferred(env))
   const model = models.some((m) => m.id === body.model) ? body.model! : recommended
   if (!model) return fail(503, 'no_model')
 
