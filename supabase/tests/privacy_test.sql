@@ -224,12 +224,73 @@ do $$ begin
   raise exception 'TEST FAIL: eve added herself without a code';
 exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 
--- sam leaves; the household stays for you
+-- members cannot take over a space or delete it
 select t.as_user('sam');
+do $$ begin
+  update public.spaces set owner_id = auth.uid() where id = current_setting('t.home')::uuid;
+  raise exception 'TEST FAIL: a member changed the owner';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform public.set_space_deleted(current_setting('t.home')::uuid, true);
+  raise exception 'TEST FAIL: a member deleted the space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform public.remove_space_member(current_setting('t.home')::uuid, current_setting('t.you')::uuid);
+  raise exception 'TEST FAIL: a member removed the owner';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+update public.spaces set name = 'Our Place' where id = current_setting('t.home')::uuid;
+select t.ok((select name from public.spaces where id = current_setting('t.home')::uuid) = 'Our Place', 'members can rename a space');
+
+-- sam leaves; nothing is deleted, and rejoining brings it all back
 select public.leave_household(current_setting('t.home')::uuid);
-select t.ok((select count(*) from public.spaces) = 1, 'sam no longer sees the household');
+select t.ok((select count(*) from public.spaces) = 1, 'sam no longer sees the space');
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 0, 'sam no longer sees its entries');
 select t.as_user('you');
-select t.ok((select count(*) from public.space_members where space_id = current_setting('t.home')::uuid) = 1, 'household keeps its other member');
+select t.ok((select count(*) from public.space_members where space_id = current_setting('t.home')::uuid and left_at is null) = 1, 'space keeps its other member');
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid and created_by = current_setting('t.sam')::uuid) = 1,
+            'what sam logged stays');
+select t.ok((select count(*) from public.profiles where id = current_setting('t.sam')::uuid) = 1, 'you still see the name of a member who left');
+do $$ begin
+  perform public.leave_household(current_setting('t.home')::uuid);
+  raise exception 'TEST FAIL: the owner left instead of deleting';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+select t.as_user('sam');
+select public.join_household(current_setting('t.code'));
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 3, 'rejoining shows the entries again');
+
+-- the owner removes sam; a new code keeps him out, the old one no longer works
+select t.as_user('you');
+select public.remove_space_member(current_setting('t.home')::uuid, current_setting('t.sam')::uuid);
+select set_config('t.code2', public.reset_invite_code(current_setting('t.home')::uuid), false);
+select t.as_user('sam');
+select t.ok((select count(*) from public.spaces where id = current_setting('t.home')::uuid) = 0, 'a removed member loses the space');
+do $$ begin
+  perform public.join_household(current_setting('t.code'));
+  raise exception 'TEST FAIL: the old invite code still works';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+select public.join_household(current_setting('t.code2'));
+select t.ok((select count(*) from public.spaces where id = current_setting('t.home')::uuid) = 1, 'invited again with the new code');
+
+-- the owner deletes the space: hidden from everyone, nothing lost, the owner can restore it
+select t.as_user('you');
+select public.set_space_deleted(current_setting('t.home')::uuid, true);
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 0, 'a deleted space shows no entries');
+select t.ok((select deleted_at is not null from public.spaces where id = current_setting('t.home')::uuid), 'the owner still sees the deleted space');
+select t.as_user('sam');
+select t.ok((select count(*) from public.spaces where id = current_setting('t.home')::uuid) = 0, 'members no longer see a deleted space');
+do $$ begin
+  perform public.join_household(current_setting('t.code2'));
+  raise exception 'TEST FAIL: joined a deleted space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform public.set_space_deleted(current_setting('t.home')::uuid, false);
+  raise exception 'TEST FAIL: a member restored the space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+select t.as_user('you');
+select public.set_space_deleted(current_setting('t.home')::uuid, false);
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 3, 'restoring brings every entry back');
+select t.as_user('sam');
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 3, 'members see it again after a restore');
 
 reset role;
 \echo 'privacy tests passed'

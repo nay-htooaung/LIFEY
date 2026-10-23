@@ -115,7 +115,8 @@ export function Select({ id, value, options, onChange, disabled, placeholder, on
       </button>
       {open && host && createPortal(
         <>
-          <div className="sel-scrim" onPointerDown={() => setOpen(false)} />
+          {/* closes on click (not pointerdown), so the tap never reaches the trigger underneath and reopens it */}
+          <div className="sel-scrim" onClick={() => setOpen(false)} />
           <div className="sel-list" role="listbox" ref={list} style={pos} onKeyDown={onKey}>
             {options.map((o) => (
               <button key={o.value} type="button" role="option" aria-selected={o.value === value} onClick={() => pick(o.value)}>

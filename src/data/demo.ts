@@ -107,7 +107,7 @@ export function seedDemo(locale: Locale): Snapshot {
   for (const [n, amt, cat, via, en, ja, by] of trip) e('trip', ago(n), 'expense', amt, cat, via, en, ja, { createdBy: by })
 
   const snap: Snapshot = {
-    me: profiles[ME], profiles, spaces, sources, methods, categories, entries, flows: [],
+    me: profiles[ME], profiles, spaces, deletedSpaces: [], sources, methods, categories, entries, flows: [],
     noSpendDays: [ago(14)],
   }
   return withFlows(snap)
@@ -116,6 +116,7 @@ export function seedDemo(locale: Locale): Snapshot {
 function withFlows(s: Snapshot): Snapshot {
   return {
     ...s,
+    deletedSpaces: s.deletedSpaces ?? [], // demo data saved before spaces could be deleted
     flows: s.entries.map((e) => ({ methodId: e.methodId, sourceId: e.sourceId, kind: e.kind, amount: e.amount, occurredOn: e.occurredOn })),
   }
 }
@@ -210,6 +211,24 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
         spaces: snap.spaces.filter((s) => s.id !== spaceId),
         entries: snap.entries.filter((e) => e.spaceId !== spaceId),
       })
+    },
+    async renameSpace(spaceId, name) {
+      commit({ ...snap, spaces: snap.spaces.map((s) => (s.id === spaceId ? { ...s, name } : s)) })
+    },
+    async removeMember(spaceId, memberId) {
+      commit({ ...snap, spaces: snap.spaces.map((s) => (s.id === spaceId ? { ...s, memberIds: s.memberIds.filter((m) => m !== memberId) } : s)) })
+    },
+    async setSpaceDeleted(spaceId, deleted) {
+      const [from, to] = deleted ? [snap.spaces, snap.deletedSpaces] : [snap.deletedSpaces, snap.spaces]
+      const space = from.find((s) => s.id === spaceId)
+      if (!space) return
+      const rest = from.filter((s) => s.id !== spaceId)
+      commit({ ...snap, ...(deleted ? { spaces: rest, deletedSpaces: [...to, space] } : { deletedSpaces: rest, spaces: [...to, space] }) })
+    },
+    async resetInviteCode(spaceId) {
+      const code = 'LFY-' + uid().replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase()
+      commit({ ...snap, spaces: snap.spaces.map((s) => (s.id === spaceId ? { ...s, inviteCode: code } : s)) })
+      return code
     },
     async markNoSpend(day) {
       commit({ ...snap, noSpendDays: [...new Set([...snap.noSpendDays, day])] })

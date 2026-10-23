@@ -22,6 +22,7 @@ export interface Space {
   tone: Tone
   ownerId: string
   inviteCode: string | null
+  /** Active members only; people who left or were removed are not listed. */
   memberIds: string[]
 }
 
@@ -94,6 +95,8 @@ export interface Snapshot {
   me: Profile
   profiles: Record<string, Profile>
   spaces: Space[]
+  /** Spaces I own and deleted. They can be restored with everything in them. */
+  deletedSpaces: Space[]
   sources: Source[]
   methods: PaymentMethod[]
   categories: Category[]

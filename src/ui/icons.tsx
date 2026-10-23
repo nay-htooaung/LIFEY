@@ -13,3 +13,4 @@ export const IconRepeat = (p: P) => (<svg className="ico" {...base} strokeWidth=
 export const IconLock = (p: P) => (<svg className="ico" {...base} strokeWidth={2.2} {...p}><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>)
 export const IconSearch = (p: P) => (<svg width={18} height={18} {...base} style={{ color: 'var(--muted)' }} {...p}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>)
 export const IconChevron = (p: P) => (<svg width={16} height={16} {...base} strokeWidth={2.4} {...p}><path d="M6 9l6 6 6-6" /></svg>)
+export const IconEdit = (p: P) => (<svg width={18} height={18} {...base} {...p}><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>)

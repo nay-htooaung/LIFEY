@@ -19,6 +19,11 @@ export interface Repo {
   createHousehold(name: string, tone: Tone): Promise<string>
   joinHousehold(code: string): Promise<string>
   leaveHousehold(spaceId: string): Promise<void>
+  renameSpace(spaceId: string, name: string): Promise<void>
+  removeMember(spaceId: string, userId: string): Promise<void>
+  /** Deletes (true) or restores (false) a space I own. Nothing in it is erased. */
+  setSpaceDeleted(spaceId: string, deleted: boolean): Promise<void>
+  resetInviteCode(spaceId: string): Promise<string>
   markNoSpend(day: Day): Promise<void>
   updateProfile(patch: Partial<Pick<Profile, 'displayName' | 'locale'>>): Promise<void>
   signOut(): Promise<void>

@@ -231,6 +231,9 @@ details[open] summary { margin-bottom: 10px; }
 .kv > span:first-child { color: var(--muted); flex: none; }
 .kv > span:last-child { text-align: right; min-width: 0; }
 .kv:last-child { border-bottom: 0; }
+.sp-item { position: relative; }
+.sp-item .sp-row { padding-right: 56px; }
+.icon-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--card-2); display: grid; place-items: center; color: var(--muted); }
 .sp-row { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 18px; background: var(--paper); width: 100%; text-align: left; }
 .sp-row[aria-pressed='true'] { border-color: var(--acc); background: var(--acc-soft); }
 .mods { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }

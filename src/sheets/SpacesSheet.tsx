@@ -3,10 +3,13 @@ import type { Tone } from '../domain/types'
 import { useI18n } from '../i18n'
 import { toneVar, usePersonName, useStore } from '../data/store'
 import { Avatar, SpaceDot } from '../ui/bits'
+import { IconEdit } from '../ui/icons'
 import { useUI } from '../ui/ui'
+import { SpaceSheet } from './SpaceSheet'
 
 const TONES: Tone[] = ['a', 'b', 'c', 'd']
 
+/** Pick a space, open a shared space's settings, create or join one, restore a deleted one. */
 export function SpacesSheet() {
   const { snap, space, setSpace, act } = useStore()
   const ui = useUI()
@@ -14,7 +17,6 @@ export function SpacesSheet() {
   const person = usePersonName()
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
-  const [confirmLeave, setConfirmLeave] = useState(false)
 
   const pick = (id: string) => {
     setSpace(id)
@@ -38,41 +40,30 @@ export function SpacesSheet() {
       ui.toast(t('joined', { x: c.toUpperCase() }))
     }
   }
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      ui.toast(t('copied'))
-    } catch {
-      /* the code is selectable as a fallback */
-    }
-  }
 
   return (
     <>
       <h2>{t('spacesTitle')}</h2>
       <p className="lead">{t('spacesSub')}</p>
       {snap.spaces.map((s) => (
-        <button key={s.id} className="sp-row" aria-pressed={space.id === s.id} style={{ ['--acc' as string]: toneVar(s) }} onClick={() => pick(s.id)}>
-          <SpaceDot name={s.name} tone={s.tone} large />
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <b>{s.name}</b><br />
-            <span className="tiny muted">{s.kind === 'personal' ? t('onlyYouSp') : t('members', { n: s.memberIds.length })}</span>
-          </span>
+        <div key={s.id} className="sp-item" style={{ ['--acc' as string]: toneVar(s) }}>
+          <button className="sp-row" aria-pressed={space.id === s.id} onClick={() => pick(s.id)}>
+            <SpaceDot name={s.name} tone={s.tone} large />
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <b>{s.name}</b><br />
+              <span className="tiny muted">{s.kind === 'personal' ? t('onlyYouSp') : t('members', { n: s.memberIds.length })}</span>
+            </span>
+            {s.kind === 'household' && (
+              <span className="avatars">{s.memberIds.map((id) => <Avatar key={id} profile={snap.profiles[id]} label={person(id)} />)}</span>
+            )}
+          </button>
           {s.kind === 'household' && (
-            <span className="avatars">{s.memberIds.map((id) => <Avatar key={id} profile={snap.profiles[id]} label={person(id)} />)}</span>
+            <button className="icon-btn" aria-label={t('spaceSettings', { x: s.name })} onClick={() => ui.push(<SpaceSheet id={s.id} />, toneVar(s))}>
+              <IconEdit />
+            </button>
           )}
-        </button>
-      ))}
-
-      {space.kind === 'household' && space.inviteCode && (
-        <div className="field">
-          <span className="label">{t('inviteCode')} · {space.name}</span>
-          <div className="code-box">
-            <span className="num">{space.inviteCode}</span>
-            <button className="link" onClick={() => copy(space.inviteCode!)}>{t('copy')}</button>
-          </div>
         </div>
-      )}
+      ))}
 
       <div className="field">
         <label className="label" htmlFor="hh-name">{t('hhName')}</label>
@@ -89,19 +80,21 @@ export function SpacesSheet() {
         </div>
       </div>
 
-      {space.kind === 'household' && (
-        <button
-          className="btn danger"
-          onClick={async () => {
-            if (!confirmLeave) return setConfirmLeave(true)
-            const left = space
-            ui.close()
-            await act((r) => r.leaveHousehold(left.id), t('left', { x: left.name }))
-            setSpace(snap.spaces.find((s) => s.kind === 'personal')!.id)
-          }}
-        >
-          {confirmLeave ? t('confirmLeave') : `${t('leave')} · ${space.name}`}
-        </button>
+      {snap.deletedSpaces.length > 0 && (
+        <div className="field">
+          <span className="label">{t('deletedSpaces')}</span>
+          <div className="card list">
+            {snap.deletedSpaces.map((s) => (
+              <div key={s.id} className="row">
+                <SpaceDot name={s.name} tone={s.tone} />
+                <div className="main"><div className="t">{s.name}</div></div>
+                <button className="btn sm" onClick={() => act((r) => r.setSpaceDeleted(s.id, false), t('spaceRestored', { x: s.name }))}>
+                  {t('restore')}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </>
   )

@@ -47,7 +47,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
       const [profiles, spaces, members, sources, methods, cats, entries, flows, noSpend] = await Promise.all([
         sb.from('profiles').select('*'),
         sb.from('spaces').select('*').order('created_at'),
-        sb.from('space_members').select('space_id,user_id,joined_at').order('joined_at'),
+        sb.from('space_members').select('space_id,user_id,joined_at').is('left_at', null).order('joined_at'),
         sb.from('sources').select('*').eq('archived', false).order('created_at'),
         sb.from('payment_methods').select('*').eq('archived', false).order('created_at'),
         sb.from('categories').select('*').eq('archived', false).order('sort').order('created_at'),
@@ -57,16 +57,18 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
       ])
       const profs = Object.fromEntries((check(profiles) as Row[]).map((r) => [r.id, toProfile(r)]))
       const memberRows = check(members) as Row[]
-      const spaceList: Space[] = (check(spaces) as Row[])
-        .map((r) => ({
-          id: r.id, kind: r.kind, name: r.name, tone: r.tone, ownerId: r.owner_id, inviteCode: r.invite_code,
-          memberIds: memberRows.filter((m) => m.space_id === r.id).map((m) => m.user_id),
-        }))
+      const spaceRows = check(spaces) as Row[]
+      const toSpace = (r: Row): Space => ({
+        id: r.id, kind: r.kind, name: r.name, tone: r.tone, ownerId: r.owner_id, inviteCode: r.invite_code,
+        memberIds: memberRows.filter((m) => m.space_id === r.id).map((m) => m.user_id),
+      })
+      const spaceList: Space[] = spaceRows.filter((r) => !r.deleted_at).map(toSpace)
         .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'personal' ? -1 : 1))
       return {
         me: profs[userId],
         profiles: profs,
         spaces: spaceList,
+        deletedSpaces: spaceRows.filter((r) => r.deleted_at).map(toSpace),
         sources: (check(sources) as Row[]).map(toSource),
         methods: (check(methods) as Row[]).map(toMethod),
         categories: (check(cats) as Row[]).map(toCategory),
@@ -117,6 +119,18 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     },
     async leaveHousehold(spaceId) {
       check(await sb.rpc('leave_household', { p_space: spaceId }))
+    },
+    async renameSpace(spaceId, name) {
+      check(await sb.from('spaces').update({ name }).eq('id', spaceId))
+    },
+    async removeMember(spaceId, memberId) {
+      check(await sb.rpc('remove_space_member', { p_space: spaceId, p_user: memberId }))
+    },
+    async setSpaceDeleted(spaceId, deleted) {
+      check(await sb.rpc('set_space_deleted', { p_space: spaceId, p_deleted: deleted }))
+    },
+    async resetInviteCode(spaceId) {
+      return check(await sb.rpc('reset_invite_code', { p_space: spaceId })) as string
     },
     async markNoSpend(day) {
       check(await sb.from('no_spend_days').upsert({ user_id: userId, day }, { ignoreDuplicates: true }))

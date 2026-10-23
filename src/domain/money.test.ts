@@ -78,7 +78,7 @@ describe('safe to spend', () => {
   it('spreads what is left after scheduled bills over the remaining days', () => {
     const s: Snapshot = {
       me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en' },
-      profiles: {}, spaces: [], sources: [chk], methods: [debit], flows: [], noSpendDays: [],
+      profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], noSpendDays: [],
       categories: [
         { id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense', monthlyBudget: 30000, sort: 0 },
         { id: 'gym', spaceId: 'me', name: 'Gym', color: '#000', kind: 'expense', monthlyBudget: 8000, sort: 0 },
