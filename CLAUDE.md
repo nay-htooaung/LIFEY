@@ -17,7 +17,9 @@ README.md covers setup; this file is the rules and decisions every session needs
 - Nothing is hard-deleted: sources and methods are `archived`, members get `left_at`, spaces get `deleted_at`.
   Each can be restored, and rejoining or restoring brings the data back.
 - Only run SQL against Supabase when a task cannot be done another way (e.g. creating an invite code), and say why.
-  Check migrations and deploys through the CI log instead.
+  Check migrations and deploys through the CI log instead. Never apply migrations with the Supabase MCP
+  `apply_migration` tool (it hangs on SQL containing DELETE and skips the repo's history); CI applies them.
+- When removing a feature, remove the code, i18n keys and CSS it leaves unused, in the same commit.
 - Do not touch prod (`lifey-prod`) and do not open or merge a PR to `main` unless the user asks.
   The user releases to prod themselves at v1.0.0.
 
@@ -53,6 +55,11 @@ The user asks for a change; carry it through to dev without being told each step
 - `main` still holds the old app (July, `frontend/`+`backend/`, Tailwind), as do the `story/*` branches.
   Merging `rebuild/money-mvp` replaces it.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
+- Latest migration: `20261023080000_signup_theme.sql`.
+- Pushing deploys dev; to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
+  build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
+- The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
+- Dev has throwaway test accounts (`smoke.*@example.com`); leave them.
 - Parallel sessions may work on their own branches (`ccr-*`) cut from `rebuild/money-mvp`. Before adding a
   migration, `git fetch` and pick a timestamp later than any migration on any branch, so two never collide.
 
@@ -85,6 +92,21 @@ The user asks for a change; carry it through to dev without being told each step
   - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`); `accountForecast` sums it per source.
 - Privacy: other members never see your personal methods or sources, only "<name>'s personal funds".
   Members may update only a space's `name` and `tone` (column grant).
+
+## Names and removed features
+
+The user uses the app in Japanese. Agreed names (en / ja): Expense 支出, Income 収入, Transfer 振替 (fee 手数料),
+History 履歴, Coming up 今後の予定, Space スペース, Duplicate 複製 (copy an entry to today),
+Edit schedule 繰り返しを編集, Edit this entry この記録を編集.
+
+Removed on purpose; do not bring back without asking:
+
+- Today: the streak card and no-spend days, the list of spaces, Recent entries.
+- History: search and filter chips (it is a month calendar now).
+- Sign-in: "Try with example data" (demo mode only runs when the build has no Supabase settings).
+- "Bank transfer ·" in front of source names under Paid with (sources are listed by name).
+- Native `<select>`, closing a sheet by dragging its body, and the words household / グループ in the UI.
+- "+ New" under Save to (creating a space mid-entry would switch spaces).
 
 ## Working with the user
 
