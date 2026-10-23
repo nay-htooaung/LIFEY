@@ -42,6 +42,8 @@ export interface PaymentMethod {
   kind: MethodKind
   sourceId: string
   creditLimit: number | null
+  /** Credit only. The card whose limit this one shares (same account, family card); its own creditLimit is then null. */
+  limitSharedWith: string | null
   /** Credit only. Statement closes on this day; it is paid on paymentDay of the following month. */
   closingDay: number | null
   paymentDay: number | null

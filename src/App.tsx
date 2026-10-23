@@ -4,7 +4,7 @@ import type { Locale } from './domain/types'
 import { createCloudRepo } from './data/cloud'
 import { createDemoRepo, type DemoRepo } from './data/demo'
 import type { Repo } from './data/repo'
-import { StoreProvider, toneVar, useStore } from './data/store'
+import { LOCALE_KEY, StoreProvider, toneVar, useStore } from './data/store'
 import { supabase } from './data/supabase'
 import { useI18n } from './i18n'
 import { Activity } from './screens/Activity'
@@ -13,9 +13,10 @@ import { SignIn } from './screens/SignIn'
 import { Today } from './screens/Today'
 import { Wallet } from './screens/Wallet'
 import { EntrySheet } from './sheets/EntrySheet'
-import { LOCALE_KEY, MenuSheet } from './sheets/MenuSheet'
+import { MenuSheet } from './sheets/MenuSheet'
+import { ProfileSheet } from './sheets/ProfileSheet'
 import { SpacesSheet } from './sheets/SpacesSheet'
-import { SpaceDot } from './ui/bits'
+import { Avatar, SpaceDot } from './ui/bits'
 import { IconChevron, IconList, IconPlan, IconPlus, IconToday, IconWallet } from './ui/icons'
 import { UIOutlet, UIProvider, useUI } from './ui/ui'
 
@@ -152,13 +153,19 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): void; onRe
     <div className="app" style={{ '--acc': toneVar(space) } as CSSProperties}>
       <header className="top">
         <button className="mod-btn" aria-label="lifey"
-          onClick={() => ui.open(<MenuSheet onSignOut={canSignOut ? onSignOut : undefined} onResetDemo={onResetDemo} />)}>
+          onClick={() => ui.open(<MenuSheet />)}>
           lifey <small>{t('money')}</small><IconChevron />
         </button>
-        <button className="space-btn" aria-label={`${t('space')}: ${space.name}`} onClick={() => ui.open(<SpacesSheet />)}>
-          <SpaceDot name={space.kind === 'personal' ? label : space.name} tone={space.tone} />
-          <span className="nm">{space.name}</span><IconChevron />
-        </button>
+        <div className="top-r">
+          <button className="space-btn" aria-label={`${t('space')}: ${space.name}`} onClick={() => ui.open(<SpacesSheet />)}>
+            <SpaceDot name={space.kind === 'personal' ? label : space.name} tone={space.tone} />
+            <span className="nm">{space.name}</span><IconChevron />
+          </button>
+          <button className="me-btn" aria-label={t('profile')}
+            onClick={() => ui.open(<ProfileSheet onSignOut={canSignOut ? onSignOut : undefined} onResetDemo={onResetDemo} />)}>
+            <Avatar profile={snap.me} label={snap.me.displayName || t('me')} />
+          </button>
+        </div>
       </header>
       <main className="scroll" key={tab + space.id}>
         {tab === 'today' && <Today go={go} />}

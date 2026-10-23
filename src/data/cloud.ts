@@ -12,7 +12,7 @@ const toSource = (r: Row): Source => ({
 })
 const toMethod = (r: Row): PaymentMethod => ({
   id: r.id, spaceId: r.space_id, name: r.name, kind: r.kind, sourceId: r.source_id,
-  creditLimit: r.credit_limit == null ? null : Number(r.credit_limit), closingDay: r.closing_day, paymentDay: r.payment_day,
+  creditLimit: r.credit_limit == null ? null : Number(r.credit_limit), limitSharedWith: r.limit_shared_with ?? null, closingDay: r.closing_day, paymentDay: r.payment_day,
 })
 const toCategory = (r: Row): Category => ({
   id: r.id, spaceId: r.space_id, name: r.name, color: r.color, kind: r.kind, monthlyBudget: Number(r.monthly_budget), sort: r.sort,
@@ -24,6 +24,11 @@ const toEntry = (r: Row): Entry => ({
 const entryRow = (e: Omit<Entry, 'id' | 'createdBy'>) => ({
   space_id: e.spaceId, kind: e.kind, amount: e.amount, category_id: e.categoryId, method_id: e.kind === 'expense' ? e.methodId : null,
   source_id: e.kind === 'income' ? e.sourceId : null, occurred_on: e.occurredOn, note: e.note, tags: e.tags, repeat: e.repeat, repeat_of: e.repeatOf,
+})
+
+const methodRow = (m: Omit<PaymentMethod, 'id'>) => ({
+  space_id: m.spaceId, name: m.name, kind: m.kind, source_id: m.sourceId, credit_limit: m.creditLimit,
+  limit_shared_with: m.limitSharedWith, closing_day: m.closingDay, payment_day: m.paymentDay,
 })
 
 function check<T>(res: { data: T; error: { message: string; code?: string } | null }): T {
@@ -88,13 +93,10 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
       return (r as Row).id
     },
     async addMethod(m) {
-      const r = check(
-        await sb.from('payment_methods').insert({
-          space_id: m.spaceId, name: m.name, kind: m.kind, source_id: m.sourceId,
-          credit_limit: m.creditLimit, closing_day: m.closingDay, payment_day: m.paymentDay,
-        }).select('id').single(),
-      )
-      return (r as Row).id
+      return (check(await sb.from('payment_methods').insert(methodRow(m)).select('id').single()) as Row).id
+    },
+    async updateMethod(id, m) {
+      check(await sb.from('payment_methods').update(methodRow(m)).eq('id', id))
     },
     async saveCategory(c) {
       const row = { space_id: c.spaceId, name: c.name, color: c.color, kind: c.kind, monthly_budget: c.monthlyBudget, sort: c.sort }

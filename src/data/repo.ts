@@ -13,6 +13,7 @@ export interface Repo {
   deleteEntry(id: string): Promise<void>
   addSource(source: NewSource): Promise<string>
   addMethod(method: NewMethod): Promise<string>
+  updateMethod(id: string, method: NewMethod): Promise<void>
   saveCategory(category: CategoryInput): Promise<string>
   archiveCategory(id: string): Promise<void>
   createHousehold(name: string, tone: Tone): Promise<string>

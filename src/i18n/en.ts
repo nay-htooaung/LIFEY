@@ -51,6 +51,9 @@ export const en = {
   signupCode: 'Invitation code', signupCodeHint: 'Ask the owner for one. Each code works once.',
   badInvite: 'That invitation code is wrong, expired or already used. Ask for a new one.',
   genericError: 'Something went wrong: {m}', offline: "You're offline. Changes need a connection.", loading: 'Loading…',
+  editMethod: 'Edit payment method', limitLabel: 'Limit', ownLimit: 'Its own limit', shareLimit: 'Shares the limit of {x}',
+  shareLimitHint: 'Cards on one account, like family or extra cards, often share one limit.', alsoOnLimit: 'Same limit as {x}',
+  profile: 'Profile',
   installTitle: 'Install Lifey', installBody: 'Open it from your home screen, full screen, like any other app.', installBtn: 'Install',
   installIos: 'In Safari, tap Share, then Add to Home Screen.', notNow: 'Not now', installed: 'Installed',
 } as const

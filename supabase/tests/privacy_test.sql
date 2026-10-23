@@ -78,6 +78,34 @@ insert into public.payment_methods (space_id, name, kind, source_id)
 values (current_setting('t.home')::uuid, 'Joint debit', 'debit', current_setting('t.joint')::uuid)
 returning set_config('t.jdeb', id::text, false) \gset
 
+-- cards sharing one credit limit
+insert into public.payment_methods (space_id, name, kind, source_id, credit_limit, closing_day, payment_day, limit_shared_with)
+values (current_setting('t.my_space')::uuid, 'Visa family', 'credit', current_setting('t.chk')::uuid, 999, 15, 26, current_setting('t.visa')::uuid)
+returning set_config('t.visa2', id::text, false) \gset
+select t.ok((select credit_limit from public.payment_methods where id = current_setting('t.visa2')::uuid) is null, 'a sharing card has no limit of its own');
+do $$ begin
+  insert into public.payment_methods (space_id, name, kind, source_id, closing_day, payment_day, limit_shared_with)
+  values (current_setting('t.my_space')::uuid, 'Chain', 'credit', current_setting('t.chk')::uuid, 15, 26, current_setting('t.visa2')::uuid);
+  raise exception 'TEST FAIL: shared a limit through another sharing card';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  update public.payment_methods set limit_shared_with = current_setting('t.visa2')::uuid where id = current_setting('t.visa')::uuid;
+  raise exception 'TEST FAIL: a card others share with pointed elsewhere';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  update public.payment_methods set kind = 'debit', closing_day = null, payment_day = null where id = current_setting('t.visa')::uuid;
+  raise exception 'TEST FAIL: a shared card stopped being credit';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.payment_methods (space_id, name, kind, source_id, closing_day, payment_day, limit_shared_with)
+  values (current_setting('t.home')::uuid, 'Cross', 'credit', current_setting('t.joint')::uuid, 15, 26, current_setting('t.visa')::uuid);
+  raise exception 'TEST FAIL: shared a limit with a card in another space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  update public.payment_methods set limit_shared_with = current_setting('t.visa')::uuid where id = current_setting('t.jdeb')::uuid;
+  raise exception 'TEST FAIL: a debit card shared a credit limit';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
 -- a household entry paid with your personal card
 insert into public.entries (space_id, kind, amount, method_id, note)
 values (current_setting('t.home')::uuid, 'expense', 5400, current_setting('t.visa')::uuid, 'Pizza night')

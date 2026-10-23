@@ -33,6 +33,22 @@ export function creditOutstanding(method: PaymentMethod, flows: Flow[], on: Day)
   return sum(charges(flows, method.id).filter((f) => paymentDateFor(f.occurredOn, method) > on).map((f) => f.amount))
 }
 
+/**
+ * Limit and usage for a credit card, counting every card that shares the same limit.
+ * Null when the card (or the card it shares with) has no limit set.
+ */
+export function creditLimitUse(method: PaymentMethod, methods: PaymentMethod[], flows: Flow[], on: Day) {
+  const owner = method.limitSharedWith ? methods.find((m) => m.id === method.limitSharedWith) : method
+  if (!owner?.creditLimit) return null
+  const group = methods.filter((m) => m.id === owner.id || m.limitSharedWith === owner.id)
+  return {
+    limit: owner.creditLimit,
+    used: sum(group.map((m) => creditOutstanding(m, flows, on))),
+    /** The other cards on this limit. */
+    others: group.filter((m) => m.id !== method.id),
+  }
+}
+
 /** The next payment due on or after `on`, with everything charged to that statement so far. */
 export function nextCardPayment(method: PaymentMethod, flows: Flow[], on: Day): { on: Day; amount: number } | null {
   const byDate = new Map<Day, number>()

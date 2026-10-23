@@ -1,4 +1,4 @@
-import { creditOutstanding, netPosition, nextCardPayment, sourceBalance } from '../domain/money'
+import { creditLimitUse, creditOutstanding, netPosition, nextCardPayment, sourceBalance } from '../domain/money'
 import type { MethodKind, SourceKind } from '../domain/types'
 import { parts } from '../domain/dates'
 import { useI18n, yen } from '../i18n'
@@ -48,30 +48,32 @@ export function Wallet() {
       {methods.filter((m) => m.kind === 'credit').map((m) => {
         const owed = creditOutstanding(m, snap.flows, today)
         const next = nextCardPayment(m, snap.flows, today)
-        const used = m.creditLimit ? owed / m.creditLimit : 0
+        const lim = creditLimitUse(m, snap.methods, snap.flows, today)
+        const used = lim ? lim.used / lim.limit : 0
         return (
-          <div key={m.id} className="cc">
+          <button key={m.id} className="cc" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
             <div className="row1"><b>{m.name}</b><span className="muted">{t('credit')}</span></div>
             <div><div className="tiny muted">{t('curBal')}</div><div className="bal">{yen(owed)}</div></div>
-            {m.creditLimit ? <div className="util"><i style={{ width: `${Math.min(100, used * 100)}%` }} /></div> : null}
+            {lim ? <div className="util"><i style={{ width: `${Math.min(100, used * 100)}%` }} /></div> : null}
             <div className="meta">
-              {m.creditLimit ? <span>{t('ofLimit', { p: Math.round(used * 100), l: yen(m.creditLimit) })}</span> : <span />}
+              {lim ? <span>{t('ofLimit', { p: Math.round(used * 100), l: yen(lim.limit) })}</span> : <span />}
               <span>{m.closingDay === 31 ? t('lastDay') : t('closes', { d: ordinal(m.closingDay ?? 31) })}</span>
             </div>
             <div className="meta">
               <b>{next ? t('payIn', { a: yen(next.amount), d: dueLabel(next.on) }) : t('noPayment')}</b>
               <span>{t('from', { s: source.get(m.sourceId)?.name ?? '—' })}</span>
             </div>
-          </div>
+            {lim && lim.others.length > 0 && <div className="meta"><span>{t('alsoOnLimit', { x: lim.others.map((o) => o.name).join(', ') })}</span></div>}
+          </button>
         )
       })}
       {methods.some((m) => m.kind !== 'credit') && (
         <div className="card list">
           {methods.filter((m) => m.kind !== 'credit').map((m) => (
-            <div key={m.id} className="row">
+            <button key={m.id} className="row" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
               <span className="glyph plain">{METHOD_GLYPH[m.kind]}</span>
               <div className="main"><div className="t">{m.name}</div><div className="s">{t(m.kind)} · {t('from', { s: source.get(m.sourceId)?.name ?? '—' })}</div></div>
-            </div>
+            </button>
           ))}
         </div>
       )}

@@ -38,7 +38,7 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   const startCash = () =>
     act(async (r) => {
       const src = await r.addSource({ spaceId: personal.id, name: t('cash'), kind: 'cash', openingBalance: 0 })
-      await r.addMethod({ spaceId: personal.id, name: t('cash'), kind: 'cash', sourceId: src, creditLimit: null, closingDay: null, paymentDay: null })
+      await r.addMethod({ spaceId: personal.id, name: t('cash'), kind: 'cash', sourceId: src, creditLimit: null, limitSharedWith: null, closingDay: null, paymentDay: null })
     }, t('added', { x: t('cash') }))
 
   return (

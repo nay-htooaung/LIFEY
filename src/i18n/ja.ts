@@ -53,6 +53,9 @@ export const ja: Record<MessageKey, string> = {
   signupCode: '登録用の招待コード', signupCodeHint: '管理者にもらってください。1つのコードで1回だけ登録できます。',
   badInvite: 'この招待コードは違うか、期限切れか、使用済みです。新しいコードをもらってください。',
   genericError: 'エラーが発生しました: {m}', offline: 'オフラインです。変更には接続が必要です。', loading: '読み込み中…',
+  editMethod: '支払い方法を編集', limitLabel: '利用枠', ownLimit: 'このカード独自の利用枠', shareLimit: '{x}と利用枠を共有',
+  shareLimitHint: '家族カードや追加カードなど、同じ口座のカードは利用枠を共有していることがあります。', alsoOnLimit: '{x}と同じ利用枠',
+  profile: 'プロフィール',
   installTitle: 'Lifeyをインストール', installBody: 'ホーム画面から、ほかのアプリと同じように全画面で開けます。', installBtn: 'インストール',
   installIos: 'Safariの共有ボタンを押して「ホーム画面に追加」を選んでください。', notNow: 'あとで', installed: 'インストールしました',
 }

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { today as todayFn } from '../domain/dates'
 import { dueOccurrences } from '../domain/recurring'
-import type { Day, PaymentMethod, Snapshot, Source, Space } from '../domain/types'
+import type { Day, Locale, PaymentMethod, Snapshot, Source, Space } from '../domain/types'
 import { I18nContext, makeI18n, useI18n } from '../i18n'
 import { useUI } from '../ui/ui'
 import { RepoError, type Repo } from './repo'
@@ -13,6 +13,8 @@ interface Store {
   space: Space
   personal: Space
   setSpace(id: string): void
+  /** Switches the language at once and saves it in the background. */
+  setLocale(l: Locale): void
   /** Runs a change, reloads, and shows a toast. Errors become an error toast. */
   act<T>(fn: (repo: Repo) => Promise<T>, done?: string | ((v: T) => string), opts?: { flame?: boolean }): Promise<T | undefined>
   reload(): Promise<void>
@@ -26,6 +28,7 @@ export const useStore = () => {
 }
 
 const SPACE_KEY = 'lifey-space'
+export const LOCALE_KEY = 'lifey-locale'
 
 export function StoreProvider({ repo, children, fallback }: { repo: Repo; children: ReactNode; fallback: ReactNode }) {
   const [snap, setSnap] = useState<Snapshot | null>(null)
@@ -38,6 +41,8 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
   })
   const [day, setDay] = useState(todayFn())
   const [error, setError] = useState<string | null>(null)
+  // The chosen language wins over the loaded profile until the save has round-tripped.
+  const [localeChoice, setLocaleChoice] = useState<Locale | null>(null)
   const ui = useUI()
   const loading = useRef(false)
 
@@ -67,7 +72,8 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
     return repo.subscribe(() => void reload())
   }, [repo, reload])
 
-  const i18n = useMemo(() => makeI18n(snap?.me.locale ?? 'en'), [snap?.me.locale])
+  const locale = localeChoice ?? snap?.me.locale ?? 'en'
+  const i18n = useMemo(() => makeI18n(locale), [locale])
 
   const value = useMemo<Store | null>(() => {
     if (!snap) return null
@@ -86,6 +92,16 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
         } catch {
           /* ignore */
         }
+      },
+      setLocale(l) {
+        setLocaleChoice(l)
+        try {
+          localStorage.setItem(LOCALE_KEY, l)
+        } catch {
+          /* ignore */
+        }
+        repo.updateProfile({ locale: l }).catch((e) =>
+          ui.toast(makeI18n(l).t('genericError', { m: e instanceof Error ? e.message : String(e) }), { error: true }))
       },
       reload,
       async act(fn, done, opts) {

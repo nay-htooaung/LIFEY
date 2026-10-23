@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { creditLimitUse, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { dueOccurrences, nextOccurrence } from './recurring'
 import { streak } from './streak'
 import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 
-const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, closingDay: 15, paymentDay: 10 }
+const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10 }
 const eom: PaymentMethod = { ...visa, id: 'eom', closingDay: 31, paymentDay: 27 }
 const debit: PaymentMethod = { ...visa, id: 'deb', kind: 'debit', closingDay: null, paymentDay: null }
 const chk: Source = { id: 'chk', spaceId: 'me', name: 'Bank', kind: 'bank', openingBalance: 100000, createdOn: '2026-09-01' }
@@ -104,5 +104,23 @@ describe('streak', () => {
     const es = [entry({ occurredOn: '2026-10-22' }), entry({ occurredOn: '2026-10-21' })]
     expect(streak(es, ['2026-10-20'], 'u1', '2026-10-23')).toMatchObject({ count: 3, doneToday: false })
     expect(streak(es, [], 'u1', '2026-10-22')).toMatchObject({ count: 2, doneToday: true })
+  })
+})
+
+describe('shared credit limits', () => {
+  const family: PaymentMethod = { ...visa, id: 'fam', creditLimit: null, limitSharedWith: 'visa' }
+  const flows = [flow('visa', 30000, '2026-10-20'), flow('fam', 20000, '2026-10-21'), flow('eom', 99000, '2026-10-21')]
+  const methods = [visa, family, eom]
+
+  it('counts every card on the limit', () => {
+    expect(creditLimitUse(visa, methods, flows, '2026-10-22')).toMatchObject({ limit: 500000, used: 50000 })
+    expect(creditLimitUse(family, methods, flows, '2026-10-22')).toMatchObject({ limit: 500000, used: 50000 })
+    expect(creditLimitUse(family, methods, flows, '2026-10-22')?.others.map((m) => m.id)).toEqual(['visa'])
+  })
+  it('keeps separate limits apart', () => {
+    expect(creditLimitUse(eom, methods, flows, '2026-10-22')).toMatchObject({ limit: 500000, used: 99000 })
+  })
+  it('has no usage without a limit', () => {
+    expect(creditLimitUse({ ...visa, creditLimit: null }, [], flows, '2026-10-22')).toBeNull()
   })
 })

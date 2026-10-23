@@ -48,7 +48,7 @@ export function seedDemo(locale: Locale): Snapshot {
     S('jar', 'home', 'Household envelope', '生活費の封筒', 'cash', 12000), S('tcash', 'trip', 'Trip wallet', '旅行用の財布', 'cash', 30000),
   ]
   const M = (id: string, spaceId: string, en: string, ja: string, kind: PaymentMethod['kind'], sourceId: string, credit?: [number, number, number]): PaymentMethod =>
-    ({ id, spaceId, name: L(en, ja), kind, sourceId, creditLimit: credit?.[0] ?? null, closingDay: credit?.[1] ?? null, paymentDay: credit?.[2] ?? null })
+    ({ id, spaceId, name: L(en, ja), kind, sourceId, creditLimit: credit?.[0] ?? null, limitSharedWith: null, closingDay: credit?.[1] ?? null, paymentDay: credit?.[2] ?? null })
   const methods: PaymentMethod[] = [
     M('m-cash', 'me', 'Cash', '現金', 'cash', 'cash'), M('m-deb', 'me', 'Debit ••4421', 'デビット ••4421', 'debit', 'chk'),
     M('m-pp', 'me', 'PayPay', 'PayPay', 'emoney', 'chk'), M('m-suica', 'me', 'Suica', 'Suica', 'emoney', 'chk'),
@@ -170,6 +170,9 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
       const id = uid()
       commit({ ...snap, methods: [...snap.methods, { ...m, id }] })
       return id
+    },
+    async updateMethod(id: string, m: NewMethod) {
+      commit({ ...snap, methods: snap.methods.map((x) => (x.id === id ? { ...m, id } : x)) })
     },
     async saveCategory(c: CategoryInput) {
       const id = c.id ?? uid()

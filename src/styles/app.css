@@ -28,7 +28,12 @@ button { cursor: pointer; }
 }
 .mod-btn { display: flex; align-items: center; gap: 6px; background: none; border: 0; padding: 4px 0; font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -0.03em; }
 .mod-btn small { font-family: var(--body); font-weight: 600; font-size: 12px; color: var(--muted); letter-spacing: 0; }
-.space-btn { display: flex; align-items: center; gap: 8px; border: 1px solid var(--acc-line); background: var(--acc-soft); border-radius: 999px; padding: 5px 10px 5px 6px; font-weight: 700; font-size: 13px; max-width: 60%; }
+.top-r { display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 68%; }
+.me-btn { border: 0; background: none; padding: 0; border-radius: 50%; flex: none; }
+.me-btn .av { width: 34px; height: 34px; font-size: 14px; border: 0; }
+.me-head { display: flex; align-items: center; gap: 12px; }
+.me-head .av { width: 44px; height: 44px; font-size: 18px; border: 0; }
+.space-btn { min-width: 0; display: flex; align-items: center; gap: 8px; border: 1px solid var(--acc-line); background: var(--acc-soft); border-radius: 999px; padding: 5px 10px 5px 6px; font-weight: 700; font-size: 13px; }
 .space-btn .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sd { width: 24px; height: 24px; border-radius: 50%; background: var(--acc); color: var(--on-acc); display: grid; place-items: center; font-size: 11px; font-weight: 800; flex: none; font-family: var(--display); }
 .sd.lg { width: 38px; height: 38px; border-radius: 13px; font-size: 15px; }
@@ -138,7 +143,7 @@ button { cursor: pointer; }
 
 /* ---------- wallet ---------- */
 .networth .big { font-family: var(--display); font-weight: 800; font-size: 38px; letter-spacing: -0.03em; line-height: 1.05; }
-.cc { border-radius: 20px; padding: 16px; background: linear-gradient(135deg, color-mix(in srgb, var(--acc) 34%, var(--card)), var(--card)); border: 1px solid var(--acc-line); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
+.cc { width: 100%; text-align: left; color: inherit; cursor: pointer; border-radius: 20px; padding: 16px; background: linear-gradient(135deg, color-mix(in srgb, var(--acc) 34%, var(--card)), var(--card)); border: 1px solid var(--acc-line); position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 14px; }
 .cc::after { content: ''; position: absolute; right: -40px; top: -40px; width: 160px; height: 160px; border-radius: 50%; border: 24px solid color-mix(in srgb, var(--ink) 6%, transparent); pointer-events: none; }
 .cc .row1 { display: flex; justify-content: space-between; font-size: 13px; gap: 8px; }
 .cc .bal { font-family: var(--mono); font-size: 26px; }
