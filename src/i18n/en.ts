@@ -63,6 +63,18 @@ export const en = {
   moveX: 'Move {a}', movedTo: 'Moved {a} to {s}',
   installTitle: 'Install Lifey', installBtn: 'Install',
   installIos: 'In Safari, tap Share, then Add to Home Screen.', notNow: 'Not now', installed: 'Installed',
+  assistant: 'Assistant', preview: 'Preview', newChat: 'New chat', askPh: 'Ask, or tell me what to log or fix', send: 'Send',
+  aiHello: 'I can log, fix and look up your money. Nothing changes until you apply it.',
+  aiPreviewNote: 'Preview: replies are scripted examples, not a real AI yet.', tryThese: 'Try',
+  sugLog: 'Lunch yesterday 1,280 yen', sugMove: 'Move ¥30,000 to {s}', sugFix: '{a} was paid with {m}. Delete {b}.',
+  aiReadMethods: 'Looked at your payment methods', aiReadAccounts: 'Looked at your accounts', aiReadMonth: 'Read {n} entries from this month',
+  aiAskPaid: 'What did you pay with?', aiAskAmt: 'How much was it?',
+  aiProposed: 'I put it in the changes below. Check it, then hold Apply.',
+  aiNoAnswer: 'In this preview I can log a spend with an amount, or try the examples.',
+  thinking: 'Thinking…', changesN: '{n} changes', change1: '1 change', opAdd: 'New', opEdit: 'Edit', opDel: 'Delete',
+  leaveOut: 'Leave out', putBack: 'Put back', leftOut: 'Left out', afterApply: 'After applying', owed: 'owed', ofBudgetX: 'of {a}',
+  holdApply: 'Hold to apply', holdHint: 'Keep holding to apply', discard: 'Discard', appliedN: 'Applied {n}', undo: 'Undo', undone: 'Undone',
+  receiptN: 'Applied {n} changes', receipt1: 'Applied 1 change', tapToEdit: 'Tap a change to adjust it.', useDraft: 'Update change',
 } as const
 
 export type MessageKey = keyof typeof en

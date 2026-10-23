@@ -27,6 +27,8 @@ interface Props {
   /** Edit this repeating entry's schedule from its next date on; past records stay as they are. */
   scheduleOf?: string
   prefill?: Partial<NewEntry>
+  /** Returns the entry instead of saving it (adjusting a change the assistant proposed). */
+  onDraft?: (entry: NewEntry) => void
 }
 
 /** Carries out a schedule change: drop replaced copies, end or rewrite the old template, add the new one. */
@@ -37,7 +39,7 @@ async function runSchedule(r: Repo, template: Entry, plan: ScheduleChange) {
   if (plan.add) await r.addEntries([plan.add])
 }
 
-export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
+export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
   const { snap, space, personal, today } = useStore()
   const { submit, pending } = useSubmit()
   const ui = useUI()
@@ -124,6 +126,11 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
       toSourceId: transfer ? toId : null, fee: feeN,
       occurredOn: date, name: name.trim(), note: note.trim(), tags: tags.split(/[,、，]/).map((s) => s.trim()).filter(Boolean),
       repeat: canRepeat || (base && isTemplate(base)) ? repeat : 'none', repeatOf: series ? null : (base?.repeatOf ?? null),
+    }
+    if (onDraft) {
+      onDraft(entry)
+      ui.close()
+      return
     }
     try {
       localStorage.setItem(LAST_VIA, JSON.stringify({ ...readLast(), [`${spaceId}:${kind}`]: viaId, ...(transfer ? { [`${spaceId}:transfer-to`]: toId } : {}) }))
@@ -255,7 +262,7 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
       </details>
 
       <button className="btn primary big" disabled={!ready || !!pending} aria-busy={pending === 'save'} onClick={save}>
-        {series && repeat === 'none' ? t('stopRepeat') : !n ? t('enterAmt') : series ? t('saveSchedule') : editId ? t('saveX', { a: yen(n) }) : kind === 'transfer' ? t('moveX', { a: yen(n + feeN) }) : t('logX', { a: yen(n) })}
+        {series && repeat === 'none' ? t('stopRepeat') : !n ? t('enterAmt') : onDraft ? t('useDraft') : series ? t('saveSchedule') : editId ? t('saveX', { a: yen(n) }) : kind === 'transfer' ? t('moveX', { a: yen(n + feeN) }) : t('logX', { a: yen(n) })}
       </button>
     </>
   )
