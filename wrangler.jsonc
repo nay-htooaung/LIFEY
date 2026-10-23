@@ -3,7 +3,7 @@
 //   dev:  `wrangler deploy --env dev`  -> worker "lifey-dev"
 // Supabase settings are baked into the app at build time (VITE_*), so build once per environment.
 // The Worker needs them too (vars below; public, like in deploy.yml) and one secret per environment:
-//   wrangler secret put OPENCODE_API_KEY [--env dev]
+//   wrangler secret put GEMINI_API_KEY [--env dev]   (a Google AI Studio key from a project without billing)
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "lifey",
@@ -16,8 +16,8 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    "AI_BASE_URL": "https://opencode.ai/zen/v1",
-    "AI_PREFERRED": "glm-5.3-flash-free,deepseek-v4.1-flash-free,big-pickle",
+    "AI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "AI_PREFERRED": "",
     "SUPABASE_URL": "https://klxhdsravxkprqxdgebv.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_sACpYnhosiXr03kQQtwlfQ_5N36ziLp"
   },
@@ -25,8 +25,8 @@
     "dev": {
       "name": "lifey-dev",
       "vars": {
-        "AI_BASE_URL": "https://opencode.ai/zen/v1",
-        "AI_PREFERRED": "glm-5.3-flash-free,deepseek-v4.1-flash-free,big-pickle",
+        "AI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "AI_PREFERRED": "",
         "SUPABASE_URL": "https://uezezkydnlbksrqvaipr.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_ljBGmafJjhU7TtycIccS9g_t5_FInRI"
       }

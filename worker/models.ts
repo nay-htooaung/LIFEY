@@ -1,65 +1,50 @@
-// Which models the assistant may use: OpenCode Zen's free models that can call tools, checked live.
-// Zen's own /models says what is offered now; models.dev (OpenCode's model catalogue) says which are free and
-// which can call tools. Paid models are never offered: they would bill the key's balance for everyone.
+// Which Gemini models the assistant may use, checked live against the key's model list. Only Flash models are
+// offered: they are in Gemini's free tier and can call tools. The key should come from a Google AI Studio project
+// without billing, so nothing is ever charged.
 
 export interface Model { id: string; name: string; context?: number }
 export interface ModelList { models: Model[]; recommended: string | null }
 
-interface Catalogue {
-  name?: string
-  tool_call?: boolean
-  reasoning?: boolean
-  cost?: { input?: number; output?: number }
-  limit?: { context?: number }
-  status?: string
-  /** Models that need another request format than chat/completions name their own SDK package. */
-  provider?: { npm?: string }
-}
+/** One entry of Gemini's own /models list. */
+export interface GeminiModel { name: string; displayName?: string; supportedGenerationMethods?: string[]; inputTokenLimit?: number }
 
-const CATALOGUE = 'https://models.dev/api.json'
+const LIST_URL = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=1000'
 const KEEP_MS = 3600_000
-/** Before the catalogue answers: free model ids look like this. */
-const looksFree = (id: string) => /-free$/.test(id) || id === 'big-pickle'
+/** Flash models that do something other than chat. */
+const NOT_CHAT = /image|tts|audio|live|embedding|vision|thinking-exp|robotics|computer-use|native/
 
-/** The free, tool-calling models from both lists, best first. Pure, for tests. */
-export function pickModels(live: string[] | null, catalogue: Record<string, Catalogue> | null, preferred: string[] = []): ModelList {
-  const ids = live ?? Object.keys(catalogue ?? {})
+const version = (id: string) => parseFloat(id.match(/^gemini-(\d+(?:\.\d+)?)/)?.[1] ?? '0')
+
+/** The free chat models, recommended first. Pure, for tests. */
+export function pickModels(list: GeminiModel[], preferred: string[] = []): ModelList {
+  const models = list
+    .map((m) => ({ ...m, id: m.name.replace(/^models\//, '') }))
+    .filter((m) => /^gemini-[\d.]+-flash/.test(m.id) && !NOT_CHAT.test(m.id) && (m.supportedGenerationMethods ?? ['generateContent']).includes('generateContent'))
   const rank = (id: string) => (preferred.includes(id) ? preferred.indexOf(id) : preferred.length)
-  const models = ids
-    .map((id) => ({ id, c: catalogue?.[id] }))
-    .filter(({ id, c }) => {
-      if (!c) return looksFree(id)
-      const free = c.cost ? !c.cost.input && !c.cost.output : looksFree(id)
-      const chat = !c.provider?.npm || c.provider.npm === '@ai-sdk/openai-compatible'
-      return free && c.tool_call !== false && chat && c.status !== 'deprecated'
-    })
-    // the preferred ones first in their order, then those that can reason, then the most context
-    .sort((a, b) => rank(a.id) - rank(b.id) || Number(!!b.c?.reasoning) - Number(!!a.c?.reasoning) || (b.c?.limit?.context ?? 0) - (a.c?.limit?.context ?? 0) || a.id.localeCompare(b.id))
-    .map(({ id, c }) => ({ id, name: c?.name ?? id, ...(c?.limit?.context ? { context: c.limit.context } : {}) }))
-  return { models, recommended: models[0]?.id ?? null }
-}
-
-async function getJson<T>(url: string, init?: RequestInit): Promise<T | null> {
-  try {
-    const r = await fetch(url, init)
-    return r.ok ? ((await r.json()) as T) : null
-  } catch {
-    return null
+  // preferred first, then the newest, full Flash before Lite, released before preview
+  models.sort((a, b) => rank(a.id) - rank(b.id) || version(b.id) - version(a.id) || Number(a.id.includes('lite')) - Number(b.id.includes('lite'))
+    || Number(a.id.includes('preview')) - Number(b.id.includes('preview')) || a.id.localeCompare(b.id))
+  return {
+    models: models.map((m) => ({ id: m.id, name: m.displayName ?? m.id, ...(m.inputTokenLimit ? { context: m.inputTokenLimit } : {}) })),
+    recommended: models[0]?.id ?? null,
   }
 }
 
 /** The list, kept in memory for an hour (the Cache API does nothing on workers.dev). */
 let kept: { at: number; list: ModelList } | null = null
 
-/** `preferred`: model ids to recommend first, in order (AI_PREFERRED), when they are free and offered. */
-export async function freeModels(baseUrl: string, key: string, preferred: string[]): Promise<ModelList> {
+export async function freeModels(key: string, preferred: string[]): Promise<ModelList> {
   if (kept && Date.now() - kept.at < KEEP_MS) return kept.list
-  const [live, cat] = await Promise.all([
-    getJson<{ data?: { id: string }[] }>(`${baseUrl}/models`, { headers: { authorization: `Bearer ${key}` } }),
-    getJson<Record<string, { models?: Record<string, Catalogue> }>>(CATALOGUE),
-  ])
-  const list = pickModels(live?.data?.map((m) => m.id) ?? null, cat?.opencode?.models ?? null, preferred)
-  // keep only a complete answer, so a hiccup is retried on the next request
-  if (live && cat && list.models.length) kept = { at: Date.now(), list }
+  let models: GeminiModel[] = []
+  try {
+    const r = await fetch(LIST_URL, { headers: { 'x-goog-api-key': key } })
+    if (r.ok) models = ((await r.json()) as { models?: GeminiModel[] }).models ?? []
+    else console.error('model list failed', r.status, (await r.text()).slice(0, 300))
+  } catch (e) {
+    console.error('model list failed', e)
+  }
+  const list = pickModels(models, preferred)
+  // keep only a real answer, so a hiccup is retried on the next request
+  if (list.models.length) kept = { at: Date.now(), list }
   return list
 }

@@ -31,7 +31,7 @@ export const TOOLS = [
     function: {
       name: 'get_overview',
       description: 'Spaces, sources with balances today, payment methods (cards with what is owed), and categories with budgets and spending this month. Call this first to learn ids.',
-      parameters: { type: 'object', properties: {} },
+      // no parameters: Gemini refuses an object schema with no properties
     },
   },
   {
