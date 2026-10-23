@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { IconChevron } from './icons'
 
@@ -32,8 +32,8 @@ export function Select({ id, value, options, onChange, disabled, placeholder, on
   const current = options.find((o) => o.value === value)
 
   // Place the list under the trigger, or above it when there is more room there.
-  useLayoutEffect(() => {
-    if (!open || !trigger.current) return
+  const place = useCallback(() => {
+    if (!trigger.current) return
     const r = trigger.current.getBoundingClientRect()
     const below = window.innerHeight - r.bottom - 12
     const above = r.top - 12
@@ -47,7 +47,10 @@ export function Select({ id, value, options, onChange, disabled, placeholder, on
       maxHeight: Math.min(want, up ? above : below),
       ...(up ? { bottom: window.innerHeight - r.top + 6 } : { top: r.bottom + 6 }),
     })
-  }, [open, options.length, onNew])
+  }, [options.length, onNew])
+  useLayoutEffect(() => {
+    if (open) place()
+  }, [open, place])
 
   useEffect(() => {
     if (!open) return
@@ -59,19 +62,22 @@ export function Select({ id, value, options, onChange, disabled, placeholder, on
       if (l && selected) l.scrollTop = selected.offsetTop - (l.clientHeight - selected.offsetHeight) / 2
       ;(selected ?? list.current?.querySelector<HTMLElement>('[role="option"]'))?.focus({ preventScroll: true })
     })
-    // Close when the page underneath scrolls or resizes, so the list never floats away from its trigger.
-    const close = (e: Event) => {
+    // When the page underneath scrolls (also when the browser brings the field into view), the list follows
+    // its trigger; once the trigger is off screen it closes.
+    const follow = (e: Event) => {
       if (e.type === 'scroll' && list.current?.contains(e.target as Node)) return
-      setOpen(false)
+      const r = trigger.current?.getBoundingClientRect()
+      if (!r || r.bottom < 0 || r.top > window.innerHeight) return setOpen(false)
+      place()
     }
-    window.addEventListener('scroll', close, true)
-    window.addEventListener('resize', close)
+    window.addEventListener('scroll', follow, true)
+    window.addEventListener('resize', follow)
     return () => {
       cancelAnimationFrame(raf)
-      window.removeEventListener('scroll', close, true)
-      window.removeEventListener('resize', close)
+      window.removeEventListener('scroll', follow, true)
+      window.removeEventListener('resize', follow)
     }
-  }, [open])
+  }, [open, place])
 
   const pick = (v: string) => {
     setOpen(false)

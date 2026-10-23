@@ -28,9 +28,9 @@ export function paymentDateFor(chargeOn: Day, method: PaymentMethod): Day {
 const charges = (flows: Flow[], methodId: string) =>
   flows.filter((f) => f.methodId === methodId && f.kind === 'expense')
 
-/** Charged but not yet paid off. */
+/** What is owed on a card today: charges made up to `on` that are not paid yet (later-dated ones have not happened). */
 export function creditOutstanding(method: PaymentMethod, flows: Flow[], on: Day): number {
-  return sum(charges(flows, method.id).filter((f) => paymentDateFor(f.occurredOn, method) > on).map((f) => f.amount))
+  return sum(charges(flows, method.id).filter((f) => f.occurredOn <= on && paymentDateFor(f.occurredOn, method) > on).map((f) => f.amount))
 }
 
 /**
@@ -133,6 +133,8 @@ export interface Upcoming {
   amount: number
   /** Transfer only. */
   fee?: number
+  /** The repeating entry this comes from, so its schedule can be edited from here. */
+  templateId?: string
   /** Transfer only: where the money lands. */
   toSourceId?: string | null
   on: Day
@@ -148,17 +150,21 @@ export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = UP
   const until = addDays(on, horizonDays)
   const out: Upcoming[] = []
   for (const t of s.entries.filter((e) => e.spaceId === spaceId && isTemplate(e))) {
+    // today's occurrence counts until it is posted; copies are posted ahead for the whole month
     const posted = s.entries.some((e) => e.repeatOf === t.id && e.occurredOn === on) || t.occurredOn === on
     const next = posted ? nextOccurrence(t, on) : nextOccurrence(t, addDays(on, -1))
     if (next && next <= until) {
-      const cat = s.categories.find((c) => c.id === t.categoryId)
+      // a copy already posted for that date may have been edited on its own: show what it says
+      const copy = s.entries.find((e) => e.repeatOf === t.id && e.occurredOn === next) ?? t
+      const cat = s.categories.find((c) => c.id === copy.categoryId)
       const method = t.methodId ? s.methods.find((m) => m.id === t.methodId) : undefined
       out.push({
         key: `r-${t.id}`,
+        templateId: t.id,
         kind: t.kind === 'income' ? 'income' : t.kind === 'transfer' ? 'transfer' : 'bill',
-        name: t.name || t.note || cat?.name || '',
-        amount: t.amount,
-        fee: t.fee,
+        name: copy.name || copy.note || cat?.name || '',
+        amount: copy.amount,
+        fee: copy.fee,
         on: next,
         categoryId: t.categoryId,
         sourceId: t.methodId ? (method && method.kind !== 'credit' ? method.sourceId : null) : t.sourceId,

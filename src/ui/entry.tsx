@@ -2,8 +2,9 @@ import { daysUntil, type Upcoming } from '../domain/money'
 import type { Entry } from '../domain/types'
 import { parts } from '../domain/dates'
 import { useI18n, yen } from '../i18n'
-import { useLookups, usePersonName, useStore } from '../data/store'
+import { toneVar, useLookups, usePersonName, useStore } from '../data/store'
 import { EntryDetail } from '../sheets/EntryDetail'
+import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from './bits'
 import { IconLock, IconRepeat } from './icons'
 import { useUI } from './ui'
@@ -67,12 +68,17 @@ export function EntryRow({ entry, showDate }: { entry: Entry; showDate?: boolean
 
 /** `sourceName`: the account the money moves through, when there is one. */
 export function UpcomingRow({ item, sourceName }: { item: Upcoming; sourceName?: string }) {
-  const { today } = useStore()
+  const { today, snap, space } = useStore()
   const { t, month } = useI18n()
   const [, m, d] = parts(item.on)
   const n = daysUntil(today, item.on)
+  const ui = useUI()
+  // a repeating item opens its schedule; card payments have nothing to edit
+  const template = item.templateId ? snap.entries.find((e) => e.id === item.templateId) : undefined
+  const editable = template && template.createdBy === snap.me.id
+  const Tag = editable ? 'button' : 'div'
   return (
-    <div className="row">
+    <Tag className="row" {...(editable ? { onClick: () => ui.open(<EntrySheet scheduleOf={template.id} />, toneVar(space)) } : {})}>
       <span className="date-chip"><b>{d}</b><small>{month(m)}</small></span>
       <div className="main">
         <div className="t">{item.name || (item.kind === 'transfer' ? t('transfer') : '')}</div>
@@ -86,6 +92,6 @@ export function UpcomingRow({ item, sourceName }: { item: Upcoming; sourceName?:
         {sourceName && <div className="s">{sourceName}</div>}
       </div>
       <span className={'amt num' + (item.kind === 'income' ? ' amt-in' : '')}>{item.kind === 'income' ? '+' : ''}{yen(item.amount)}</span>
-    </div>
+    </Tag>
   )
 }

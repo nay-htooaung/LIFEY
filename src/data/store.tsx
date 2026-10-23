@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { monthKey, today as todayFn } from '../domain/dates'
-import { dueOccurrences } from '../domain/recurring'
+import { dueOccurrences, monthEnd } from '../domain/recurring'
 import type { Day, Entry, PaymentMethod, Profile, Snapshot, Source, Space } from '../domain/types'
 import { I18nContext, makeI18n, useI18n } from '../i18n'
 import { useUI } from '../ui/ui'
@@ -78,7 +78,8 @@ export function StoreProvider({ repo, children, fallback }: { repo: Repo; childr
       const d = todayFn()
       setDay(d)
       let s = await repo.load()
-      const due = dueOccurrences(s.entries, s.me.id, d)
+      // the whole month's repeating entries are posted when it starts, each on its own date
+      const due = dueOccurrences(s.entries, s.me.id, monthEnd(d))
       if (due.length) {
         await repo.addEntries(due)
         s = await repo.load()

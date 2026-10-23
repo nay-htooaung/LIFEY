@@ -90,7 +90,7 @@ export function Activity() {
           const dIn = sum(es.filter((e) => e.kind === 'income'))
           const other = !d.startsWith(month)
           return (
-            <button key={d} className={'cal-d wd' + weekday(d) + (other ? ' other' : '')} aria-pressed={d === selected}
+            <button key={d} className={'cal-d wd' + weekday(d) + (other ? ' other' : '') + (d > today ? ' ahead' : '')} aria-pressed={d === selected}
               aria-current={d === today ? 'date' : undefined} onClick={() => pick(d)}>
               <span className="dn">{parts(d)[2]}</span>
               {!other && dIn > 0 && <span className="cal-in num">{compact(dIn, '+')}</span>}

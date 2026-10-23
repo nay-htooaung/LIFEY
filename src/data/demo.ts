@@ -1,6 +1,6 @@
 import { addDays, dayInMonth, parts, today } from '../domain/dates'
 import { flowsOf } from '../domain/money'
-import { dueOccurrences } from '../domain/recurring'
+import { dueOccurrences, monthEnd } from '../domain/recurring'
 import type { Category, Entry, Locale, PaymentMethod, Profile, Snapshot, Source, Space, Tone } from '../domain/types'
 import { RepoError, uid, type CategoryInput, type NewMethod, type NewSource, type Repo } from './repo'
 
@@ -154,7 +154,7 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
     async load() {
       // the other demo members "post" their own repeating entries too
       const others = Object.keys(snap.profiles).filter((id) => id !== ME)
-      const due = others.flatMap((id) => dueOccurrences(snap.entries, id, today()).map((e) => ({ ...e, id: uid(), createdBy: id })))
+      const due = others.flatMap((id) => dueOccurrences(snap.entries, id, monthEnd(today())).map((e) => ({ ...e, id: uid(), createdBy: id })))
       if (due.length) commit({ ...snap, entries: [...snap.entries, ...due] })
       return structuredClone(snap)
     },

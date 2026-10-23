@@ -3,6 +3,7 @@ import { isTemplate, nextOccurrence } from '../domain/recurring'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useLookups, useStore } from '../data/store'
 import { CategorySheet } from '../sheets/CategorySheet'
+import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
 import { UpcomingRow } from '../ui/entry'
 import { IconRepeat } from '../ui/icons'
@@ -75,14 +76,15 @@ export function Plan() {
               const next = nextOccurrence(e, today)
               const c = e.categoryId ? cat.get(e.categoryId) : undefined
               return (
-                <div key={e.id} className="row">
-                  <Glyph category={c} />
+                <button key={e.id} className="row" disabled={e.createdBy !== snap.me.id}
+                  onClick={() => ui.open(<EntrySheet scheduleOf={e.id} />, toneVar(space))}>
+                  <Glyph category={e.kind === 'transfer' ? { name: '⇄', color: 'var(--card-2)' } : c} />
                   <div className="main">
-                    <div className="t">{e.note || c?.name}</div>
+                    <div className="t">{e.name || e.note || (e.kind === 'transfer' ? t('transfer') : c?.name)}</div>
                     <div className="s"><IconRepeat /> {t(e.repeat as 'monthly')}{next ? ` · ${t('nextOn', { d: dateShort(next) })}` : ''}</div>
                   </div>
                   <span className={'amt num' + (e.kind === 'income' ? ' amt-in' : '')}>{yen(e.amount)}</span>
-                </div>
+                </button>
               )
             })}
           </div>

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { addDays } from '../domain/dates'
-import type { EntryKind, MoneyKind, NewEntry, Repeat } from '../domain/types'
+import { asNew, isTemplate, nextOccurrence, scheduleChange, type ScheduleChange } from '../domain/recurring'
+import type { Entry, EntryKind, MoneyKind, NewEntry, Repeat } from '../domain/types'
+import type { Repo } from '../data/repo'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useStore, useSubmit } from '../data/store'
 import { CategorySheet } from './CategorySheet'
@@ -20,18 +22,33 @@ const readLast = (): Record<string, string> => {
 }
 
 interface Props {
-  /** Edit this entry instead of creating a new one. */
+  /** Edit this one entry. A repeating entry's schedule is left as it is. */
   editId?: string
+  /** Edit this repeating entry's schedule from its next date on; past records stay as they are. */
+  scheduleOf?: string
   prefill?: Partial<NewEntry>
 }
 
-export function EntrySheet({ editId, prefill }: Props) {
+/** Carries out a schedule change: drop replaced copies, end or rewrite the old template, add the new one. */
+async function runSchedule(r: Repo, template: Entry, plan: ScheduleChange) {
+  for (const id of plan.remove) await r.deleteEntry(id)
+  if (plan.end) await r.updateEntry(template.id, { ...asNew(template), repeat: 'none' })
+  if (plan.update) await r.updateEntry(template.id, plan.update)
+  if (plan.add) await r.addEntries([plan.add])
+}
+
+export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
   const { snap, space, personal, today } = useStore()
   const { submit, pending } = useSubmit()
   const ui = useUI()
   const { t } = useI18n()
-  const base = editId ? snap.entries.find((e) => e.id === editId) : undefined
-  const init = { ...base, ...prefill }
+  const series = scheduleOf ? snap.entries.find((e) => e.id === scheduleOf) : undefined
+  const base = editId ? snap.entries.find((e) => e.id === editId) : series
+  // a schedule is edited from its next date; a schedule that has not started yet from its first
+  const nextDate = series ? (series.occurredOn > today ? series.occurredOn : nextOccurrence(series, today)) : null
+  const init = { ...base, ...(nextDate ? { occurredOn: nextDate } : {}), ...prefill }
+  // Repeat is set on new entries, one-offs being edited, and schedules; one record of a series cannot change it
+  const canRepeat = !!scheduleOf || !base || (base.repeat === 'none' && !base.repeatOf)
 
   const [kind, setKind] = useState<EntryKind>(init.kind ?? 'expense')
   const [amount, setAmount] = useState(init.amount ? String(init.amount) : '0')
@@ -100,7 +117,7 @@ export function EntrySheet({ editId, prefill }: Props) {
       methodId: kind === 'expense' && !chosen?.isSource ? viaId : null, sourceId: kind !== 'expense' || chosen?.isSource ? viaId : null,
       toSourceId: transfer ? toId : null, fee: feeN,
       occurredOn: date, name: name.trim(), note: note.trim(), tags: tags.split(/[,、，]/).map((s) => s.trim()).filter(Boolean),
-      repeat: base?.repeatOf ? 'none' : repeat, repeatOf: base?.repeatOf ?? null,
+      repeat: canRepeat || (base && isTemplate(base)) ? repeat : 'none', repeatOf: series ? null : (base?.repeatOf ?? null),
     }
     try {
       localStorage.setItem(LAST_VIA, JSON.stringify({ ...readLast(), [`${spaceId}:${kind}`]: viaId, ...(transfer ? { [`${spaceId}:transfer-to`]: toId } : {}) }))
@@ -108,12 +125,33 @@ export function EntrySheet({ editId, prefill }: Props) {
       /* ignore */
     }
     const toName = options.find((o) => o.id === toId)?.name ?? ''
+    if (series) {
+      const next = repeat === 'none' ? null : { ...entry, repeat, repeatOf: null }
+      await submit('save', (r) => runSchedule(r, series, scheduleChange(series, snap.entries, today, next)),
+        t(next ? 'scheduleSaved' : 'scheduleStopped'), { close: true })
+      return
+    }
+    if (base && isTemplate(base) && base.occurredOn <= today) {
+      // one record of a running schedule: split the schedule off first, so the edit stays on this record only
+      const carryOn = { ...asNew(base), occurredOn: nextOccurrence(base, today)! }
+      await submit('save', async (r) => {
+        await runSchedule(r, base, scheduleChange(base, snap.entries, today, carryOn))
+        await r.updateEntry(base.id, { ...entry, repeat: 'none', repeatOf: null })
+      }, t('saved'), { close: true })
+      return
+    }
     await submit('save', (r) => (editId ? r.updateEntry(editId, entry) : r.addEntries([entry])),
       editId ? t('saved') : transfer ? t('movedTo', { a: yen(n), s: toName }) : t('loggedTo', { a: yen(n), s: target.name }), { close: true })
   }
 
   return (
     <>
+      {series && (
+        <div>
+          <h2>{t('editSchedule')}</h2>
+          <p className="lead" style={{ margin: '2px 0 0' }}>{t('scheduleHint')}</p>
+        </div>
+      )}
       <div className="seg" role="group">
         <button aria-pressed={kind === 'expense'} onClick={() => switchKind('expense')}>{t('expense')}</button>
         <button aria-pressed={kind === 'income'} onClick={() => switchKind('income')}>{t('incomeT')}</button>
@@ -184,7 +222,7 @@ export function EntrySheet({ editId, prefill }: Props) {
         ))}
       </div>
 
-      <details open={!!editId}>
+      <details open={!!editId || !!series}>
         <summary>{t('details')}</summary>
         <div className="stack">
           <div className="field">
@@ -192,14 +230,14 @@ export function EntrySheet({ editId, prefill }: Props) {
             <input id="entry-note" value={note} maxLength={200} placeholder={t('notePh')} onChange={(e) => setNote(e.target.value)} />
           </div>
           <div className="field">
-            <label className="label" htmlFor="entry-date">{t('date')}</label>
+            <label className="label" htmlFor="entry-date">{series ? t('nextDate') : t('date')}</label>
             <div className="chips">
               <button className="chip" aria-pressed={date === today} onClick={() => setDate(today)}>{t('today')}</button>
               <button className="chip" aria-pressed={date === addDays(today, -1)} onClick={() => setDate(addDays(today, -1))}>{t('yesterday')}</button>
               <input id="entry-date" className="input" type="date" value={date} max={addDays(today, 365)} onChange={(e) => e.target.value && setDate(e.target.value)} style={{ width: 'auto' }} />
             </div>
           </div>
-          {!base?.repeatOf && (
+          {canRepeat && (
             <div className="field">
               <label className="label" htmlFor="entry-repeat">{t('repeat')}</label>
               <Select id="entry-repeat" value={repeat} onChange={(v) => setRepeat(v as Repeat)}
@@ -214,7 +252,7 @@ export function EntrySheet({ editId, prefill }: Props) {
       </details>
 
       <button className="btn primary big" disabled={!ready || !!pending} aria-busy={pending === 'save'} onClick={save}>
-        {!n ? t('enterAmt') : editId ? t('saveX', { a: yen(n) }) : kind === 'transfer' ? t('moveX', { a: yen(n + feeN) }) : t('logX', { a: yen(n) })}
+        {series && repeat === 'none' ? t('stopRepeat') : !n ? t('enterAmt') : series ? t('saveSchedule') : editId ? t('saveX', { a: yen(n) }) : kind === 'transfer' ? t('moveX', { a: yen(n + feeN) }) : t('logX', { a: yen(n) })}
       </button>
     </>
   )

@@ -167,6 +167,8 @@ button { cursor: pointer; }
 .cal-d[aria-pressed='true'] { border-color: var(--acc); background: var(--acc-soft); }
 .cal-out, .cal-in { font-size: 10px; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .cal-in { color: var(--pos); }
+/* repeating entries are posted for the whole month; the ones still to come read as planned */
+.cal-d.ahead .cal-out, .cal-d.ahead .cal-in { opacity: 0.55; }
 .picks { display: flex; flex-direction: column; gap: 10px; }
 .pick { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); align-items: center; gap: 10px; }
 .pick-l { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.25; }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
 import { accountForecast, creditLimitUse, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
-import { dueOccurrences, nextOccurrence } from './recurring'
+import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
 import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 
 const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10, archived: false }
@@ -148,5 +148,26 @@ describe('transfers', () => {
   it('count only the fee as spending', () => {
     expect(monthEntries([move], 'me', '2026-10-31').map((e) => [e.amount, e.categoryId])).toEqual([[220, null]])
     expect(monthEntries([move], 'me', '2026-10-31', 'income')).toEqual([])
+  })
+})
+
+describe('editing a schedule', () => {
+  const rent = entry({ id: 'rent', amount: 80000, repeat: 'monthly', occurredOn: '2026-08-27' })
+  const copies = ['2026-09-27', '2026-10-27', '2026-11-27'].map((d) => entry({ id: d, amount: 80000, repeatOf: 'rent', occurredOn: d }))
+  const next = { ...rent, amount: 85000, occurredOn: '2026-11-27' }
+  it('keeps the past, replaces copies after today and carries on from the next date', () => {
+    const c = scheduleChange(rent, [rent, ...copies], '2026-11-01', next)
+    expect(c).toMatchObject({ remove: ['2026-11-27'], end: true, add: { amount: 85000, occurredOn: '2026-11-27', repeat: 'monthly', repeatOf: null } })
+  })
+  it('stops without adding anything', () => {
+    expect(scheduleChange(rent, [rent, ...copies], '2026-11-01', null)).toMatchObject({ remove: ['2026-11-27'], end: true, add: undefined })
+  })
+  it('rewrites a schedule that has not started yet', () => {
+    const later = { ...rent, occurredOn: '2026-12-27' }
+    expect(scheduleChange(later, [later], '2026-11-01', { ...next, occurredOn: '2026-12-25' })).toMatchObject({ remove: [], end: false, update: { occurredOn: '2026-12-25' } })
+    expect(scheduleChange(later, [later], '2026-11-01', null)).toMatchObject({ remove: ['rent'] })
+  })
+  it('counts a future template as its own next date', () => {
+    expect(nextOccurrence({ ...rent, occurredOn: '2026-12-27' }, '2026-11-01')).toBe('2026-12-27')
   })
 })

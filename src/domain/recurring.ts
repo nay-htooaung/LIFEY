@@ -1,4 +1,4 @@
-import { addDays, addMonths, parts } from './dates'
+import { addDays, addMonths, dayInMonth, parts } from './dates'
 import type { Day, Entry, NewEntry } from './types'
 
 /** Occurrence n (0 = the template's own date) of a repeating entry. */
@@ -20,10 +20,10 @@ export function occurrence(template: Pick<Entry, 'occurredOn' | 'repeat'>, n: nu
 
 export const isTemplate = (e: Entry) => e.repeat !== 'none' && e.repeatOf === null
 
-/** The next occurrence strictly after `after`, or null for one-off entries. */
+/** The next occurrence strictly after `after` (the template's own date counts), or null for one-off entries. */
 export function nextOccurrence(template: Entry, after: Day): Day | null {
   if (!isTemplate(template)) return null
-  for (let n = 1; n < 1000; n++) {
+  for (let n = 0; n < 1000; n++) {
     const d = occurrence(template, n)
     if (d > after) return d
   }
@@ -65,4 +65,35 @@ export function dueOccurrences(entries: Entry[], userId: string, upTo: Day, maxP
     }
   }
   return out
+}
+
+/** Last day of the month `day` is in. Repeating entries are posted up to here when a month starts. */
+export const monthEnd = (day: Day): Day => dayInMonth(parts(day)[0], parts(day)[1], 31)
+
+/** An entry without its id and logger, ready to save again. */
+export const asNew = ({ id: _id, createdBy: _by, ...rest }: Entry): NewEntry => rest
+
+export interface ScheduleChange {
+  /** Posted copies dated after today; they are re-posted from the new schedule. */
+  remove: string[]
+  /** Stop the old schedule but keep its own record as a past entry. */
+  end: boolean
+  /** The template itself, rewritten (only when it has not happened yet). */
+  update?: NewEntry
+  /** A new template that carries the schedule on from its next date. */
+  add?: NewEntry
+}
+
+/**
+ * How to change a repeating entry from now on without touching what already happened.
+ * `next` is the schedule from its next date (its occurredOn is that date), or null to stop repeating.
+ * Records dated today or earlier are never changed; copies already posted for later dates are replaced.
+ */
+export function scheduleChange(template: Entry, entries: Entry[], today: Day, next: NewEntry | null): ScheduleChange {
+  const remove = entries.filter((e) => e.repeatOf === template.id && e.occurredOn > today).map((e) => e.id)
+  if (template.occurredOn > today) {
+    // nothing has happened yet: rewrite the template, or drop it when stopping
+    return next ? { remove, end: false, update: { ...next, repeatOf: null } } : { remove: [...remove, template.id], end: false }
+  }
+  return { remove, end: true, add: next ? { ...next, repeatOf: null } : undefined }
 }
