@@ -132,10 +132,9 @@ export function UIOutlet() {
   )
 }
 
-/** A sheet that closes when dragged down by its handle, or by its body once scrolled to the top. */
+/** A sheet that closes when dragged down by its handle. The body never drags, so scrolling cannot close it by mistake. */
 function SheetFrame({ onClose, children }: { onClose(): void; children: ReactNode }) {
   const frame = useRef<HTMLDivElement>(null)
-  const body = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const el = frame.current!
@@ -144,12 +143,13 @@ function SheetFrame({ onClose, children }: { onClose(): void; children: ReactNod
     let dy = 0
     let mode: 'none' | 'maybe' | 'drag' = 'none'
 
-    const begin = (y: number, fromHandle: boolean) => {
+    const begin = (y: number) => {
       y0 = y
       t0 = performance.now()
       dy = 0
-      mode = fromHandle || body.current!.scrollTop <= 0 ? 'maybe' : 'none'
+      mode = 'maybe'
     }
+    const onHandle = (e: Event) => !!(e.target as Element).closest('.grab-zone')
     // Returns true while dragging, so the caller can stop the body from scrolling.
     const move = (y: number) => {
       if (mode === 'none') return false
@@ -180,16 +180,15 @@ function SheetFrame({ onClose, children }: { onClose(): void; children: ReactNod
     }
 
     const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return void (mode = 'none')
-      begin(e.touches[0].clientY, !!(e.target as Element).closest('.grab-zone'))
+      if (e.touches.length !== 1 || !onHandle(e)) return void (mode = 'none')
+      begin(e.touches[0].clientY)
     }
     const onTouchMove = (e: TouchEvent) => {
       if (move(e.touches[0].clientY) && e.cancelable) e.preventDefault()
     }
-    // Mouse: the handle only, so text can still be selected in the body.
     const onMouseDown = (e: MouseEvent) => {
-      if (!(e.target as Element).closest('.grab-zone')) return
-      begin(e.clientY, true)
+      if (!onHandle(e)) return
+      begin(e.clientY)
       const mm = (ev: MouseEvent) => move(ev.clientY)
       const mu = () => {
         window.removeEventListener('mousemove', mm)
@@ -217,7 +216,7 @@ function SheetFrame({ onClose, children }: { onClose(): void; children: ReactNod
   return (
     <div className="sheet" role="dialog" aria-modal="true" ref={frame}>
       <div className="grab-zone"><div className="grab" /></div>
-      <div className="sheet-body" ref={body}>{children}</div>
+      <div className="sheet-body">{children}</div>
     </div>
   )
 }

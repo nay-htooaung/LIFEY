@@ -3,16 +3,25 @@ import type { MethodKind } from '../domain/types'
 import { useI18n } from '../i18n'
 import { useStore } from '../data/store'
 import { parseYen } from '../ui/bits'
+import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
 import { SourceSheet } from './SourceSheet'
 
-/** Adds a payment method to the current space, or edits `editId` (its kind stays fixed). */
-export function MethodSheet({ editId }: { editId?: string }) {
+interface Props {
+  /** Edit this method; its kind stays fixed. */
+  editId?: string
+  /** Space for a new method (default: the current space). */
+  spaceId?: string
+  /** Called with the new method's id once added. */
+  onSaved?: (id: string) => void
+}
+
+export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
   const { snap, space, act } = useStore()
   const ui = useUI()
   const { t, ordinal } = useI18n()
   const base = editId ? snap.methods.find((m) => m.id === editId) : undefined
-  const spaceId = base?.spaceId ?? space.id
+  const spaceId = base?.spaceId ?? forSpace ?? space.id
   const sources = snap.sources.filter((s) => s.spaceId === spaceId)
   const [name, setName] = useState(base?.name ?? '')
   const [kind, setKind] = useState<MethodKind>(base?.kind ?? 'credit')
@@ -34,13 +43,13 @@ export function MethodSheet({ editId }: { editId?: string }) {
       <>
         <h2>{t('mTitle')}</h2>
         <p className="lead">{t('needSource')}</p>
-        <button className="btn primary big" onClick={() => ui.push(<SourceSheet />)}>{t('srcTitle')}</button>
+        <button className="btn primary big" onClick={() => ui.push(<SourceSheet spaceId={spaceId} onSaved={setSourceId} />)}>{t('srcTitle')}</button>
       </>
     )
   }
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1)
-  const dayLabel = (d: number) => (d === 31 ? t('lastDay') : t('ofMonth', { d: ordinal(d) }))
+  const dayOptions = days.map((d) => ({ value: String(d), label: d === 31 ? t('lastDay') : t('ofMonth', { d: ordinal(d) }) }))
   const save = () => {
     const n = name.trim()
     if (!n) return document.getElementById('m-name')?.focus()
@@ -52,7 +61,8 @@ export function MethodSheet({ editId }: { editId?: string }) {
       closingDay: credit ? close : null, paymentDay: credit ? pay : null,
     }
     ui.close()
-    void act((r) => (editId ? r.updateMethod(editId, method) : r.addMethod(method).then(() => undefined)), editId ? t('saved') : t('added', { x: n }))
+    if (editId) return void act((r) => r.updateMethod(editId, method), t('saved'))
+    void act((r) => r.addMethod(method), t('added', { x: n })).then((id) => id && onSaved?.(id))
   }
 
   return (
@@ -66,19 +76,16 @@ export function MethodSheet({ editId }: { editId?: string }) {
         {!editId && (
           <div className="field">
             <label className="label" htmlFor="m-kind">{t('kind')}</label>
-            <select id="m-kind" value={kind} onChange={(e) => setKind(e.target.value as MethodKind)}>
-              <option value="credit">{t('creditCard')}</option>
-              <option value="debit">{t('debitCard')}</option>
-              <option value="emoney">{t('emoney')}</option>
-              <option value="cash">{t('cash')}</option>
-            </select>
+            <Select id="m-kind" value={kind} onChange={(v) => setKind(v as MethodKind)} options={[
+              { value: 'credit', label: t('creditCard') }, { value: 'debit', label: t('debitCard') },
+              { value: 'emoney', label: t('emoney') }, { value: 'cash', label: t('cash') },
+            ]} />
           </div>
         )}
         <div className="field">
           <label className="label" htmlFor="m-src">{t('paidFrom')}</label>
-          <select id="m-src" value={sourceId} onChange={(e) => setSourceId(e.target.value)}>
-            {sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
+          <Select id="m-src" value={sourceId} onChange={setSourceId} options={sources.map((s) => ({ value: s.id, label: s.name }))}
+            onNew={() => ui.push(<SourceSheet spaceId={spaceId} onSaved={setSourceId} />)} newLabel={t('addSource')} />
         </div>
       </div>
       {kind === 'credit' && (
@@ -86,10 +93,8 @@ export function MethodSheet({ editId }: { editId?: string }) {
           {owners.length > 0 && !sharers.length && (
             <div className="field">
               <label className="label" htmlFor="m-share">{t('limitLabel')}</label>
-              <select id="m-share" value={sharedWith} onChange={(e) => setSharedWith(e.target.value)}>
-                <option value="">{t('ownLimit')}</option>
-                {owners.map((m) => <option key={m.id} value={m.id}>{t('shareLimit', { x: m.name })}</option>)}
-              </select>
+              <Select id="m-share" value={sharedWith} onChange={setSharedWith}
+                options={[{ value: '', label: t('ownLimit') }, ...owners.map((m) => ({ value: m.id, label: t('shareLimit', { x: m.name }) }))]} />
               <span className="tiny muted">{t('shareLimitHint')}</span>
             </div>
           )}
@@ -103,15 +108,11 @@ export function MethodSheet({ editId }: { editId?: string }) {
           <div className="two">
             <div className="field">
               <label className="label" htmlFor="m-close">{t('stmtClose')}</label>
-              <select id="m-close" value={close} onChange={(e) => setClose(+e.target.value)}>
-                {days.map((d) => <option key={d} value={d}>{dayLabel(d)}</option>)}
-              </select>
+              <Select id="m-close" value={String(close)} onChange={(v) => setClose(+v)} options={dayOptions} />
             </div>
             <div className="field">
               <label className="label" htmlFor="m-pay">{t('payDue')}</label>
-              <select id="m-pay" value={pay} onChange={(e) => setPay(+e.target.value)}>
-                {days.map((d) => <option key={d} value={d}>{dayLabel(d)}</option>)}
-              </select>
+              <Select id="m-pay" value={String(pay)} onChange={(v) => setPay(+v)} options={dayOptions} />
             </div>
           </div>
           <p className="tiny muted" style={{ margin: 0 }}>{t('dueHint')}</p>

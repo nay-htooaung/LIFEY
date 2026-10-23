@@ -103,6 +103,27 @@ button { cursor: pointer; }
 .date-chip b { display: block; font-family: var(--display); font-size: 16px; }
 .date-chip small { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
+/* ---------- dropdown (ui/Select) ---------- */
+.sel { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; border: 1px solid var(--line); background: var(--paper); border-radius: 12px; padding: 10px 12px; text-align: left; }
+.sel:disabled { opacity: 0.6; cursor: default; }
+.sel[aria-expanded='true'] { border-color: var(--acc); }
+.sel > svg:last-child { color: var(--muted); flex: none; transition: transform 0.15s; }
+.sel[aria-expanded='true'] > svg:last-child { transform: rotate(180deg); }
+.sel-v { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sel-h { flex: none; font-size: 11px; font-weight: 600; color: var(--muted); }
+.sel-dot { width: 10px; height: 10px; flex: none; }
+.sel .ico, .sel-list .ico { flex: none; }
+.sel-scrim { position: fixed; inset: 0; z-index: 40; }
+.sel-list {
+  position: fixed; z-index: 41; overflow-y: auto; overscroll-behavior: contain; padding: 6px; display: flex; flex-direction: column; gap: 2px;
+  background: var(--card-2); border: 1px solid var(--line); border-radius: 16px; animation: pop 0.14s ease-out;
+  box-shadow: 0 18px 40px -12px var(--scrim);
+}
+.sel-list button { display: flex; align-items: center; gap: 10px; width: 100%; flex: none; border: 0; background: none; border-radius: 11px; padding: 11px 12px; text-align: left; font-size: 14px; }
+.sel-list button:hover, .sel-list button:focus-visible { background: var(--acc-soft); outline: none; }
+.sel-list button[aria-selected='true'] { background: var(--acc-soft); font-weight: 700; }
+.sel-list .sel-new { color: var(--acc); font-weight: 700; }
+@keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
 .picks { display: flex; flex-direction: column; gap: 10px; }
 .pick { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); align-items: center; gap: 10px; }
 .pick-l { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.25; }
@@ -174,8 +195,8 @@ button { cursor: pointer; }
   background: var(--card); border-top: 1px solid var(--line); width: 100%; border-radius: 30px 30px 0 0; max-height: 94%;
   display: flex; flex-direction: column; overflow: hidden; animation: up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-/* The handle stays put while the body scrolls; dragging it (or the body at its top) closes the sheet. */
-.grab-zone { flex: none; padding: 10px 0 8px; touch-action: none; cursor: grab; }
+/* The handle stays put while the body scrolls; dragging it (only it) closes the sheet. */
+.grab-zone { flex: none; padding: 12px 0 12px; touch-action: none; cursor: grab; }
 .grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto; }
 .sheet-body {
   overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 14px;

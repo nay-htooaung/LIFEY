@@ -24,7 +24,7 @@ export const en = {
   details: 'Note, tags, date, repeat', note: 'Note', notePh: 'What was it?', date: 'Date', repeat: 'Repeat',
   never: 'Never', weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly', yearly: 'Yearly',
   tags: 'Tags', tagsPh: 'trip, gift, work (comma separated)', logX: 'Log {a}', saveX: 'Save {a}', enterAmt: 'Enter an amount',
-  noMethodHint: 'Add a payment method in Wallet first.', noSourceHint: 'Add a source in Wallet first.',
+ 
   loggedTo: 'Logged {a} to {s}', loggedStreak: 'Logged. {n}-day streak', saved: 'Saved',
   hiddenHint: 'Methods with a lock are yours. Members see the entry, not the card or account.',
   sharedHint: 'Methods marked with a space name are shared. Its members will see the charge amount.',

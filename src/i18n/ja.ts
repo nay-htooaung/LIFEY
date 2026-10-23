@@ -26,7 +26,7 @@ export const ja: Record<MessageKey, string> = {
   details: 'メモ・タグ・日付・繰り返し', note: 'メモ', notePh: '何に使った？', date: '日付', repeat: '繰り返し',
   never: 'なし', weekly: '毎週', biweekly: '隔週', monthly: '毎月', yearly: '毎年',
   tags: 'タグ', tagsPh: '旅行, プレゼント, 仕事（カンマ区切り）', logX: '{a}を記録', saveX: '{a}で保存', enterAmt: '金額を入力',
-  noMethodHint: '先に「お財布」で支払い方法を追加してください。', noSourceHint: '先に「お財布」で口座・現金を追加してください。',
+ 
   loggedTo: '{s}に{a}を記録しました', loggedStreak: '記録しました。{n}日連続', saved: '保存しました',
   hiddenHint: '鍵マークはあなた個人の支払い方法です。メンバーには記録だけが見え、カードや口座は見えません。',
   sharedHint: 'スペース名の付いた支払い方法は共有です。そのメンバーには金額が見えます。',

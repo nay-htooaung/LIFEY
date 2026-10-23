@@ -5,8 +5,11 @@ import type { EntryKind, NewEntry, Repeat } from '../domain/types'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useStore } from '../data/store'
 import { CategorySheet } from './CategorySheet'
+import { MethodSheet } from './MethodSheet'
+import { SourceSheet } from './SourceSheet'
 import { IconLock } from '../ui/icons'
 import { useUI } from '../ui/ui'
+import { Dot, Select } from '../ui/Select'
 
 const LAST_VIA = 'lifey-last-via'
 const readLast = (): Record<string, string> => {
@@ -114,44 +117,28 @@ export function EntrySheet({ editId, prefill }: Props) {
         </div>
         {!editId && snap.spaces.length > 1 && (
           <div className="pick">
-            <span className="pick-l">{t('saveTo')}</span>
-            <div className="chips">
-              {snap.spaces.map((s) => (
-                <button key={s.id} className="chip" aria-pressed={spaceId === s.id} onClick={() => setSpaceId(s.id)}>
-                  <span className="sw" style={{ background: toneVar(s), borderRadius: '50%' }} />{s.name}
-                </button>
-              ))}
-            </div>
+            <label className="pick-l" htmlFor="entry-space">{t('saveTo')}</label>
+            <Select id="entry-space" value={spaceId} onChange={setSpaceId}
+              options={snap.spaces.map((s) => ({ value: s.id, label: s.name, icon: <Dot color={toneVar(s)} round /> }))} />
           </div>
         )}
         <div className="pick">
-          <span className="pick-l">{t('category')}</span>
-          <div className="chips">
-            {cats.map((c) => (
-              <button key={c.id} className="chip" aria-pressed={catId === c.id} onClick={() => setCategoryId(c.id)}>
-                <span className="sw" style={{ background: c.color }} />{c.name}
-              </button>
-            ))}
-            <button className="chip" onClick={() => ui.push(<CategorySheet spaceId={spaceId} kind={kind} onSaved={setCategoryId} />, toneVar(target))}>
-              {t('newShort')}
-            </button>
-          </div>
+          <label className="pick-l" htmlFor="entry-cat">{t('category')}</label>
+          <Select id="entry-cat" value={catId ?? ''} onChange={setCategoryId} placeholder="—"
+            options={cats.map((c) => ({ value: c.id, label: c.name, icon: <Dot color={c.color} /> }))}
+            onNew={() => ui.push(<CategorySheet spaceId={spaceId} kind={kind} onSaved={setCategoryId} />, toneVar(target))} newLabel={t('newCat')} />
         </div>
         <div className="pick">
-          <span className="pick-l">{kind === 'income' ? t('into') : t('paidWith')}</span>
-          {options.length ? (
-            <div className="chips">
-              {options.map((o) => (
-                <button key={o.id} className="chip" aria-pressed={viaId === o.id} onClick={() => setVia(o.id)}>
-                  {o.personal && <IconLock />}
-                  {o.name}
-                  {o.spaceId !== spaceId && !o.personal && <span className="tag">{spaceName(o.spaceId)}</span>}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <span className="privacy">{kind === 'income' ? t('noSourceHint') : t('noMethodHint')}</span>
-          )}
+          <label className="pick-l" htmlFor="entry-via">{kind === 'income' ? t('into') : t('paidWith')}</label>
+          <Select id="entry-via" value={viaId ?? ''} onChange={setVia} placeholder="—"
+            options={options.map((o) => ({
+              value: o.id, label: o.name, icon: o.personal ? <IconLock /> : undefined,
+              hint: o.spaceId !== spaceId && !o.personal ? spaceName(o.spaceId) : undefined,
+            }))}
+            onNew={() => ui.push(kind === 'income'
+              ? <SourceSheet spaceId={spaceId} onSaved={setVia} />
+              : <MethodSheet spaceId={spaceId} onSaved={setVia} />, toneVar(target))}
+            newLabel={kind === 'income' ? t('addSource') : t('addMethod')} />
         </div>
         {chosen?.personal && <span className="privacy">{t('hiddenHint')}</span>}
         {chosen && chosen.spaceId !== spaceId && !chosen.personal && <span className="privacy">{t('sharedHint')}</span>}
@@ -181,11 +168,8 @@ export function EntrySheet({ editId, prefill }: Props) {
           {!base?.repeatOf && (
             <div className="field">
               <label className="label" htmlFor="entry-repeat">{t('repeat')}</label>
-              <select id="entry-repeat" value={repeat} onChange={(e) => setRepeat(e.target.value as Repeat)}>
-                {(['none', 'weekly', 'biweekly', 'monthly', 'yearly'] as const).map((r) => (
-                  <option key={r} value={r}>{t(r === 'none' ? 'never' : r)}</option>
-                ))}
-              </select>
+              <Select id="entry-repeat" value={repeat} onChange={(v) => setRepeat(v as Repeat)}
+                options={(['none', 'weekly', 'biweekly', 'monthly', 'yearly'] as const).map((r) => ({ value: r, label: t(r === 'none' ? 'never' : r) }))} />
             </div>
           )}
           <div className="field">

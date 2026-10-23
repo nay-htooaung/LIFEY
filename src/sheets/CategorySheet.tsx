@@ -4,6 +4,7 @@ import { useI18n } from '../i18n'
 import { useStore } from '../data/store'
 import { parseYen, SWATCHES } from '../ui/bits'
 import { useUI } from '../ui/ui'
+import { Select } from '../ui/Select'
 
 interface Props {
   category?: Category
@@ -55,10 +56,8 @@ export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }:
       <div className="two">
         <div className="field">
           <label className="label" htmlFor="cat-kind">{t('type')}</label>
-          <select id="cat-kind" value={kind} disabled={!!category} onChange={(e) => setKind(e.target.value as EntryKind)}>
-            <option value="expense">{t('expense')}</option>
-            <option value="income">{t('incomeT')}</option>
-          </select>
+          <Select id="cat-kind" value={kind} disabled={!!category} onChange={(v) => setKind(v as EntryKind)}
+            options={[{ value: 'expense', label: t('expense') }, { value: 'income', label: t('incomeT') }]} />
         </div>
         {kind === 'expense' && (
           <div className="field">

@@ -4,9 +4,12 @@ import { useI18n } from '../i18n'
 import { useStore } from '../data/store'
 import { parseYen } from '../ui/bits'
 import { useUI } from '../ui/ui'
+import { Select } from '../ui/Select'
 
-export function SourceSheet() {
-  const { space, act } = useStore()
+/** Adds a source to `spaceId` (default: the current space) and reports its id through `onSaved`. */
+export function SourceSheet({ spaceId, onSaved }: { spaceId?: string; onSaved?: (id: string) => void } = {}) {
+  const { snap, space: current, act } = useStore()
+  const space = snap.spaces.find((s) => s.id === spaceId) ?? current
   const ui = useUI()
   const { t } = useI18n()
   const [name, setName] = useState('')
@@ -18,6 +21,7 @@ export function SourceSheet() {
     if (!n) return document.getElementById('src-name')?.focus()
     ui.close()
     void act((r) => r.addSource({ spaceId: space.id, name: n, kind, openingBalance: parseYen(bal) }), t('added', { x: n }))
+      .then((id) => id && onSaved?.(id))
   }
 
   return (
@@ -31,11 +35,8 @@ export function SourceSheet() {
       <div className="two">
         <div className="field">
           <label className="label" htmlFor="src-kind">{t('type')}</label>
-          <select id="src-kind" value={kind} onChange={(e) => setKind(e.target.value as SourceKind)}>
-            <option value="bank">{t('bank')}</option>
-            <option value="savings">{t('savings')}</option>
-            <option value="cash">{t('cash')}</option>
-          </select>
+          <Select id="src-kind" value={kind} onChange={(v) => setKind(v as SourceKind)}
+            options={(['bank', 'savings', 'cash'] as const).map((k) => ({ value: k, label: t(k) }))} />
         </div>
         <div className="field">
           <label className="label" htmlFor="src-bal">{t('balance')}</label>
