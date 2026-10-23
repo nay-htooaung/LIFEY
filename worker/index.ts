@@ -8,10 +8,10 @@ import { freeModels } from './models'
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> }
-  /** Secret: an OpenCode (Zen) API key. Only free models are used, so it is never charged. */
-  OPENCODE_API_KEY?: string
+  /** Secret: a Gemini API key from a Google AI Studio project without billing, so only the free tier is used. */
+  GEMINI_API_KEY?: string
   AI_BASE_URL: string
-  /** Comma-separated model ids to recommend first, good at calling tools. */
+  /** Comma-separated model ids to recommend first; empty recommends the newest Flash. */
   AI_PREFERRED?: string
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
@@ -32,8 +32,8 @@ export default {
     const url = new URL(req.url)
     if (url.pathname === '/api/chat') return req.method === 'POST' ? chat(req, env) : fail(405, 'method')
     if (url.pathname === '/api/models') {
-      if (!env.OPENCODE_API_KEY) return fail(503, 'not_configured')
-      return Response.json(await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY, preferred(env)), { headers: { 'cache-control': 'no-store' } })
+      if (!env.GEMINI_API_KEY) return fail(503, 'not_configured')
+      return Response.json(await freeModels(env.GEMINI_API_KEY, preferred(env)), { headers: { 'cache-control': 'no-store' } })
     }
     if (url.pathname.startsWith('/api/')) return fail(404, 'not_found')
     return env.ASSETS.fetch(req)
@@ -41,21 +41,19 @@ export default {
 }
 
 async function chat(req: Request, env: Env): Promise<Response> {
-  if (!env.OPENCODE_API_KEY) return fail(503, 'not_configured')
+  if (!env.GEMINI_API_KEY) return fail(503, 'not_configured')
   const token = req.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1]
   if (!token) return fail(401, 'signed_out')
 
   const raw = await req.text()
   if (raw.length > MAX_BODY) return fail(413, 'too_long')
-  let body: { messages?: Msg[]; context?: ChatContext; session?: string; model?: string }
+  let body: { messages?: Msg[]; context?: ChatContext; model?: string }
   try {
     body = JSON.parse(raw)
   } catch {
     return fail(400, 'bad_json')
   }
   const { messages, context } = body
-  // one id per conversation; OpenCode Go requires it for routing and prompt caching
-  const session = typeof body.session === 'string' && /^[\w-]{8,64}$/.test(body.session) ? body.session : crypto.randomUUID()
   if (!Array.isArray(messages) || !messages.length || messages.length > MAX_MESSAGES || !context?.space?.id) return fail(400, 'bad_request')
   // only the conversation itself; the system prompt and tools are set here
   const convo = messages
@@ -82,16 +80,13 @@ async function chat(req: Request, env: Env): Promise<Response> {
   }
 
   // the model picked in the app, if it is still a free one; otherwise the recommended one
-  const { models, recommended } = await freeModels(env.AI_BASE_URL, env.OPENCODE_API_KEY, preferred(env))
-  const model = models.some((m) => m.id === body.model) ? body.model! : recommended
-  if (!model) return fail(503, 'no_model')
+  const { models, recommended } = await freeModels(env.GEMINI_API_KEY, preferred(env))
+  // when the list cannot be had, Gemini's own alias for its newest Flash
+  const model = models.some((m) => m.id === body.model) ? body.model! : (recommended ?? 'gemini-flash-latest')
 
   const upstream = await fetch(`${env.AI_BASE_URL}/chat/completions`, {
     method: 'POST',
-    headers: {
-      authorization: `Bearer ${env.OPENCODE_API_KEY}`, 'content-type': 'application/json',
-      'x-opencode-session': session, 'user-agent': 'lifey-assistant/0.1',
-    },
+    headers: { authorization: `Bearer ${env.GEMINI_API_KEY}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       model,
       messages: [{ role: 'system', content: systemPrompt(ctx) }, ...convo],

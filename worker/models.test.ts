@@ -1,37 +1,37 @@
 import { describe, expect, it } from 'vitest'
 import { pickModels } from './models'
 
-const free = { cost: { input: 0, output: 0 }, tool_call: true }
+const m = (id: string, x: Partial<{ displayName: string; supportedGenerationMethods: string[]; inputTokenLimit: number }> = {}) =>
+  ({ name: `models/${id}`, supportedGenerationMethods: ['generateContent'], ...x })
+
 describe('assistant models', () => {
-  const catalogue = {
-    'big-pickle': { ...free, name: 'Big Pickle', reasoning: true, limit: { context: 200000 } },
-    'mimo-free': { ...free, name: 'MiMo Free', limit: { context: 256000 } },
-    'chat-free': { ...free, name: 'No tools', tool_call: false },
-    'claude-free': { ...free, provider: { npm: '@ai-sdk/anthropic' } },
-    'kimi-k3': { cost: { input: 0.6, output: 2.5 }, tool_call: true },
-    'old-free': { ...free, status: 'deprecated' },
-    'gone-free': free,
-  }
-  it('offers only free models that can call tools through chat/completions, best first', () => {
-    const live = ['big-pickle', 'mimo-free', 'chat-free', 'claude-free', 'kimi-k3', 'old-free', 'new-free']
-    expect(pickModels(live, catalogue)).toEqual({
+  const list = [
+    m('gemini-3.6-flash', { displayName: 'Gemini 3.6 Flash', inputTokenLimit: 1048576 }),
+    m('gemini-3.8-flash-lite', { displayName: 'Gemini 3.8 Flash-Lite' }),
+    m('gemini-3.8-flash-preview-11-2026'),
+    m('gemini-3.8-flash', { displayName: 'Gemini 3.8 Flash' }),
+    m('gemini-3.1-pro-preview'),
+    m('gemini-3.8-flash-image'),
+    m('gemini-3.8-flash-tts'),
+    m('gemini-flash-latest'),
+    m('gemma-4-27b-it'),
+    m('gemini-embedding-002', { supportedGenerationMethods: ['embedContent'] }),
+    m('gemini-3.5-flash-live', { supportedGenerationMethods: ['bidiGenerateContent'] }),
+  ]
+  it('offers free Flash chat models, newest full Flash first', () => {
+    expect(pickModels(list)).toEqual({
       models: [
-        { id: 'big-pickle', name: 'Big Pickle', context: 200000 },
-        { id: 'mimo-free', name: 'MiMo Free', context: 256000 },
-        // not in the catalogue yet: free by its name
-        { id: 'new-free', name: 'new-free' },
+        { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
+        { id: 'gemini-3.8-flash-preview-11-2026', name: 'gemini-3.8-flash-preview-11-2026' },
+        { id: 'gemini-3.8-flash-lite', name: 'Gemini 3.8 Flash-Lite' },
+        { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', context: 1048576 },
       ],
-      recommended: 'big-pickle',
+      recommended: 'gemini-3.8-flash',
     })
   })
-  it('recommends the preferred ones first when they are offered', () => {
-    const live = ['big-pickle', 'mimo-free', 'gone-free']
-    expect(pickModels(live, catalogue, ['missing-free', 'mimo-free']).recommended).toBe('mimo-free')
-    expect(pickModels(live, catalogue, ['kimi-k3']).recommended).toBe('big-pickle')
-  })
-  it('falls back to either list alone', () => {
-    expect(pickModels(['kimi-k3', 'x-free'], null).models.map((m) => m.id)).toEqual(['x-free'])
-    expect(pickModels(null, catalogue).models.map((m) => m.id)).toEqual(['big-pickle', 'mimo-free', 'gone-free'])
-    expect(pickModels(null, null)).toEqual({ models: [], recommended: null })
+  it('recommends a preferred model when it is offered', () => {
+    expect(pickModels(list, ['gemini-3.6-flash']).recommended).toBe('gemini-3.6-flash')
+    expect(pickModels(list, ['gemini-3.1-pro-preview']).recommended).toBe('gemini-3.8-flash')
+    expect(pickModels([])).toEqual({ models: [], recommended: null })
   })
 })

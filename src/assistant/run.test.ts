@@ -63,7 +63,7 @@ describe('assistant stream', () => {
     const all = ev({ content: 'Hel' }) + ev({ content: 'lo' }) +
       ev({ tool_calls: [{ index: 0, id: 'a', function: { name: 'list_', arguments: '{"mon' } }] }) +
       ev({ tool_calls: [{ index: 0, function: { name: 'entries', arguments: 'th":"2026-10"}' } }] }) +
-      ev({ tool_calls: [{ index: 1, id: 'b', function: { name: 'get_overview', arguments: '' } }] }) + 'data: [DONE]\n'
+      ev({ tool_calls: [{ index: 1, id: 'b', function: { name: 'get_overview', arguments: '' }, extra_content: { google: { thought_signature: 'sig' } } }] }) + 'data: [DONE]\n'
     // arbitrary chunk boundaries, even inside a line
     for (let i = 0; i < all.length; i += 7) acc.push(all.slice(i, i + 7))
     const out = acc.finish()
@@ -71,7 +71,8 @@ describe('assistant stream', () => {
     expect(seen).toEqual(['Hel', 'Hello'])
     expect(out.toolCalls).toEqual([
       { id: 'a', type: 'function', function: { name: 'list_entries', arguments: '{"month":"2026-10"}' } },
-      { id: 'b', type: 'function', function: { name: 'get_overview', arguments: '' } },
+      // Gemini's thought signature goes back with the call
+      { id: 'b', type: 'function', function: { name: 'get_overview', arguments: '' }, extra_content: { google: { thought_signature: 'sig' } } },
     ])
   })
   it('trims whole turns from the start', () => {

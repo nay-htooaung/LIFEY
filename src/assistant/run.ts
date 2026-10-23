@@ -7,7 +7,8 @@ import { asNew } from '../domain/recurring'
 import type { Entry, NewEntry, Snapshot, Space } from '../domain/types'
 import type { Repo } from '../data/repo'
 
-export interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string } }
+/** `extra_content` carries Gemini's thought signature, which must be sent back with the call. */
+export interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string }; extra_content?: unknown }
 export type ApiMsg =
   | { role: 'user'; content: string }
   | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
@@ -213,7 +214,7 @@ export function streamAccumulator(onText: (text: string) => void) {
     if (!l.startsWith('data:')) return
     const data = l.slice(5).trim()
     if (!data || data === '[DONE]') return
-    let ev: { choices?: { delta?: { content?: string | null; tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string } }[] } }[]; error?: { message?: string } }
+    let ev: { choices?: { delta?: { content?: string | null; tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }[] } }[]; error?: { message?: string } }
     try {
       ev = JSON.parse(data)
     } catch {
@@ -231,6 +232,7 @@ export function streamAccumulator(onText: (text: string) => void) {
       if (tc.id) calls[i].id = tc.id
       if (tc.function?.name) calls[i].function.name += tc.function.name
       if (tc.function?.arguments) calls[i].function.arguments += tc.function.arguments
+      if (tc.extra_content) calls[i].extra_content = tc.extra_content
     }
   }
   return {
