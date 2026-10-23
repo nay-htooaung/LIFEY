@@ -1,0 +1,33 @@
+/*
+  Themes are sets of tokens. Components only read tokens, never literal colours.
+  To add a theme: copy the block below as :root[data-skin="<name>"] { ... }, change the values,
+  and set data-skin="<name>" on <html>. The MVP ships Midnight only.
+*/
+:root,
+:root[data-skin='midnight'] {
+  color-scheme: dark;
+  --bg: #050606;
+  --paper: #0a0c0b;
+  --card: #141716;
+  --card-2: #1b1f1d;
+  --ink: #eef2ef;
+  --muted: #8d9993;
+  --line: #252b28;
+  --scrim: rgba(0, 0, 0, 0.66);
+  /* each space picks a tone; the whole app follows it */
+  --tone-me: #5ec4b9;
+  --tone-a: #f2a54c;
+  --tone-b: #e58bb0;
+  --tone-c: #9ea8ff;
+  --tone-d: #b5d86a;
+  --on-tone: #08100e;
+  --pos: #6dcb90;
+  --neg: #f08b7d;
+  --warn: #e9b25a;
+  --flame: #ff8a4c;
+  --cat-ink: #ffffff;
+
+  --display: 'Bricolage Grotesque', 'Noto Sans JP', system-ui, sans-serif;
+  --body: 'Figtree', 'Noto Sans JP', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}

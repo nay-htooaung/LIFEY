@@ -1,0 +1,139 @@
+-- Privacy and integrity checks for the money schema.
+-- Users: you (ja locale), sam (shares "Our Home" with you), eve (a stranger).
+\set ON_ERROR_STOP 1
+\set QUIET 1
+
+create schema t;
+create function t.ok(cond boolean, msg text) returns void language plpgsql as
+$$ begin if not coalesce(cond, false) then raise exception 'TEST FAIL: %', msg; end if; end $$;
+create function t.as_user(u text) returns void language sql as
+$$ select set_config('request.jwt.claim.sub', current_setting('t.' || u), false) $$;
+grant usage on schema t to authenticated;
+
+select set_config('t.you', '00000000-0000-0000-0000-00000000000a', false),
+       set_config('t.sam', '00000000-0000-0000-0000-00000000000b', false),
+       set_config('t.eve', '00000000-0000-0000-0000-00000000000c', false);
+
+insert into auth.users (id, email, raw_user_meta_data) values
+  (current_setting('t.you')::uuid, 'you@example.com', '{"locale":"ja","display_name":"You"}'),
+  (current_setting('t.sam')::uuid, 'sam@example.com', '{}'),
+  (current_setting('t.eve')::uuid, 'eve@example.com', '{}');
+
+select t.ok((select count(*) from public.profiles) = 3, 'sign-up creates a profile');
+select t.ok((select count(*) from public.spaces where kind = 'personal') = 3, 'sign-up creates a personal space');
+select t.ok(exists (select 1 from public.categories c join public.spaces s on s.id = c.space_id
+                          where s.owner_id = current_setting('t.you')::uuid and c.name = '食費'), 'categories seeded in Japanese');
+select t.ok((select display_name from public.profiles where id = current_setting('t.sam')::uuid) = 'sam', 'display name falls back to email');
+
+set role authenticated;
+
+-- you: create a household and money in both spaces
+select t.as_user('you');
+select set_config('t.home', public.create_household('Our Home', 'a')::text, false);
+select set_config('t.code', (select invite_code from public.spaces where id = current_setting('t.home')::uuid), false);
+select set_config('t.my_space', (select id::text from public.spaces where kind = 'personal'), false);
+select t.ok((select count(*) from public.spaces) = 2, 'you see your two spaces');
+
+insert into public.sources (space_id, name, kind, opening_balance)
+values (current_setting('t.my_space')::uuid, 'Everyday', 'bank', 400000) returning set_config('t.chk', id::text, false) \gset
+insert into public.payment_methods (space_id, name, kind, source_id, credit_limit, closing_day, payment_day)
+values (current_setting('t.my_space')::uuid, 'Visa', 'credit', current_setting('t.chk')::uuid, 500000, 15, 26)
+returning set_config('t.visa', id::text, false) \gset
+insert into public.sources (space_id, name, kind) values (current_setting('t.home')::uuid, 'Joint', 'bank')
+returning set_config('t.joint', id::text, false) \gset
+insert into public.payment_methods (space_id, name, kind, source_id)
+values (current_setting('t.home')::uuid, 'Joint debit', 'debit', current_setting('t.joint')::uuid)
+returning set_config('t.jdeb', id::text, false) \gset
+
+-- a household entry paid with your personal card
+insert into public.entries (space_id, kind, amount, method_id, note)
+values (current_setting('t.home')::uuid, 'expense', 5400, current_setting('t.visa')::uuid, 'Pizza night')
+returning set_config('t.pizza', id::text, false) \gset
+-- a personal entry paid with the shared debit card
+insert into public.entries (space_id, kind, amount, method_id, note)
+values (current_setting('t.my_space')::uuid, 'expense', 1200, current_setting('t.jdeb')::uuid, 'Book for me');
+-- repeating entries: one row per occurrence, duplicates ignored
+insert into public.entries (space_id, kind, amount, method_id, note, repeat)
+values (current_setting('t.my_space')::uuid, 'expense', 7700, current_setting('t.visa')::uuid, 'Gym', 'monthly')
+returning set_config('t.gym', id::text, false) \gset
+insert into public.entries (space_id, kind, amount, method_id, repeat_of, occurred_on)
+values (current_setting('t.my_space')::uuid, 'expense', 7700, current_setting('t.visa')::uuid, current_setting('t.gym')::uuid, '2026-11-01')
+on conflict (repeat_of, occurred_on) do nothing;
+insert into public.entries (space_id, kind, amount, method_id, repeat_of, occurred_on)
+values (current_setting('t.my_space')::uuid, 'expense', 7700, current_setting('t.visa')::uuid, current_setting('t.gym')::uuid, '2026-11-01')
+on conflict (repeat_of, occurred_on) do nothing;
+select t.ok((select count(*) from public.entries where repeat_of = current_setting('t.gym')::uuid) = 1, 'repeat occurrence posted once');
+-- a payment method must live in the same space as its source
+do $$ begin
+  insert into public.payment_methods (space_id, name, kind, source_id)
+  values (current_setting('t.home')::uuid, 'Bad', 'debit', current_setting('t.chk')::uuid);
+  raise exception 'TEST FAIL: method linked to a source in another space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+-- categories must come from the entry's space
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id, category_id)
+  values (current_setting('t.home')::uuid, 'expense', 100, current_setting('t.jdeb')::uuid,
+          (select id from public.categories where space_id = current_setting('t.my_space')::uuid limit 1));
+  raise exception 'TEST FAIL: entry used a category from another space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
+-- sam joins and looks around
+select t.as_user('sam');
+select t.ok((select count(*) from public.spaces where id = current_setting('t.home')::uuid) = 0, 'sam cannot see the household before joining');
+select public.join_household(lower(current_setting('t.code')));
+select t.ok((select count(*) from public.spaces) = 2, 'sam sees personal + household after joining');
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 1, 'sam sees the household entry');
+select t.ok((select created_by from public.entries where id = current_setting('t.pizza')::uuid) = current_setting('t.you')::uuid, 'sam sees who logged it');
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.my_space')::uuid) = 0, 'sam cannot see your personal entries');
+select t.ok((select count(*) from public.payment_methods where id = current_setting('t.visa')::uuid) = 0, 'sam cannot see your personal card');
+select t.ok((select count(*) from public.sources where id = current_setting('t.chk')::uuid) = 0, 'sam cannot see your personal bank');
+select t.ok((select count(*) from public.money_flows() where method_id = current_setting('t.visa')::uuid) = 0, 'flows hide charges on your personal card');
+select t.ok((select sum(amount) from public.money_flows() where method_id = current_setting('t.jdeb')::uuid) = 1200, 'flows show your personal charge on the shared card');
+select t.ok((select count(*) from public.profiles) = 2, 'sam sees himself and you');
+select t.ok((select count(*) from public.categories where space_id = current_setting('t.home')::uuid) = 6, 'sam sees household categories');
+
+update public.entries set amount = 1 where id = current_setting('t.pizza')::uuid;
+select t.ok((select amount from public.entries where id = current_setting('t.pizza')::uuid) = 5400, 'sam cannot edit your entry');
+delete from public.entries where id = current_setting('t.pizza')::uuid;
+select t.ok((select count(*) from public.entries where id = current_setting('t.pizza')::uuid) = 1, 'sam cannot delete your entry');
+
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id)
+  values (current_setting('t.home')::uuid, 'expense', 999, current_setting('t.visa')::uuid);
+  raise exception 'TEST FAIL: sam paid with your personal card';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
+insert into public.entries (space_id, kind, amount, method_id, created_by)
+values (current_setting('t.home')::uuid, 'expense', 3200, current_setting('t.jdeb')::uuid, current_setting('t.you')::uuid)
+returning set_config('t.thai', id::text, false) \gset
+select t.ok((select created_by from public.entries where id = current_setting('t.thai')::uuid) = current_setting('t.sam')::uuid, 'logger cannot be spoofed');
+
+-- eve is a stranger
+select t.as_user('eve');
+select t.ok((select count(*) from public.spaces) = 1, 'eve sees only her own space');
+select t.ok((select count(*) from public.entries) = 0, 'eve sees no entries');
+select t.ok((select count(*) from public.profiles) = 1, 'eve sees only herself');
+select t.ok((select count(*) from public.money_flows()) = 0, 'eve sees no flows');
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id)
+  values (current_setting('t.home')::uuid, 'expense', 1, current_setting('t.jdeb')::uuid);
+  raise exception 'TEST FAIL: eve wrote into a household she is not in';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform public.join_household('LFY-NOPE00');
+  raise exception 'TEST FAIL: unknown invite code accepted';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.space_members (space_id, user_id) values (current_setting('t.home')::uuid, auth.uid());
+  raise exception 'TEST FAIL: eve added herself without a code';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
+-- sam leaves; the household stays for you
+select t.as_user('sam');
+select public.leave_household(current_setting('t.home')::uuid);
+select t.ok((select count(*) from public.spaces) = 1, 'sam no longer sees the household');
+select t.as_user('you');
+select t.ok((select count(*) from public.space_members where space_id = current_setting('t.home')::uuid) = 1, 'household keeps its other member');
+
+reset role;
+\echo 'privacy tests passed'
