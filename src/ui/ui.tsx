@@ -23,8 +23,44 @@ export function UIProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<Toast | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  const close = useCallback(() => setSheet(null), [])
-  const open = useCallback((node: ReactNode, tone?: string) => setSheet({ node, tone, key: Date.now() }), [])
+  // An open sheet owns one history entry, so Android's back button closes it instead of leaving the app.
+  const isOpen = useRef(false)
+  const hasEntry = useRef(false)
+
+  const close = useCallback(() => {
+    isOpen.current = false
+    setSheet(null)
+    // Drop our entry on the next tick, unless another sheet opened in the meantime and can reuse it.
+    setTimeout(() => {
+      if (!isOpen.current && hasEntry.current) {
+        hasEntry.current = false
+        history.back()
+      }
+    })
+  }, [])
+  const open = useCallback((node: ReactNode, tone?: string) => {
+    isOpen.current = true
+    if (!hasEntry.current) {
+      history.pushState({ ...history.state, sheet: true }, '')
+      hasEntry.current = true
+    }
+    setSheet({ node, tone, key: Date.now() })
+  }, [])
+
+  useEffect(() => {
+    // a reload keeps history state; no sheet is open after one
+    if (history.state?.sheet) history.replaceState({ ...history.state, sheet: false }, '')
+    const onPop = (e: PopStateEvent) => {
+      if (e.state?.sheet) return
+      hasEntry.current = false
+      if (isOpen.current) {
+        isOpen.current = false
+        setSheet(null)
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
   const showToast = useCallback((msg: string, opts: { flame?: boolean; error?: boolean } = {}) => {
     clearTimeout(timer.current)
     setToast({ msg, ...opts, id: Date.now() })
@@ -32,10 +68,10 @@ export function UIProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSheet(null)
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && isOpen.current && close()
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
+  }, [close])
 
   const api = useMemo(() => ({ open, close, toast: showToast }), [open, close, showToast])
   return (

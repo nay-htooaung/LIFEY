@@ -117,7 +117,25 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): void; onRe
   const { space, snap } = useStore()
   const ui = useUI()
   const { t, locale } = useI18n()
-  const [tab, setTab] = useState<Tab>('today')
+  // Other tabs sit one history entry above Today, so Android's back returns to Today before leaving.
+  const [tab, setTab] = useState<Tab>(() => history.state?.tab ?? 'today')
+  const go = (k: Tab) => {
+    if (k === tab) return
+    if (k === 'today') {
+      if (history.state?.tab) history.back()
+      else setTab('today')
+      return
+    }
+    if (tab === 'today') history.pushState({ tab: k }, '')
+    else history.replaceState({ tab: k }, '')
+    setTab(k)
+  }
+
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => setTab(e.state?.tab ?? 'today')
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   useEffect(() => {
     document.documentElement.lang = locale
@@ -143,7 +161,7 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): void; onRe
         </button>
       </header>
       <main className="scroll" key={tab + space.id}>
-        {tab === 'today' && <Today go={setTab} />}
+        {tab === 'today' && <Today go={go} />}
         {tab === 'activity' && <Activity />}
         {tab === 'wallet' && <Wallet />}
         {tab === 'plan' && <Plan />}
@@ -153,7 +171,7 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): void; onRe
           k === 'add' ? (
             <button key={k} className="fab" aria-label={t('logSpend')} onClick={() => ui.open(<EntrySheet />, toneVar(space))}><Icon /></button>
           ) : (
-            <button key={k} aria-current={tab === k ? 'page' : undefined} onClick={() => setTab(k)}><Icon />{l}</button>
+            <button key={k} aria-current={tab === k ? 'page' : undefined} onClick={() => go(k)}><Icon />{l}</button>
           ),
         )}
       </nav>
