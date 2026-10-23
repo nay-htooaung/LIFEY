@@ -24,6 +24,8 @@ export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
   const [kind, setKind] = useState<SourceKind>(base?.kind ?? 'bank')
   const [bal, setBal] = useState(base ? String(base.openingBalance) : '')
   const [confirm, setConfirm] = useState(false)
+  // the cash every personal space starts with: only its balance changes
+  const fixed = !!base?.fixed
   // A source still paying for methods cannot go; those methods need it for their balances.
   const users = editId ? snap.methods.filter((m) => m.sourceId === editId && !m.archived) : []
 
@@ -45,21 +47,22 @@ export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
       <p className="lead">{t('srcSub', { s: space.name })}</p>
       <div className="field">
         <label className="label" htmlFor="src-name">{t('name')}</label>
-        <input id="src-name" value={name} maxLength={60} placeholder={t('srcPh')} onChange={(e) => setName(e.target.value)} />
+        <input id="src-name" value={name} disabled={fixed} maxLength={60} placeholder={t('srcPh')} onChange={(e) => setName(e.target.value)} />
       </div>
       <div className="two">
         <div className="field">
           <label className="label" htmlFor="src-kind">{t('type')}</label>
-          <Select id="src-kind" value={kind} onChange={(v) => setKind(v as SourceKind)}
-            options={(['bank', 'savings', 'cash'] as const).map((k) => ({ value: k, label: t(k) }))} />
+          <Select id="src-kind" value={kind} disabled={fixed} onChange={(v) => setKind(v as SourceKind)}
+            options={(['cash', 'bank', 'emoney'] as const).map((k) => ({ value: k, label: t(k) }))} />
         </div>
         <div className="field">
           <label className="label" htmlFor="src-bal">{editId ? t('openingBalance') : t('balance')}</label>
           <input id="src-bal" inputMode="numeric" value={bal} placeholder="¥0" onChange={(e) => setBal(e.target.value)} />
         </div>
       </div>
+      {fixed && <p className="tiny muted" style={{ margin: 0 }}>{t('cashFixed')}</p>}
       <button className="btn primary big" disabled={busy} aria-busy={pending === 'save'} onClick={save}>{editId ? t('save') : t('srcTitle')}</button>
-      {editId && (
+      {editId && !fixed && (
         <div className="field">
           <button className="btn danger" disabled={users.length > 0 || busy} aria-busy={pending === 'delete'} onClick={remove}>{confirm ? t('confirmDel') : t('deleteSource')}</button>
           <span className="tiny muted">

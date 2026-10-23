@@ -42,10 +42,10 @@ export function seedDemo(locale: Locale): Snapshot {
     C('t-food', 'trip', 'Food', '食事', '#D0704B', 40000, 'expense', 3), C('t-see', 'trip', 'Sightseeing', '観光', '#6A9C36', 20000, 'expense', 4),
   ]
   const S = (id: string, spaceId: string, en: string, ja: string, kind: Source['kind'], openingBalance: number): Source =>
-    ({ id, spaceId, name: L(en, ja), kind, openingBalance, createdOn: longAgo, archived: false })
+    ({ id, spaceId, name: L(en, ja), kind, openingBalance, createdOn: longAgo, archived: false, fixed: id === 'cash' })
   const sources: Source[] = [
-    S('chk', 'me', 'Everyday account', '普段使いの口座', 'bank', 380000), S('sav', 'me', 'Savings', '貯金口座', 'savings', 1250000),
-    S('cash', 'me', 'Wallet cash', '財布の現金', 'cash', 18000), S('joint', 'home', 'Joint account', '共同口座', 'bank', 160000),
+    S('chk', 'me', 'Everyday account', '普段使いの口座', 'bank', 380000), S('sav', 'me', 'Savings', '貯金口座', 'bank', 1250000),
+    S('cash', 'me', 'Cash', '現金', 'cash', 18000), S('joint', 'home', 'Joint account', '共同口座', 'bank', 160000),
     S('jar', 'home', 'Household envelope', '生活費の封筒', 'cash', 12000), S('tcash', 'trip', 'Trip wallet', '旅行用の財布', 'cash', 30000),
   ]
   const M = (id: string, spaceId: string, en: string, ja: string, kind: PaymentMethod['kind'], sourceId: string, credit?: [number, number, number]): PaymentMethod =>
@@ -173,7 +173,7 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
     },
     async addSource(s: NewSource) {
       const id = uid()
-      commit({ ...snap, sources: [...snap.sources, { ...s, id, createdOn: today(), archived: false }] })
+      commit({ ...snap, sources: [...snap.sources, { ...s, id, createdOn: today(), archived: false, fixed: false }] })
       return id
     },
     async addMethod(m: NewMethod) {

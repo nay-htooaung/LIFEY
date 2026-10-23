@@ -10,13 +10,12 @@ export const ja: Record<MessageKey, string> = {
   tomorrow: '明日', inDays: '{n}日後', cardPay: 'カード引き落とし', income: '収入', repeats: '繰り返し',
   whoPaid: '今月の{s}の支出',
  
-  setupTitle: 'お金はどこにありますか？', setupBody: '銀行口座・現金・カードを追加すると、支出を記録できます。', startCash: '現金から始める', addOwn: '自分で追加',
   monthOut: '支出', monthIn: '収入', net: '差額',
  
   yesterday: '昨日',
   netWorth: '純資産', netShared: '共有のお金', inSources: '資産 {a} · カード利用 {b}',
   sources: '口座・現金', addSource: '+ 追加', methods: '支払い方法', addMethod: '+ 追加', noSources: 'まだありません。',
-  bank: '銀行口座', savings: '貯金', cash: '現金', debit: 'デビット', credit: 'クレジット', emoney: '電子マネー', shared: '共有',
+  bank: '銀行口座', cash: '現金', debit: 'デビット', credit: 'クレジット', emoney: '電子マネー', cashFixed: '現金は常にあります。残高は変更できます。', shared: '共有',
   curBal: '未払い残高', ofLimit: '限度額 {l} の {p}%', closes: '{d}締め', payIn: '次回 {d}に{a}', noPayment: '支払い予定なし',
   paidFrom: '引き落とし口座', from: '{s}から', privacyNote: 'メンバーの個人口座やカードはここに表示されません。',
   budgets: '今月の予算', paceHint: '線 = 今日時点の目安', noBudget: '予算なし', overBy: '{a}オーバー', ahead: 'ペース早め', onTrack: '順調',

@@ -87,7 +87,9 @@ export function EntrySheet({ editId, scheduleOf, prefill }: Props) {
   const lastUsed = readLast()
   const pickFrom = <T extends { id: string }>(xs: T[], want: string | null, remembered?: string) =>
     xs.some((o) => o.id === want) ? want : (xs.find((o) => o.id === remembered)?.id ?? xs[0]?.id ?? null)
-  const viaId = pickFrom(options, via, lastUsed[`${spaceId}:${kind}`])
+  // income lands in my cash unless picked otherwise; the rest start where I last logged them
+  const cash = snap.sources.find((s) => s.fixed && s.spaceId === personal.id)?.id
+  const viaId = pickFrom(options, via, kind === 'income' ? cash : lastUsed[`${spaceId}:${kind}`])
   const chosen = options.find((o) => o.id === viaId)
   const toOptions = kind === 'transfer' ? options.filter((o) => o.id !== viaId) : []
   const toId = pickFrom(toOptions, toVia, lastUsed[`${spaceId}:transfer-to`])

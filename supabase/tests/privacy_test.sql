@@ -78,6 +78,45 @@ select set_config('t.code', (select invite_code from public.spaces where id = cu
 select set_config('t.my_space', (select id::text from public.spaces where kind = 'personal'), false);
 select t.ok((select count(*) from public.spaces) = 2, 'you see your two spaces');
 
+-- the cash source every personal space starts with
+select set_config('t.cash', (select id::text from public.sources where fixed), false);
+select t.ok((select name = '現金' and kind = 'cash' and space_id = current_setting('t.my_space')::uuid
+             from public.sources where id = current_setting('t.cash')::uuid), 'sign-up adds a cash source in your language');
+select t.ok((select count(*) from public.sources s join public.spaces sp on sp.id = s.space_id
+             where s.fixed and sp.kind = 'household') = 0, 'a new space gets no cash source');
+update public.sources set opening_balance = 5000 where id = current_setting('t.cash')::uuid;
+select t.ok((select opening_balance from public.sources where id = current_setting('t.cash')::uuid) = 5000, 'cash balance can be edited');
+do $$ begin
+  update public.sources set name = 'Wallet' where id = current_setting('t.cash')::uuid;
+  raise exception 'TEST FAIL: renamed the cash source';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  update public.sources set kind = 'bank' where id = current_setting('t.cash')::uuid;
+  raise exception 'TEST FAIL: retyped the cash source';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  update public.sources set archived = true where id = current_setting('t.cash')::uuid;
+  raise exception 'TEST FAIL: archived the cash source';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  delete from public.sources where id = current_setting('t.cash')::uuid;
+  raise exception 'TEST FAIL: deleted the cash source';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.sources (space_id, name, kind, fixed) values (current_setting('t.home')::uuid, 'Cash', 'cash', true);
+  raise exception 'TEST FAIL: a member added a fixed source';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.sources (space_id, name, kind) values (current_setting('t.my_space')::uuid, 'Old', 'savings');
+  raise exception 'TEST FAIL: added a savings source';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+insert into public.sources (space_id, name, kind) values (current_setting('t.my_space')::uuid, 'Suica', 'emoney')
+returning set_config('t.suica', id::text, false) \gset
+do $$ begin
+  update public.sources set fixed = true where id = current_setting('t.suica')::uuid;
+  raise exception 'TEST FAIL: made a source fixed';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
 insert into public.sources (space_id, name, kind, opening_balance)
 values (current_setting('t.my_space')::uuid, 'Everyday', 'bank', 400000) returning set_config('t.chk', id::text, false) \gset
 insert into public.payment_methods (space_id, name, kind, source_id, credit_limit, closing_day, payment_day)

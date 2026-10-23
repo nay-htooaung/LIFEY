@@ -2,7 +2,7 @@ export type Locale = 'en' | 'ja'
 export type Theme = 'midnight' | 'light' | 'milky'
 export type SpaceKind = 'personal' | 'household'
 export type Tone = 'me' | 'a' | 'b' | 'c' | 'd'
-export type SourceKind = 'bank' | 'savings' | 'cash'
+export type SourceKind = 'bank' | 'cash' | 'emoney'
 export type MethodKind = 'cash' | 'debit' | 'credit' | 'emoney'
 /** What a category or a flow of money is. */
 export type MoneyKind = 'expense' | 'income'
@@ -43,6 +43,8 @@ export interface Source {
   createdOn: Day
   /** Deleted by the user: hidden from lists and pickers, kept so past entries and balances stay right. */
   archived: boolean
+  /** The cash source every personal space starts with: its name and kind stay, and it cannot be deleted. */
+  fixed: boolean
 }
 
 export interface PaymentMethod {

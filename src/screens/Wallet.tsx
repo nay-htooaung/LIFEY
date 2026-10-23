@@ -8,7 +8,7 @@ import { SourceSheet } from '../sheets/SourceSheet'
 import { IconLock } from '../ui/icons'
 import { useUI } from '../ui/ui'
 
-const SRC_GLYPH: Record<SourceKind, string> = { bank: '銀', savings: '貯', cash: '¥' }
+const SRC_GLYPH: Record<SourceKind, string> = { bank: '銀', cash: '¥', emoney: 'e' }
 const METHOD_GLYPH: Record<MethodKind, string> = { cash: '¥', debit: 'D', emoney: 'e', credit: 'C' }
 
 export function Wallet() {

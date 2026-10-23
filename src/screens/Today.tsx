@@ -1,18 +1,14 @@
 import { parts } from '../domain/dates'
 import { spaceForecast, UPCOMING_DAYS, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
-import { usePersonName, useStore, useSubmit } from '../data/store'
-import { SourceSheet } from '../sheets/SourceSheet'
+import { usePersonName, useStore } from '../data/store'
 import { UpcomingRow } from '../ui/entry'
 import { IconLock } from '../ui/icons'
 import { InstallCard } from '../ui/InstallCard'
-import { useUI } from '../ui/ui'
 
 export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void }) {
   const store = useStore()
   const { snap, space, personal, today } = store
-  const { submit, pending, busy } = useSubmit()
-  const ui = useUI()
   const { t } = useI18n()
 
   const sts = safeToSpend(space.id, snap, today)
@@ -26,13 +22,6 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   const R = 2 * Math.PI * 30
   // in a shared space, my personal accounts are shown to me only; say so next to them
   const isMine = (spaceId: string) => space.kind === 'household' && spaceId === personal.id
-  const needsSetup = space.kind === 'personal' && !snap.methods.some((m) => m.spaceId === personal.id && !m.archived)
-
-  const startCash = () =>
-    submit('cash', async (r) => {
-      const src = await r.addSource({ spaceId: personal.id, name: t('cash'), kind: 'cash', openingBalance: 0 })
-      await r.addMethod({ spaceId: personal.id, name: t('cash'), kind: 'cash', sourceId: src, creditLimit: null, limitSharedWith: null, closingDay: null, paymentDay: null })
-    }, t('added', { x: t('cash') }))
 
   return (
     <>
@@ -73,19 +62,6 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
         </div>
         <div className="ribbon-x"><span>1</span><span>{t('today')}</span><span>{daily.length}</span></div>
       </div>
-
-      {needsSetup && (
-        <div className="card stack">
-          <div>
-            <b>{t('setupTitle')}</b>
-            <div className="small muted">{t('setupBody')}</div>
-          </div>
-          <div className="btn-row">
-            <button className="btn primary" disabled={busy} aria-busy={pending === 'cash'} onClick={startCash}>{t('startCash')}</button>
-            <button className="btn" onClick={() => ui.open(<SourceSheet />)}>{t('addOwn')}</button>
-          </div>
-        </div>
-      )}
 
       <InstallCard dismissible />
 

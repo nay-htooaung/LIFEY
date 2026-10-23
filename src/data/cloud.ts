@@ -10,7 +10,7 @@ const toProfile = (r: Row): Profile => ({
   id: r.id, displayName: r.display_name, color: r.color, locale: r.locale, avatar: r.avatar ?? null, theme: r.theme ?? 'midnight',
 })
 const toSource = (r: Row): Source => ({
-  id: r.id, spaceId: r.space_id, name: r.name, kind: r.kind, openingBalance: Number(r.opening_balance), createdOn: String(r.created_at).slice(0, 10), archived: !!r.archived,
+  id: r.id, spaceId: r.space_id, name: r.name, kind: r.kind, openingBalance: Number(r.opening_balance), createdOn: String(r.created_at).slice(0, 10), archived: !!r.archived, fixed: !!r.fixed,
 })
 const toMethod = (r: Row): PaymentMethod => ({
   id: r.id, spaceId: r.space_id, name: r.name, kind: r.kind, sourceId: r.source_id,

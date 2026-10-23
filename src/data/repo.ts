@@ -1,6 +1,6 @@
 import type { Category, Entry, NewEntry, PaymentMethod, Profile, Snapshot, Source, Tone } from '../domain/types'
 
-export type NewSource = Omit<Source, 'id' | 'createdOn' | 'archived'>
+export type NewSource = Omit<Source, 'id' | 'createdOn' | 'archived' | 'fixed'>
 export type NewMethod = Omit<PaymentMethod, 'id' | 'archived'>
 export type CategoryInput = Omit<Category, 'id'> & { id?: string }
 

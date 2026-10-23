@@ -7,7 +7,7 @@ import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10, archived: false }
 const eom: PaymentMethod = { ...visa, id: 'eom', closingDay: 31, paymentDay: 27 }
 const debit: PaymentMethod = { ...visa, id: 'deb', kind: 'debit', closingDay: null, paymentDay: null }
-const chk: Source = { id: 'chk', spaceId: 'me', name: 'Bank', kind: 'bank', openingBalance: 100000, createdOn: '2026-09-01', archived: false }
+const chk: Source = { id: 'chk', spaceId: 'me', name: 'Bank', kind: 'bank', openingBalance: 100000, createdOn: '2026-09-01', archived: false, fixed: false }
 
 let n = 0
 const entry = (p: Partial<Entry>): Entry => ({

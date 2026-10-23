@@ -8,13 +8,12 @@ export const en = {
   tomorrow: 'Tomorrow', inDays: 'In {n} days', cardPay: 'Card payment', income: 'Income', repeats: 'Repeats',
   whoPaid: 'Spent in {s} this month',
  
-  setupTitle: 'Where does your money live?', setupBody: 'Add a bank account, cash or a card so you can log what you spend.', startCash: 'Start with cash', addOwn: 'Add my own',
   monthOut: 'Spent', monthIn: 'Income', net: 'Net',
  
   yesterday: 'Yesterday',
   netWorth: 'Net worth', netShared: 'Shared money', inSources: '{a} in sources · {b} on credit',
   sources: 'Sources', addSource: '+ Add source', methods: 'Payment methods', addMethod: '+ Add method', noSources: 'No sources yet.',
-  bank: 'Bank account', savings: 'Savings', cash: 'Cash', debit: 'Debit', credit: 'Credit', emoney: 'E-money', shared: 'Shared',
+  bank: 'Bank account', cash: 'Cash', debit: 'Debit', credit: 'Credit', emoney: 'E-money', cashFixed: 'Your cash is always here. You can change its balance.', shared: 'Shared',
   curBal: 'Unpaid balance', ofLimit: '{p}% of {l}', closes: 'Closes on the {d}', payIn: 'Next payment {a} on {d}', noPayment: 'Nothing to pay',
   paidFrom: 'Paid from', from: 'from {s}', privacyNote: "Members' personal sources and cards never appear here.",
   budgets: 'Budgets this month', paceHint: 'Line = where you should be today', noBudget: 'No budget', overBy: 'Over by {a}', ahead: 'Ahead of pace', onTrack: 'On track',

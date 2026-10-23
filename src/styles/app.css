@@ -261,6 +261,7 @@ button { cursor: pointer; }
 .keypad button:active { background: var(--acc-soft); }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .field input, .field select, .input { border: 1px solid var(--line); background: var(--paper); border-radius: 12px; padding: 10px 12px; width: 100%; min-width: 0; }
+.field input:disabled { opacity: 0.6; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 details summary { cursor: pointer; font-weight: 600; color: var(--acc); font-size: 14px; list-style: none; }
 details summary::-webkit-details-marker { display: none; }
