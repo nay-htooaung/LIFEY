@@ -1,4 +1,5 @@
 export type Locale = 'en' | 'ja'
+export type Theme = 'midnight' | 'light' | 'milky'
 export type SpaceKind = 'personal' | 'household'
 export type Tone = 'me' | 'a' | 'b' | 'c' | 'd'
 export type SourceKind = 'bank' | 'savings' | 'cash'
@@ -13,6 +14,9 @@ export interface Profile {
   displayName: string
   color: string
   locale: Locale
+  /** A character from AVATARS, or null for the initial of the name. */
+  avatar: string | null
+  theme: Theme
 }
 
 export interface Space {
@@ -34,6 +38,8 @@ export interface Source {
   /** Balance on the day the source was added. Later entries move it. */
   openingBalance: number
   createdOn: Day
+  /** Deleted by the user: hidden from lists and pickers, kept so past entries and balances stay right. */
+  archived: boolean
 }
 
 export interface PaymentMethod {
@@ -48,6 +54,8 @@ export interface PaymentMethod {
   /** Credit only. Statement closes on this day; it is paid on paymentDay of the following month. */
   closingDay: number | null
   paymentDay: number | null
+  /** Deleted by the user: hidden from lists and pickers, kept so past entries and balances stay right. */
+  archived: boolean
 }
 
 export interface Category {
@@ -102,5 +110,4 @@ export interface Snapshot {
   categories: Category[]
   entries: Entry[]
   flows: Flow[]
-  noSpendDays: Day[]
 }

@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n'
 import { useStore } from '../data/store'
-import { Avatar } from '../ui/bits'
+import { AVATARS, Avatar, THEMES } from '../ui/bits'
 import { InstallCard } from '../ui/InstallCard'
 import { useUI } from '../ui/ui'
 
-/** You: name, language, installing the app, signing out. Opened from the avatar in the top bar. */
+/** You: character, name, language, theme, installing the app, signing out. Opened from the avatar in the top bar. */
 export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => void; onResetDemo?: () => void }) {
-  const { snap, repo, act, setLocale } = useStore()
+  const { snap, repo, act, setPrefs } = useStore()
   const ui = useUI()
   const { t, locale } = useI18n()
   const [name, setName] = useState(snap.me.displayName)
@@ -29,8 +29,31 @@ export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => voi
       <div className="field">
         <span className="label">{t('language')}</span>
         <div className="seg">
-          <button aria-pressed={locale === 'en'} onClick={() => setLocale('en')}>English</button>
-          <button aria-pressed={locale === 'ja'} onClick={() => setLocale('ja')}>日本語</button>
+          <button aria-pressed={locale === 'en'} onClick={() => setPrefs({ locale: 'en' })}>English</button>
+          <button aria-pressed={locale === 'ja'} onClick={() => setPrefs({ locale: 'ja' })}>日本語</button>
+        </div>
+      </div>
+      <div className="field">
+        <span className="label">{t('theme')}</span>
+        <div className="themes">
+          {THEMES.map((th) => (
+            <button key={th} aria-pressed={snap.me.theme === th} onClick={() => setPrefs({ theme: th })}>
+              {/* a tiny preview drawn with that theme's own tokens */}
+              <span className="theme-sw" data-skin={th}><i /><i /></span>
+              {t(`theme_${th}`)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="field">
+        <span className="label">{t('character')}</span>
+        <div className="chars">
+          <button aria-pressed={!snap.me.avatar} aria-label={t('initialOnly')} onClick={() => setPrefs({ avatar: null })}>
+            {[...(snap.me.displayName || t('me'))][0]?.toUpperCase()}
+          </button>
+          {AVATARS.map((a) => (
+            <button key={a} aria-pressed={snap.me.avatar === a} onClick={() => setPrefs({ avatar: a })}>{a}</button>
+          ))}
         </div>
       </div>
       <InstallCard />

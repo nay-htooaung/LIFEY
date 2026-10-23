@@ -1,10 +1,12 @@
 /*
   Themes are sets of tokens. Components only read tokens, never literal colours.
-  To add a theme: copy the block below as :root[data-skin="<name>"] { ... }, change the values,
-  and set data-skin="<name>" on <html>. The MVP ships Midnight only.
+  Blocks match any element with data-skin, so a small preview can show a theme inside another.
+  To add a theme: copy a block below as [data-skin="<name>"] { ... }, change the values, add the name to
+  Theme (domain/types.ts), THEMES (ui/bits.tsx) and the profiles.theme check in a migration.
+  The person's choice sets data-skin on <html> (data/store.tsx; index.html applies the saved one before first paint).
 */
 :root,
-:root[data-skin='midnight'] {
+[data-skin='midnight'] {
   color-scheme: dark;
   --bg: #050606;
   --paper: #0a0c0b;
@@ -30,4 +32,50 @@
   --display: 'Bricolage Grotesque', 'Noto Sans JP', system-ui, sans-serif;
   --body: 'Figtree', 'Noto Sans JP', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+[data-skin='light'] {
+  color-scheme: light;
+  --bg: #eef0ed;
+  --paper: #f7f8f6;
+  --card: #ffffff;
+  --card-2: #eef1ee;
+  --ink: #141716;
+  --muted: #69736d;
+  --line: #dde2de;
+  --scrim: rgba(20, 23, 22, 0.32);
+  --tone-me: #2b9a8e;
+  --tone-a: #d98426;
+  --tone-b: #cf5f8c;
+  --tone-c: #6474e8;
+  --tone-d: #6f9a2c;
+  --on-tone: #ffffff;
+  --pos: #2b8f55;
+  --neg: #cf4f3c;
+  --warn: #b97d17;
+  --flame: #ec6a26;
+  --cat-ink: #ffffff;
+}
+
+[data-skin='milky'] {
+  color-scheme: light;
+  --bg: #f8eef1;
+  --paper: #fff7f9;
+  --card: #ffffff;
+  --card-2: #fcebf0;
+  --ink: #3b2a31;
+  --muted: #9a7f88;
+  --line: #f0d9e0;
+  --scrim: rgba(59, 42, 49, 0.28);
+  --tone-me: #e4839f;
+  --tone-a: #eda465;
+  --tone-b: #c487d6;
+  --tone-c: #8ca2ec;
+  --tone-d: #84c194;
+  --on-tone: #ffffff;
+  --pos: #4ea372;
+  --neg: #d6546b;
+  --warn: #cf9535;
+  --flame: #ef7a5c;
+  --cat-ink: #ffffff;
 }

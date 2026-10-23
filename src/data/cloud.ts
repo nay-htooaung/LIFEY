@@ -6,13 +6,16 @@ import { RepoError, type Repo } from './repo'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Row = Record<string, any>
 
-const toProfile = (r: Row): Profile => ({ id: r.id, displayName: r.display_name, color: r.color, locale: r.locale })
+const toProfile = (r: Row): Profile => ({
+  id: r.id, displayName: r.display_name, color: r.color, locale: r.locale, avatar: r.avatar ?? null, theme: r.theme ?? 'midnight',
+})
 const toSource = (r: Row): Source => ({
-  id: r.id, spaceId: r.space_id, name: r.name, kind: r.kind, openingBalance: Number(r.opening_balance), createdOn: String(r.created_at).slice(0, 10),
+  id: r.id, spaceId: r.space_id, name: r.name, kind: r.kind, openingBalance: Number(r.opening_balance), createdOn: String(r.created_at).slice(0, 10), archived: !!r.archived,
 })
 const toMethod = (r: Row): PaymentMethod => ({
   id: r.id, spaceId: r.space_id, name: r.name, kind: r.kind, sourceId: r.source_id,
   creditLimit: r.credit_limit == null ? null : Number(r.credit_limit), limitSharedWith: r.limit_shared_with ?? null, closingDay: r.closing_day, paymentDay: r.payment_day,
+  archived: !!r.archived,
 })
 const toCategory = (r: Row): Category => ({
   id: r.id, spaceId: r.space_id, name: r.name, color: r.color, kind: r.kind, monthlyBudget: Number(r.monthly_budget), sort: r.sort,
@@ -26,7 +29,7 @@ const entryRow = (e: Omit<Entry, 'id' | 'createdBy'>) => ({
   source_id: e.kind === 'income' || !e.methodId ? e.sourceId : null, occurred_on: e.occurredOn, name: e.name, note: e.note, tags: e.tags, repeat: e.repeat, repeat_of: e.repeatOf,
 })
 
-const methodRow = (m: Omit<PaymentMethod, 'id'>) => ({
+const methodRow = (m: Omit<PaymentMethod, 'id' | 'archived'>) => ({
   space_id: m.spaceId, name: m.name, kind: m.kind, source_id: m.sourceId, credit_limit: m.creditLimit,
   limit_shared_with: m.limitSharedWith, closing_day: m.closingDay, payment_day: m.paymentDay,
 })
@@ -44,16 +47,15 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     mode: 'cloud',
     async load(): Promise<Snapshot> {
       const since = addDays(today(), -400)
-      const [profiles, spaces, members, sources, methods, cats, entries, flows, noSpend] = await Promise.all([
+      const [profiles, spaces, members, sources, methods, cats, entries, flows] = await Promise.all([
         sb.from('profiles').select('*'),
         sb.from('spaces').select('*').order('created_at'),
         sb.from('space_members').select('space_id,user_id,joined_at').is('left_at', null).order('joined_at'),
-        sb.from('sources').select('*').eq('archived', false).order('created_at'),
-        sb.from('payment_methods').select('*').eq('archived', false).order('created_at'),
+        sb.from('sources').select('*').order('created_at'),
+        sb.from('payment_methods').select('*').order('created_at'),
         sb.from('categories').select('*').eq('archived', false).order('sort').order('created_at'),
         sb.from('entries').select('*').or(`occurred_on.gte.${since},repeat.neq.none`).order('occurred_on', { ascending: false }).limit(10000),
         sb.rpc('money_flows'),
-        sb.from('no_spend_days').select('day'),
       ])
       const profs = Object.fromEntries((check(profiles) as Row[]).map((r) => [r.id, toProfile(r)]))
       const memberRows = check(members) as Row[]
@@ -76,7 +78,6 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         flows: (check(flows) as Row[]).map((r): Flow => ({
           methodId: r.method_id, sourceId: r.source_id, kind: r.kind, amount: Number(r.amount), occurredOn: r.occurred_on,
         })),
-        noSpendDays: (check(noSpend) as Row[]).map((r) => r.day),
       }
     },
     async addEntries(list) {
@@ -93,6 +94,15 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     async addSource(s) {
       const r = check(await sb.from('sources').insert({ space_id: s.spaceId, name: s.name, kind: s.kind, opening_balance: s.openingBalance }).select('id').single())
       return (r as Row).id
+    },
+    async updateSource(id, s) {
+      check(await sb.from('sources').update({ name: s.name, kind: s.kind, opening_balance: s.openingBalance }).eq('id', id))
+    },
+    async setSourceArchived(id, archived) {
+      check(await sb.from('sources').update({ archived }).eq('id', id))
+    },
+    async setMethodArchived(id, archived) {
+      check(await sb.from('payment_methods').update({ archived }).eq('id', id))
     },
     async addMethod(m) {
       return (check(await sb.from('payment_methods').insert(methodRow(m)).select('id').single()) as Row).id
@@ -132,13 +142,12 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     async resetInviteCode(spaceId) {
       return check(await sb.rpc('reset_invite_code', { p_space: spaceId })) as string
     },
-    async markNoSpend(day) {
-      check(await sb.from('no_spend_days').upsert({ user_id: userId, day }, { ignoreDuplicates: true }))
-    },
     async updateProfile(patch) {
       const row: Row = {}
       if (patch.displayName !== undefined) row.display_name = patch.displayName
       if (patch.locale !== undefined) row.locale = patch.locale
+      if (patch.avatar !== undefined) row.avatar = patch.avatar
+      if (patch.theme !== undefined) row.theme = patch.theme
       check(await sb.from('profiles').update(row).eq('id', userId))
     },
     async signOut() {

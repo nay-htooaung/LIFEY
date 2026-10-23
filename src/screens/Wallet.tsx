@@ -12,12 +12,16 @@ const SRC_GLYPH: Record<SourceKind, string> = { bank: '銀', savings: '貯', cas
 const METHOD_GLYPH: Record<MethodKind, string> = { cash: '¥', debit: 'D', emoney: 'e', credit: 'C' }
 
 export function Wallet() {
-  const { snap, space, today } = useStore()
+  const { snap, space, today, act } = useStore()
   const { source } = useLookups()
   const ui = useUI()
   const { t, ordinal, month } = useI18n()
-  const sources = snap.sources.filter((s) => s.spaceId === space.id)
-  const methods = snap.methods.filter((m) => m.spaceId === space.id)
+  const sources = snap.sources.filter((s) => s.spaceId === space.id && !s.archived)
+  const methods = snap.methods.filter((m) => m.spaceId === space.id && !m.archived)
+  const deleted = [
+    ...snap.sources.filter((s) => s.spaceId === space.id && s.archived).map((s) => ({ id: s.id, name: s.name, source: true })),
+    ...snap.methods.filter((m) => m.spaceId === space.id && m.archived).map((m) => ({ id: m.id, name: m.name, source: false })),
+  ]
   const pos = netPosition(space.id, snap, today)
   const dueLabel = (d: string) => {
     const [, m, dd] = parts(d)
@@ -36,11 +40,11 @@ export function Wallet() {
       <div className="sec-h"><h3>{t('sources')}</h3><button className="link" onClick={() => ui.open(<SourceSheet />)}>{t('addSource')}</button></div>
       <div className="card list">
         {sources.length ? sources.map((s) => (
-          <div key={s.id} className="row">
+          <button key={s.id} className="row" onClick={() => ui.open(<SourceSheet editId={s.id} />)}>
             <span className="glyph acc">{SRC_GLYPH[s.kind]}</span>
             <div className="main"><div className="t">{s.name}</div><div className="s">{t(s.kind)}{space.kind === 'household' ? ` · ${t('shared')}` : ''}</div></div>
             <span className="amt num">{yen(sourceBalance(s, snap.methods, snap.flows, today))}</span>
-          </div>
+          </button>
         )) : <p className="empty">{t('noSources')}</p>}
       </div>
 
@@ -76,6 +80,21 @@ export function Wallet() {
             </button>
           ))}
         </div>
+      )}
+      {deleted.length > 0 && (
+        <>
+          <div className="sec-h"><h3>{t('deletedItems')}</h3></div>
+          <div className="card list">
+            {deleted.map((d) => (
+              <div key={d.id} className="row">
+                <div className="main"><div className="t muted">{d.name}</div></div>
+                <button className="btn sm" onClick={() => act((r) => (d.source ? r.setSourceArchived(d.id, false) : r.setMethodArchived(d.id, false)), t('spaceRestored', { x: d.name }))}>
+                  {t('restore')}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
       )}
     </>
   )

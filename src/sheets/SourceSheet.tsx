@@ -6,27 +6,45 @@ import { parseYen } from '../ui/bits'
 import { useUI } from '../ui/ui'
 import { Select } from '../ui/Select'
 
-/** Adds a source to `spaceId` (default: the current space) and reports its id through `onSaved`. */
-export function SourceSheet({ spaceId, onSaved }: { spaceId?: string; onSaved?: (id: string) => void } = {}) {
+interface Props {
+  /** Edit this source instead of adding one. */
+  editId?: string
+  /** Space for a new source (default: the current space). */
+  spaceId?: string
+  /** Called with the new source's id once added. */
+  onSaved?: (id: string) => void
+}
+
+export function SourceSheet({ editId, spaceId, onSaved }: Props = {}) {
   const { snap, space: current, act } = useStore()
-  const space = snap.spaces.find((s) => s.id === spaceId) ?? current
+  const base = editId ? snap.sources.find((s) => s.id === editId) : undefined
+  const space = snap.spaces.find((s) => s.id === (base?.spaceId ?? spaceId)) ?? current
   const ui = useUI()
   const { t } = useI18n()
-  const [name, setName] = useState('')
-  const [kind, setKind] = useState<SourceKind>('bank')
-  const [bal, setBal] = useState('')
+  const [name, setName] = useState(base?.name ?? '')
+  const [kind, setKind] = useState<SourceKind>(base?.kind ?? 'bank')
+  const [bal, setBal] = useState(base ? String(base.openingBalance) : '')
+  const [confirm, setConfirm] = useState(false)
+  // A source still paying for methods cannot go; those methods need it for their balances.
+  const users = editId ? snap.methods.filter((m) => m.sourceId === editId && !m.archived) : []
 
   const save = () => {
     const n = name.trim()
     if (!n) return document.getElementById('src-name')?.focus()
+    const source = { spaceId: space.id, name: n, kind, openingBalance: parseYen(bal) }
     ui.close()
-    void act((r) => r.addSource({ spaceId: space.id, name: n, kind, openingBalance: parseYen(bal) }), t('added', { x: n }))
-      .then((id) => id && onSaved?.(id))
+    if (editId) return void act((r) => r.updateSource(editId, source), t('saved'))
+    void act((r) => r.addSource(source), t('added', { x: n })).then((id) => id && onSaved?.(id))
+  }
+  const remove = () => {
+    if (!confirm) return setConfirm(true)
+    ui.close()
+    void act((r) => r.setSourceArchived(editId!, true), t('archived', { x: base!.name }))
   }
 
   return (
     <>
-      <h2>{t('srcTitle')}</h2>
+      <h2>{editId ? t('editSource') : t('srcTitle')}</h2>
       <p className="lead">{t('srcSub', { s: space.name })}</p>
       <div className="field">
         <label className="label" htmlFor="src-name">{t('name')}</label>
@@ -39,11 +57,19 @@ export function SourceSheet({ spaceId, onSaved }: { spaceId?: string; onSaved?: 
             options={(['bank', 'savings', 'cash'] as const).map((k) => ({ value: k, label: t(k) }))} />
         </div>
         <div className="field">
-          <label className="label" htmlFor="src-bal">{t('balance')}</label>
+          <label className="label" htmlFor="src-bal">{editId ? t('openingBalance') : t('balance')}</label>
           <input id="src-bal" inputMode="numeric" value={bal} placeholder="¥0" onChange={(e) => setBal(e.target.value)} />
         </div>
       </div>
-      <button className="btn primary big" onClick={save}>{t('srcTitle')}</button>
+      <button className="btn primary big" onClick={save}>{editId ? t('save') : t('srcTitle')}</button>
+      {editId && (
+        <div className="field">
+          <button className="btn danger" disabled={users.length > 0} onClick={remove}>{confirm ? t('confirmDel') : t('deleteSource')}</button>
+          <span className="tiny muted">
+            {users.length ? t('sourceInUse', { x: users.map((m) => m.name).join(', ') }) : t('restoreHint')}
+          </span>
+        </div>
+      )}
     </>
   )
 }

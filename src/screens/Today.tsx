@@ -1,14 +1,9 @@
 import { parts } from '../domain/dates'
-import { dailyTotals, paidPersonallyFor, safeToSpend, spentByMember, upcoming } from '../domain/money'
-import { streak } from '../domain/streak'
-import { addDays } from '../domain/dates'
+import { balancesAfter, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
 import { usePersonName, useStore } from '../data/store'
 import { SourceSheet } from '../sheets/SourceSheet'
-import { SpacesSheet } from '../sheets/SpacesSheet'
-import { Avatar, SpaceDot } from '../ui/bits'
-import { EntryRow, UpcomingRow } from '../ui/entry'
-import { IconFlame } from '../ui/icons'
+import { UpcomingRow } from '../ui/entry'
 import { InstallCard } from '../ui/InstallCard'
 import { useUI } from '../ui/ui'
 
@@ -16,8 +11,7 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   const store = useStore()
   const { snap, space, personal, today, act } = store
   const ui = useUI()
-  const { t, wd } = useI18n()
-  const person = usePersonName()
+  const { t } = useI18n()
 
   const sts = safeToSpend(space.id, snap, today)
   const up = upcoming(space.id, snap, today)
@@ -28,11 +22,7 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   const billDays = new Set(up.filter((u) => u.kind !== 'income' && u.on.slice(0, 7) === today.slice(0, 7)).map((u) => parts(u.on)[2]))
   const pct = sts.budget ? Math.min(1, (sts.spent + sts.committed) / sts.budget) : 0
   const R = 2 * Math.PI * 30
-  const st = streak(snap.entries, snap.noSpendDays, snap.me.id, today)
-  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i - 6))
-  const recent = snap.entries.filter((e) => e.spaceId === space.id && e.occurredOn <= today)
-    .sort((a, b) => (a.occurredOn < b.occurredOn ? 1 : -1)).slice(0, 4)
-  const needsSetup = space.kind === 'personal' && !snap.methods.some((m) => m.spaceId === personal.id)
+  const needsSetup = space.kind === 'personal' && !snap.methods.some((m) => m.spaceId === personal.id && !m.archived)
 
   const startCash = () =>
     act(async (r) => {
@@ -95,58 +85,17 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
 
       <InstallCard dismissible />
 
-      {/* one line: streak, this week, and the no-spend shortcut (logging is the + button) */}
-      <div className="card streak">
-        <span className="fl"><IconFlame /></span>
-        <div className="main">
-          <b>{t('streak', { n: st.count })}</b>
-          <div className="week" aria-hidden="true">
-            {week.map((d) => <i key={d} title={wd(d)} className={snap.noSpendDays.includes(d) ? 'ns' : st.days.has(d) ? 'on' : ''} />)}
-          </div>
-        </div>
-        {st.doneToday ? (
-          <span className="small muted">{t('loggedToday')}</span>
-        ) : (
-          <button className="btn sm" onClick={() => act((r) => r.markNoSpend(today), t('noSpendDone', { n: st.count + 1 }))}>{t('noSpend')}</button>
-        )}
-      </div>
-
-      {space.kind === 'personal' ? (
-        <>
-          <div className="sec-h"><h3>{t('yourHouseholds')}</h3></div>
-          {snap.spaces.filter((s) => s.kind === 'household').map((h) => (
-            <button key={h.id} className="bridge" onClick={() => store.setSpace(h.id)}>
-              <SpaceDot name={h.name} tone={h.tone} large />
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <b>{h.name}</b><br />
-                <span className="tiny muted">{t('paidFromPersonal', { a: yen(paidPersonallyFor(h.id, snap, today)) })}</span>
-              </span>
-              <span className="avatars">{h.memberIds.map((id) => <Avatar key={id} profile={snap.profiles[id]} label={person(id)} />)}</span>
-            </button>
-          ))}
-          {!snap.spaces.some((s) => s.kind === 'household') && (
-            <button className="bridge" onClick={() => ui.open(<SpacesSheet />)}>
-              <span style={{ flex: 1 }} className="small muted">{t('noHouseholds')}</span>
-              <span className="link">{t('addHousehold')}</span>
-            </button>
-          )}
-        </>
-      ) : (
-        <Contribution />
-      )}
+      {space.kind === 'household' && <Contribution />}
 
       {up.length > 0 && (
         <>
           <div className="sec-h"><h3>{t('comingUp')}</h3><button className="link" onClick={() => go('plan')}>{t('allBills')}</button></div>
-          <div className="card list">{up.slice(0, 4).map((u) => <UpcomingRow key={u.key} item={u} />)}</div>
+          <div className="card list">
+            {balancesAfter(up.slice(0, 6), snap, today).map(({ item, source, after }) => (
+              <UpcomingRow key={item.key} item={item} after={after} sourceName={source?.name} />
+            ))}
+          </div>
         </>
-      )}
-
-      <div className="sec-h"><h3>{t('recent')}</h3><button className="link" onClick={() => go('activity')}>{t('seeAll')}</button></div>
-      {recent.length ? (
-        <div className="card list">{recent.map((e) => <EntryRow key={e.id} entry={e} showDate />)}</div>
-      ) : (
-        <div className="card empty">{t('nothingYet')}</div>
       )}
     </>
   )

@@ -60,6 +60,15 @@ select t.ok((select display_name from public.profiles where id = current_setting
 
 set role authenticated;
 
+-- profile look: your own only, from the fixed themes
+select t.as_user('you');
+update public.profiles set theme = 'milky', avatar = '🐱' where id = auth.uid();
+select t.ok((select theme = 'milky' and avatar = '🐱' from public.profiles where id = auth.uid()), 'you can set your theme and character');
+do $$ begin
+  update public.profiles set theme = 'neon' where id = auth.uid();
+  raise exception 'TEST FAIL: an unknown theme was saved';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
 -- you: create a household and money in both spaces
 select t.as_user('you');
 select set_config('t.home', public.create_household('Our Home', 'a')::text, false);
@@ -291,6 +300,11 @@ select public.set_space_deleted(current_setting('t.home')::uuid, false);
 select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 3, 'restoring brings every entry back');
 select t.as_user('sam');
 select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 3, 'members see it again after a restore');
+
+select t.as_user('you');
+update public.profiles set avatar = '🐶' where id = current_setting('t.sam')::uuid;
+select t.as_user('sam');
+select t.ok((select avatar is null from public.profiles where id = auth.uid()), 'you cannot change someone else''s character');
 
 reset role;
 \echo 'privacy tests passed'

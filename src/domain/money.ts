@@ -82,8 +82,8 @@ export function sourceBalance(source: Source, methods: PaymentMethod[], flows: F
 }
 
 export function netPosition(spaceId: string, s: Snapshot, on: Day) {
-  const sources = s.sources.filter((x) => x.spaceId === spaceId)
-  const methods = s.methods.filter((x) => x.spaceId === spaceId)
+  const sources = s.sources.filter((x) => x.spaceId === spaceId && !x.archived)
+  const methods = s.methods.filter((x) => x.spaceId === spaceId && !x.archived)
   const assets = sum(sources.map((src) => sourceBalance(src, s.methods, s.flows, on)))
   const credit = sum(methods.filter((m) => m.kind === 'credit').map((m) => creditOutstanding(m, s.flows, on)))
   return { assets, credit, net: assets - credit }
@@ -110,6 +110,8 @@ export interface Upcoming {
   amount: number
   on: Day
   categoryId: string | null
+  /** The account the money leaves or lands in. Null for bills charged to a credit card (counted at the card payment). */
+  sourceId: string | null
 }
 
 export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = 45): Upcoming[] {
@@ -120,6 +122,7 @@ export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = 45
     const next = posted ? nextOccurrence(t, on) : nextOccurrence(t, addDays(on, -1))
     if (next && next <= until) {
       const cat = s.categories.find((c) => c.id === t.categoryId)
+      const method = t.methodId ? s.methods.find((m) => m.id === t.methodId) : undefined
       out.push({
         key: `r-${t.id}`,
         kind: t.kind === 'income' ? 'income' : 'bill',
@@ -127,14 +130,31 @@ export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = 45
         amount: t.amount,
         on: next,
         categoryId: t.categoryId,
+        sourceId: t.methodId ? (method && method.kind !== 'credit' ? method.sourceId : null) : t.sourceId,
       })
     }
   }
   for (const m of s.methods.filter((x) => x.spaceId === spaceId && x.kind === 'credit')) {
     const p = nextCardPayment(m, s.flows, on)
-    if (p && p.on <= until) out.push({ key: `c-${m.id}`, kind: 'card', name: m.name, amount: p.amount, on: p.on, categoryId: null })
+    if (p && p.on <= until) out.push({ key: `c-${m.id}`, kind: 'card', name: m.name, amount: p.amount, on: p.on, categoryId: null, sourceId: m.sourceId })
   }
   return out.sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : 0))
+}
+
+/**
+ * What each account will hold right after each upcoming item, applying them in date order on top of today's balance.
+ * `after` is null when the item moves no account I can see (a bill charged to a card, someone else's account).
+ */
+export function balancesAfter(items: Upcoming[], s: Snapshot, on: Day): { item: Upcoming; source?: Source; after: number | null }[] {
+  const running = new Map<string, number>()
+  return items.map((item) => {
+    const source = item.sourceId ? s.sources.find((x) => x.id === item.sourceId) : undefined
+    if (!source) return { item, after: null }
+    const before = running.get(source.id) ?? sourceBalance(source, s.methods, s.flows, on)
+    const after = before + (item.kind === 'income' ? item.amount : -item.amount)
+    running.set(source.id, after)
+    return { item, source, after }
+  })
 }
 
 export interface SafeToSpend {
@@ -182,17 +202,6 @@ export function monthPace(on: Day): number {
 export function spentByMember(entries: Entry[], spaceId: string, memberIds: string[], on: Day) {
   const month = monthEntries(entries, spaceId, on)
   return memberIds.map((id) => ({ id, amount: sum(month.filter((e) => e.createdBy === id).map((e) => e.amount)) }))
-}
-
-/** What I paid this month for a household out of my own (personal) methods. */
-export function paidPersonallyFor(spaceId: string, s: Snapshot, on: Day): number {
-  const mySpace = s.spaces.find((x) => x.kind === 'personal' && x.ownerId === s.me.id)?.id
-  const mine = new Set([...s.methods, ...s.sources].filter((x) => x.spaceId === mySpace).map((x) => x.id))
-  return sum(
-    monthEntries(s.entries, spaceId, on)
-      .filter((e) => e.createdBy === s.me.id && mine.has(e.methodId ?? e.sourceId ?? ''))
-      .map((e) => e.amount),
-  )
 }
 
 export function daysUntil(on: Day, target: Day): number {

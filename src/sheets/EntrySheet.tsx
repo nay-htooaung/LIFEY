@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react'
 import { addDays } from '../domain/dates'
-import { streak } from '../domain/streak'
 import type { EntryKind, NewEntry, Repeat } from '../domain/types'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useStore } from '../data/store'
@@ -51,10 +50,12 @@ export function EntrySheet({ editId, prefill }: Props) {
   // Any method/source from a space I belong to. The target space's own first, then mine, then other households.
   // Expenses can also be paid straight from a bank or savings account (bank transfer).
   const options = useMemo(() => {
-    const transfers = snap.sources.filter((x) => x.kind !== 'cash')
+    // deleted ones only when this entry already uses them, so editing never switches its payment silently
+    const live = <T extends { id: string; archived: boolean }>(xs: T[]) => xs.filter((x) => !x.archived || x.id === via)
+    const sources = live(snap.sources)
     const pool = kind === 'expense'
-      ? [...snap.methods.map((x) => ({ ...x, transfer: false })), ...transfers.map((x) => ({ ...x, transfer: true }))]
-      : snap.sources.map((x) => ({ ...x, transfer: false }))
+      ? [...live(snap.methods).map((x) => ({ ...x, transfer: false })), ...sources.filter((x) => x.kind !== 'cash').map((x) => ({ ...x, transfer: true }))]
+      : sources.map((x) => ({ ...x, transfer: false }))
     const rank = (sid: string) => (sid === spaceId ? 0 : sid === personal.id ? 1 : 2)
     return pool
       .sort((a, b) => rank(a.spaceId) - rank(b.spaceId))
@@ -62,7 +63,7 @@ export function EntrySheet({ editId, prefill }: Props) {
         id: x.id, name: x.transfer ? t('bankTransfer', { s: x.name }) : x.name, spaceId: x.spaceId, transfer: x.transfer,
         personal: x.spaceId === personal.id && spaceId !== personal.id,
       }))
-  }, [kind, snap.methods, snap.sources, spaceId, personal.id, t])
+  }, [kind, snap.methods, snap.sources, spaceId, personal.id, t, via])
 
   const catId = cats.some((c) => c.id === categoryId) ? categoryId : (cats[0]?.id ?? null)
   const last = readLast()[`${spaceId}:${kind}`]
@@ -91,14 +92,8 @@ export function EntrySheet({ editId, prefill }: Props) {
     } catch {
       /* ignore */
     }
-    const before = streak(snap.entries, snap.noSpendDays, snap.me.id, today)
-    const msg = editId ? t('saved')
-      : date === today && !before.doneToday ? t('loggedStreak', { n: before.count + 1 })
-      : t('loggedTo', { a: yen(n), s: target.name })
     ui.close()
-    await act((r) => (editId ? r.updateEntry(editId, entry) : r.addEntries([entry])), msg, {
-      flame: !editId && date === today && !before.doneToday,
-    })
+    await act((r) => (editId ? r.updateEntry(editId, entry) : r.addEntries([entry])), editId ? t('saved') : t('loggedTo', { a: yen(n), s: target.name }))
   }
 
   return (

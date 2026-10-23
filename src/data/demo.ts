@@ -16,9 +16,9 @@ export function seedDemo(locale: Locale): Snapshot {
   const longAgo = addDays(T, -60)
 
   const profiles: Record<string, Profile> = {
-    [ME]: { id: ME, displayName: L('You', 'あなた'), color: '#5EC4B9', locale },
-    'demo-sam': { id: 'demo-sam', displayName: 'Sam', color: '#C9A2F2', locale },
-    'demo-ren': { id: 'demo-ren', displayName: 'Ren', color: '#F2C76B', locale },
+    [ME]: { id: ME, displayName: L('You', 'あなた'), color: '#5EC4B9', locale, avatar: null, theme: 'midnight' },
+    'demo-sam': { id: 'demo-sam', displayName: 'Sam', color: '#C9A2F2', locale, avatar: '🐻', theme: 'midnight' },
+    'demo-ren': { id: 'demo-ren', displayName: 'Ren', color: '#F2C76B', locale, avatar: null, theme: 'midnight' },
   }
   const spaces: Space[] = [
     { id: 'me', kind: 'personal', name: L('Me', '自分'), tone: 'me', ownerId: ME, inviteCode: null, memberIds: [ME] },
@@ -41,14 +41,14 @@ export function seedDemo(locale: Locale): Snapshot {
     C('t-food', 'trip', 'Food', '食事', '#D0704B', 40000, 'expense', 3), C('t-see', 'trip', 'Sightseeing', '観光', '#6A9C36', 20000, 'expense', 4),
   ]
   const S = (id: string, spaceId: string, en: string, ja: string, kind: Source['kind'], openingBalance: number): Source =>
-    ({ id, spaceId, name: L(en, ja), kind, openingBalance, createdOn: longAgo })
+    ({ id, spaceId, name: L(en, ja), kind, openingBalance, createdOn: longAgo, archived: false })
   const sources: Source[] = [
     S('chk', 'me', 'Everyday account', '普段使いの口座', 'bank', 380000), S('sav', 'me', 'Savings', '貯金口座', 'savings', 1250000),
     S('cash', 'me', 'Wallet cash', '財布の現金', 'cash', 18000), S('joint', 'home', 'Joint account', '共同口座', 'bank', 160000),
     S('jar', 'home', 'Household envelope', '生活費の封筒', 'cash', 12000), S('tcash', 'trip', 'Trip wallet', '旅行用の財布', 'cash', 30000),
   ]
   const M = (id: string, spaceId: string, en: string, ja: string, kind: PaymentMethod['kind'], sourceId: string, credit?: [number, number, number]): PaymentMethod =>
-    ({ id, spaceId, name: L(en, ja), kind, sourceId, creditLimit: credit?.[0] ?? null, limitSharedWith: null, closingDay: credit?.[1] ?? null, paymentDay: credit?.[2] ?? null })
+    ({ id, spaceId, name: L(en, ja), kind, sourceId, creditLimit: credit?.[0] ?? null, limitSharedWith: null, closingDay: credit?.[1] ?? null, paymentDay: credit?.[2] ?? null, archived: false })
   const methods: PaymentMethod[] = [
     M('m-cash', 'me', 'Cash', '現金', 'cash', 'cash'), M('m-deb', 'me', 'Debit ••4421', 'デビット ••4421', 'debit', 'chk'),
     M('m-pp', 'me', 'PayPay', 'PayPay', 'emoney', 'chk'), M('m-suica', 'me', 'Suica', 'Suica', 'emoney', 'chk'),
@@ -108,7 +108,6 @@ export function seedDemo(locale: Locale): Snapshot {
 
   const snap: Snapshot = {
     me: profiles[ME], profiles, spaces, deletedSpaces: [], sources, methods, categories, entries, flows: [],
-    noSpendDays: [ago(14)],
   }
   return withFlows(snap)
 }
@@ -116,7 +115,11 @@ export function seedDemo(locale: Locale): Snapshot {
 function withFlows(s: Snapshot): Snapshot {
   return {
     ...s,
-    deletedSpaces: s.deletedSpaces ?? [], // demo data saved before spaces could be deleted
+    // demo data saved by older versions lacks these fields
+    deletedSpaces: s.deletedSpaces ?? [],
+    me: { ...s.me, avatar: s.me.avatar ?? null, theme: s.me.theme ?? 'midnight' },
+    sources: s.sources.map((x) => ({ ...x, archived: x.archived ?? false })),
+    methods: s.methods.map((x) => ({ ...x, archived: x.archived ?? false })),
     flows: s.entries.map((e) => ({ methodId: e.methodId, sourceId: e.sourceId, kind: e.kind, amount: e.amount, occurredOn: e.occurredOn })),
   }
 }
@@ -164,16 +167,25 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
     },
     async addSource(s: NewSource) {
       const id = uid()
-      commit({ ...snap, sources: [...snap.sources, { ...s, id, createdOn: today() }] })
+      commit({ ...snap, sources: [...snap.sources, { ...s, id, createdOn: today(), archived: false }] })
       return id
     },
     async addMethod(m: NewMethod) {
       const id = uid()
-      commit({ ...snap, methods: [...snap.methods, { ...m, id }] })
+      commit({ ...snap, methods: [...snap.methods, { ...m, id, archived: false }] })
       return id
     },
     async updateMethod(id: string, m: NewMethod) {
-      commit({ ...snap, methods: snap.methods.map((x) => (x.id === id ? { ...m, id } : x)) })
+      commit({ ...snap, methods: snap.methods.map((x) => (x.id === id ? { ...x, ...m, id } : x)) })
+    },
+    async updateSource(id: string, s: NewSource) {
+      commit({ ...snap, sources: snap.sources.map((x) => (x.id === id ? { ...x, ...s, id } : x)) })
+    },
+    async setSourceArchived(id: string, archived: boolean) {
+      commit({ ...snap, sources: snap.sources.map((x) => (x.id === id ? { ...x, archived } : x)) })
+    },
+    async setMethodArchived(id: string, archived: boolean) {
+      commit({ ...snap, methods: snap.methods.map((x) => (x.id === id ? { ...x, archived } : x)) })
     },
     async saveCategory(c: CategoryInput) {
       const id = c.id ?? uid()
@@ -229,9 +241,6 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
       const code = 'LFY-' + uid().replace(/[^a-z0-9]/gi, '').slice(0, 6).toUpperCase()
       commit({ ...snap, spaces: snap.spaces.map((s) => (s.id === spaceId ? { ...s, inviteCode: code } : s)) })
       return code
-    },
-    async markNoSpend(day) {
-      commit({ ...snap, noSpendDays: [...new Set([...snap.noSpendDays, day])] })
     },
     async updateProfile(patch) {
       const me = { ...snap.me, ...patch }

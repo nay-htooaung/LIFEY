@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { creditLimitUse, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { balancesAfter, creditLimitUse, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { dueOccurrences, nextOccurrence } from './recurring'
-import { streak } from './streak'
 import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 
-const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10 }
+const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10, archived: false }
 const eom: PaymentMethod = { ...visa, id: 'eom', closingDay: 31, paymentDay: 27 }
 const debit: PaymentMethod = { ...visa, id: 'deb', kind: 'debit', closingDay: null, paymentDay: null }
-const chk: Source = { id: 'chk', spaceId: 'me', name: 'Bank', kind: 'bank', openingBalance: 100000, createdOn: '2026-09-01' }
+const chk: Source = { id: 'chk', spaceId: 'me', name: 'Bank', kind: 'bank', openingBalance: 100000, createdOn: '2026-09-01', archived: false }
 
 let n = 0
 const entry = (p: Partial<Entry>): Entry => ({
@@ -77,8 +76,8 @@ describe('recurring entries', () => {
 describe('safe to spend', () => {
   it('spreads what is left after scheduled bills over the remaining days', () => {
     const s: Snapshot = {
-      me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en' },
-      profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], noSpendDays: [],
+      me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en', avatar: null, theme: 'midnight' },
+      profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [],
       categories: [
         { id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense', monthlyBudget: 30000, sort: 0 },
         { id: 'gym', spaceId: 'me', name: 'Gym', color: '#000', kind: 'expense', monthlyBudget: 8000, sort: 0 },
@@ -96,14 +95,6 @@ describe('safe to spend', () => {
     // (38000 - 11000 - 7700 + 1000) / 9 - 1000
     expect(r.today).toBe(Math.floor(20300 / 9 - 1000))
     expect(upcoming('me', s, '2026-10-23')[0]).toMatchObject({ kind: 'bill', on: '2026-10-30', amount: 7700 })
-  })
-})
-
-describe('streak', () => {
-  it('counts back from yesterday when today is not logged yet', () => {
-    const es = [entry({ occurredOn: '2026-10-22' }), entry({ occurredOn: '2026-10-21' })]
-    expect(streak(es, ['2026-10-20'], 'u1', '2026-10-23')).toMatchObject({ count: 3, doneToday: false })
-    expect(streak(es, [], 'u1', '2026-10-22')).toMatchObject({ count: 2, doneToday: true })
   })
 })
 
@@ -130,5 +121,18 @@ describe('bank transfers', () => {
     const transfer: Flow = { methodId: null, sourceId: 'chk', kind: 'expense', amount: 80000, occurredOn: '2026-10-05' }
     expect(sourceBalance(chk, [], [transfer], '2026-10-04')).toBe(100000)
     expect(sourceBalance(chk, [], [transfer], '2026-10-05')).toBe(20000)
+  })
+})
+
+describe('balance after upcoming items', () => {
+  const up = (kind: 'bill' | 'income' | 'card', amount: number, on: string, sourceId: string | null) =>
+    ({ key: `${kind}${on}`, kind, name: kind, amount, on, categoryId: null, sourceId })
+  const snap = { sources: [chk], methods: [], flows: [] } as unknown as Snapshot
+  it('runs each account forward in date order', () => {
+    const items = [up('card', 30000, '2026-10-10', 'chk'), up('income', 250000, '2026-10-25', 'chk'), up('bill', 80000, '2026-10-27', 'chk')]
+    expect(balancesAfter(items, snap, '2026-10-01').map((r) => r.after)).toEqual([70000, 320000, 240000])
+  })
+  it('leaves card-charged bills without an account', () => {
+    expect(balancesAfter([up('bill', 1000, '2026-10-10', null)], snap, '2026-10-01')[0].after).toBeNull()
   })
 })

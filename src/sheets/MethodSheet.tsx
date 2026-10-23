@@ -22,7 +22,7 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
   const { t, ordinal } = useI18n()
   const base = editId ? snap.methods.find((m) => m.id === editId) : undefined
   const spaceId = base?.spaceId ?? forSpace ?? space.id
-  const sources = snap.sources.filter((s) => s.spaceId === spaceId)
+  const sources = snap.sources.filter((s) => s.spaceId === spaceId && (!s.archived || s.id === base?.sourceId))
   const [name, setName] = useState(base?.name ?? '')
   const [kind, setKind] = useState<MethodKind>(base?.kind ?? 'credit')
   const [sourceChoice, setSourceId] = useState(base?.sourceId ?? '')
@@ -34,9 +34,10 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
   const [pay, setPay] = useState(base?.paymentDay ?? 10)
 
   // Cards whose limit this one can share: credit cards in the same space that keep their own limit.
-  const owners = snap.methods.filter((m) => m.spaceId === spaceId && m.kind === 'credit' && !m.limitSharedWith && m.id !== editId)
+  const owners = snap.methods.filter((m) => m.spaceId === spaceId && m.kind === 'credit' && !m.archived && !m.limitSharedWith && m.id !== editId)
   // Cards already sharing this one's limit; then this card must keep its own.
-  const sharers = editId ? snap.methods.filter((m) => m.limitSharedWith === editId) : []
+  const sharers = editId ? snap.methods.filter((m) => m.limitSharedWith === editId && !m.archived) : []
+  const [confirm, setConfirm] = useState(false)
 
   if (!sources.length) {
     return (
@@ -119,6 +120,20 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
         </div>
       )}
       <button className="btn primary big" onClick={save}>{editId ? t('save') : t('mTitle')}</button>
+      {editId && (
+        <div className="field">
+          {/* a card others share a limit with stays until they no longer depend on it */}
+          <button className="btn danger" disabled={sharers.length > 0}
+            onClick={() => {
+              if (!confirm) return setConfirm(true)
+              ui.close()
+              void act((r) => r.setMethodArchived(editId, true), t('archived', { x: base!.name }))
+            }}>
+            {confirm ? t('confirmDel') : t('deleteMethod')}
+          </button>
+          <span className="tiny muted">{sharers.length ? t('limitInUse', { x: sharers.map((m) => m.name).join(', ') }) : t('restoreHint')}</span>
+        </div>
+      )}
     </>
   )
 }

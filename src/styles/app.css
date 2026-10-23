@@ -124,6 +124,18 @@ button { cursor: pointer; }
 .sel-list button[aria-selected='true'] { background: var(--acc-soft); font-weight: 700; }
 .sel-list .sel-new { color: var(--acc); font-weight: 700; }
 @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+.themes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.themes button { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--paper); border-radius: 14px; padding: 10px 6px; font-size: 12px; font-weight: 600; }
+.themes button[aria-pressed='true'] { border-color: var(--acc); background: var(--acc-soft); }
+.theme-sw { display: flex; gap: 4px; padding: 6px; border-radius: 10px; background: var(--paper); border: 1px solid var(--line); }
+.theme-sw i { width: 14px; height: 14px; border-radius: 50%; background: var(--card-2); }
+.theme-sw i:last-child { background: var(--tone-me); }
+.chars { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+.chars button { aspect-ratio: 1; border: 1px solid var(--line); background: var(--paper); border-radius: 14px; font-size: 22px; font-weight: 700; display: grid; place-items: center; }
+.chars button[aria-pressed='true'] { border-color: var(--acc); background: var(--acc-soft); }
+.av.char { background: color-mix(in srgb, var(--pc) 35%, var(--card-2)); font-size: 15px; }
+.row .s.left-after { margin-top: 2px; }
+.row .s.left-after.short { color: var(--neg); font-weight: 600; }
 .picks { display: flex; flex-direction: column; gap: 10px; }
 .pick { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); align-items: center; gap: 10px; }
 .pick-l { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.25; }
@@ -155,17 +167,8 @@ button { cursor: pointer; }
 .ribbon span.bill { border-style: solid; opacity: 0.85; }
 .ribbon span.zero { opacity: 0.85; height: 3px; background: none; border-bottom: 3px dotted currentColor; border-radius: 0; }
 .ribbon-x { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: -8px; }
-.streak { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
-.streak .fl { width: 36px; height: 36px; border-radius: 12px; background: color-mix(in srgb, var(--flame) 16%, var(--card)); color: var(--flame); display: grid; place-items: center; flex: none; }
-.streak .main { flex: 1; min-width: 0; }
-.streak b { font-family: var(--display); font-size: 16px; }
-.week { display: flex; gap: 4px; margin-top: 5px; max-width: 150px; }
-.week i { flex: 1; height: 5px; border-radius: 3px; background: var(--line); }
-.week i.on { background: var(--flame); }
-.week i.ns { background: repeating-linear-gradient(90deg, var(--flame) 0 3px, transparent 3px 5px); }
 .contrib .bar2 { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin: 10px 0; background: var(--card-2); }
 .contrib .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; }
-.bridge { display: flex; align-items: center; gap: 12px; border: 1px dashed var(--line); border-radius: 20px; padding: 12px 14px; background: none; width: 100%; text-align: left; }
 
 /* ---------- wallet ---------- */
 .networth .big { font-family: var(--display); font-weight: 800; font-size: 38px; letter-spacing: -0.03em; line-height: 1.05; }
