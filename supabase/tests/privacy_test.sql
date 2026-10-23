@@ -108,6 +108,16 @@ values (current_setting('t.home')::uuid, 'expense', 3200, current_setting('t.jde
 returning set_config('t.thai', id::text, false) \gset
 select t.ok((select created_by from public.entries where id = current_setting('t.thai')::uuid) = current_setting('t.sam')::uuid, 'logger cannot be spoofed');
 
+do $$ begin
+  perform public.seed_categories(current_setting('t.home')::uuid, 'household', 'en');
+  raise exception 'TEST FAIL: internal seed_categories callable by users';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform 1 from public.entries limit 1;
+  set local role anon;
+  perform 1 from public.entries limit 1;
+  raise exception 'TEST FAIL: anon can read entries';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 -- eve is a stranger
 select t.as_user('eve');
 select t.ok((select count(*) from public.spaces) = 1, 'eve sees only her own space');

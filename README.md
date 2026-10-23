@@ -45,7 +45,7 @@ With no Supabase settings the app runs in **demo mode**: example data stored on 
 | --- | --- | --- |
 | Git branch | any branch except `main` | `main` |
 | Cloudflare Worker | `lifey-dev` | `lifey` |
-| Supabase project (free plan) | `lifey-dev` | `lifey-prod` |
+| Supabase project (free plan, Tokyo) | `lifey-dev` (`uezezkydnlbksrqvaipr`) | `lifey-prod` (`klxhdsravxkprqxdgebv`) |
 | GitHub environment | `dev` | `production` |
 
 `.github/workflows/deploy.yml` runs on every push: it applies database migrations, builds with that

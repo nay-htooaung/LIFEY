@@ -382,7 +382,9 @@ create policy "own days" on public.no_spend_days
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 revoke all on all tables in schema public from anon;
-revoke execute on all functions in schema public from public, anon;
+-- Supabase grants execute on new functions to anon and authenticated by default. Internal helpers
+-- (seed_categories runs as owner and would let anyone write into any space) must not be callable.
+revoke execute on all functions in schema public from public, anon, authenticated;
 grant execute on function
   public.is_member(uuid), public.shares_space_with(uuid),
   public.create_household(text, text), public.join_household(text),
