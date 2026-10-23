@@ -3,62 +3,57 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Locale } from '../domain/types'
 import { makeI18n } from '../i18n'
 
-/**
- * Email one-time code instead of a magic link: on iPhone a link opens in Safari, not in the installed app,
- * so the session would land in the wrong place.
- */
+/** Email + password: no emails are sent, so it works without a custom SMTP server and inside the installed app. */
 export function SignIn({ sb, locale, setLocale, onDemo }: { sb: SupabaseClient; locale: Locale; setLocale(l: Locale): void; onDemo(): void }) {
   const { t } = makeI18n(locale)
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
-  const [code, setCode] = useState('')
-  const [sent, setSent] = useState(false)
+  const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [info, setInfo] = useState<string | null>(null)
 
-  const send = async (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    const { error } = await sb.auth.signInWithOtp({ email: email.trim(), options: { shouldCreateUser: true, data: { locale } } })
+    setInfo(null)
+    const res = mode === 'signin'
+      ? await sb.auth.signInWithPassword({ email: email.trim(), password })
+      : await sb.auth.signUp({ email: email.trim(), password, options: { data: { locale } } })
     setBusy(false)
-    if (error) setError(t('genericError', { m: error.message }))
-    else setSent(true)
-  }
-  const verify = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    const { error } = await sb.auth.verifyOtp({ email: email.trim(), token: code.trim(), type: 'email' })
-    setBusy(false)
-    if (error) setError(t('genericError', { m: error.message }))
+    if (res.error) {
+      setError(res.error.code === 'invalid_credentials' ? t('badLogin') : t('genericError', { m: res.error.message }))
+    } else if (mode === 'signup' && !res.data.session) {
+      // the project still requires email confirmation
+      setInfo(t('confirmEmail', { e: email.trim() }))
+    }
   }
 
   return (
     <div className="signin">
       <div className="wordmark">life<i>y</i></div>
       <h1>{t('signInTitle')}</h1>
-      <p className="muted" style={{ margin: 0 }}>{t('signInBody')}</p>
-      {!sent ? (
-        <form className="stack" onSubmit={send}>
-          <div className="field">
-            <label className="label" htmlFor="si-email">{t('email')}</label>
-            <input id="si-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <button className="btn primary big" disabled={busy}>{t('sendCode')}</button>
-        </form>
-      ) : (
-        <form className="stack" onSubmit={verify}>
-          <p className="small muted" style={{ margin: 0 }}>{t('codeSent', { e: email })}</p>
-          <div className="field">
-            <label className="label" htmlFor="si-code">{t('code')}</label>
-            <input id="si-code" className="num" inputMode="numeric" autoComplete="one-time-code" required maxLength={10}
-              value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} style={{ fontSize: 22, letterSpacing: '0.2em' }} />
-          </div>
-          <button className="btn primary big" disabled={busy}>{t('verify')}</button>
-          <button type="button" className="link" onClick={() => { setSent(false); setCode('') }}>{t('changeEmail')}</button>
-        </form>
-      )}
+      <div className="seg" role="group">
+        <button type="button" aria-pressed={mode === 'signin'} onClick={() => setMode('signin')}>{t('signInTab')}</button>
+        <button type="button" aria-pressed={mode === 'signup'} onClick={() => setMode('signup')}>{t('signUpTab')}</button>
+      </div>
+      <form className="stack" onSubmit={submit}>
+        <div className="field">
+          <label className="label" htmlFor="si-email">{t('email')}</label>
+          <input id="si-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="field">
+          <label className="label" htmlFor="si-password">{t('password')}</label>
+          <input id="si-password" type="password" required minLength={8}
+            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            value={password} onChange={(e) => setPassword(e.target.value)} />
+          {mode === 'signup' && <span className="tiny muted">{t('passwordHint')}</span>}
+        </div>
+        <button className="btn primary big" disabled={busy}>{mode === 'signin' ? t('signInTab') : t('signUpTab')}</button>
+      </form>
       {error && <p className="small" style={{ color: 'var(--neg)', margin: 0 }} role="alert">{error}</p>}
+      {info && <p className="small muted" style={{ margin: 0 }} role="status">{info}</p>}
       <div className="seg">
         <button type="button" aria-pressed={locale === 'en'} onClick={() => setLocale('en')}>English</button>
         <button type="button" aria-pressed={locale === 'ja'} onClick={() => setLocale('ja')}>日本語</button>

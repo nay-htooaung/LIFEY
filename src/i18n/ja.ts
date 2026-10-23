@@ -47,8 +47,9 @@ export const ja: Record<MessageKey, string> = {
   mFridge: '在庫と賞味期限', mTasks: '家事やおつかい', later: '準備中', openL: '開く', recipes: 'レシピ', fridge: '冷蔵庫', tasks: 'タスク',
   language: '言語', yourName: '表示名', signOut: 'ログアウト', demoMode: 'デモモード: サンプルデータはこの端末だけに保存されます。', resetDemo: 'サンプルデータに戻す', restored: 'サンプルデータに戻しました',
   noSpendDone: '支出なしの日として記録。{n}日連続', you: 'あなた', me: '自分',
-  signInTitle: 'あなたと、一緒に暮らす人のための家計簿。', signInBody: 'メールアドレスでログイン。6桁のコードを送ります。パスワードは不要です。',
-  email: 'メールアドレス', sendCode: 'コードを送る', code: '6桁のコード', verify: 'ログイン', codeSent: '{e} にコードを送りました。', changeEmail: '別のメールアドレスを使う', tryDemo: 'サンプルデータで試す',
+  signInTitle: 'あなたと、一緒に暮らす人のための家計簿。', signInTab: 'ログイン', signUpTab: 'アカウント作成',
+  email: 'メールアドレス', password: 'パスワード', passwordHint: '8文字以上。', badLogin: 'メールアドレスかパスワードが違います。確認してもう一度お試しください。',
+  confirmEmail: '{e} に届いた確認メールを開いてから、ログインしてください。', tryDemo: 'サンプルデータで試す',
   genericError: 'エラーが発生しました: {m}', offline: 'オフラインです。変更には接続が必要です。', loading: '読み込み中…',
   installHint: 'インストール: 共有 → ホーム画面に追加',
 }

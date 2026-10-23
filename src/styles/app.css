@@ -208,8 +208,9 @@ details[open] summary { margin-bottom: 10px; }
 .toast.err { background: var(--neg); color: var(--on-tone); }
 
 /* ---------- sign in ---------- */
-.signin { min-height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 18px; max-width: 420px; margin: 0 auto;
+.signin { --acc: var(--tone-me); --on-acc: var(--on-tone); min-height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 18px; max-width: 420px; margin: 0 auto;
   padding: calc(24px + env(safe-area-inset-top, 0px)) max(22px, env(safe-area-inset-right, 0px)) calc(24px + env(safe-area-inset-bottom, 0px)) max(22px, env(safe-area-inset-left, 0px)); }
+.signin .btn { flex: none; }
 .wordmark { font-family: var(--display); font-weight: 800; font-size: 40px; letter-spacing: -0.04em; }
 .wordmark i { font-style: normal; color: var(--tone-me); }
 .signin h1 { font-family: var(--display); font-size: 28px; line-height: 1.1; letter-spacing: -0.03em; margin: 0; text-wrap: balance; }

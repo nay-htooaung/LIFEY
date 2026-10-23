@@ -54,9 +54,9 @@ Steps whose credentials are missing are skipped, so the workflow is safe to run 
 
 ### One-time setup
 
-1. **Supabase:** create two free projects, `lifey-dev` and `lifey-prod`. In each, under
-   **Authentication → Email templates → Magic Link**, include the code, e.g. `Your Lifey code: {{ .Token }}`
-   (the app signs in with a 6-digit code: on iPhone a link would open Safari instead of the installed app).
+1. **Supabase:** create two free projects, `lifey-dev` and `lifey-prod`. In each, open **Authentication → Sign In / Providers → Email**
+   and turn **Confirm email** off. The app signs in with email + password, so no emails are sent and
+   no custom SMTP server is needed. (Password reset emails need your own SMTP server, e.g. Resend or Brevo.)
    Under **Authentication → URL configuration**, set the Site URL to that environment's Cloudflare URL.
 2. **Cloudflare:** create an API token with the *Edit Cloudflare Workers* template and note your account ID.
 3. **GitHub → Settings → Secrets and variables → Actions:**

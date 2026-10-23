@@ -45,8 +45,9 @@ export const en = {
   mFridge: "What's in stock, expiry dates", mTasks: 'Chores and errands', later: 'Later', openL: 'Open', recipes: 'Recipes', fridge: 'Fridge', tasks: 'Tasks',
   language: 'Language', yourName: 'Your name', signOut: 'Sign out', demoMode: 'Demo mode: example data on this device only.', resetDemo: 'Reset example data', restored: 'Example data restored',
   noSpendDone: 'No-spend day counted. {n}-day streak', you: 'You', me: 'Me',
-  signInTitle: 'Money for you and the people you live with.', signInBody: 'Sign in with your email. We send you a 6-digit code, no password needed.',
-  email: 'Email', sendCode: 'Send code', code: '6-digit code', verify: 'Sign in', codeSent: 'We sent a code to {e}.', changeEmail: 'Use another email', tryDemo: 'Try with example data',
+  signInTitle: 'Money for you and the people you live with.', signInTab: 'Sign in', signUpTab: 'Create account',
+  email: 'Email', password: 'Password', passwordHint: 'At least 8 characters.', badLogin: 'Email or password is wrong. Check both and try again.',
+  confirmEmail: 'Check {e} for a confirmation email, then sign in.', tryDemo: 'Try with example data',
   genericError: 'Something went wrong: {m}', offline: "You're offline. Changes need a connection.", loading: 'Loading…',
   installHint: 'Install: Share → Add to Home Screen',
 } as const
