@@ -57,7 +57,7 @@ export const ja: Record<MessageKey, string> = {
   spaceSettings: '{x}の設定', membersTitle: 'メンバー', owner: 'オーナー', remove: '外す', confirmRemove: 'もう一度押すと外します',
   removed: '{x}を外しました', newCode: '新しいコード', codeReset: '新しい招待コードを作りました',
   deleteSpace: 'スペースを削除', 
-  spaceDeleted: '{x}を削除しました', deletedSpaces: '削除したスペース',
+  spaceDeleted: '{x}を削除しました', nothingDeleted: 'ありません。', 
   restore: '元に戻す', spaceRestored: '{x}を元に戻しました',
   editSchedule: '繰り返しを編集', editThis: 'この記録を編集', nextDate: '次回の日付', saveSchedule: '繰り返しを保存', stopRepeat: '繰り返しをやめる',
   scheduleSaved: '繰り返しを更新しました', scheduleStopped: '繰り返しをやめました',

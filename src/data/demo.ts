@@ -18,7 +18,7 @@ export function seedDemo(locale: Locale): Snapshot {
 
   const profiles: Record<string, Profile> = {
     [ME]: { id: ME, displayName: L('You', 'あなた'), color: '#5EC4B9', locale, avatar: null, theme: 'midnight' },
-    'demo-sam': { id: 'demo-sam', displayName: 'Sam', color: '#C9A2F2', locale, avatar: '🐻', theme: 'midnight' },
+    'demo-sam': { id: 'demo-sam', displayName: 'Sam', color: '#C9A2F2', locale, avatar: 'c4', theme: 'midnight' },
     'demo-ren': { id: 'demo-ren', displayName: 'Ren', color: '#F2C76B', locale, avatar: null, theme: 'midnight' },
   }
   const spaces: Space[] = [

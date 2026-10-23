@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useI18n } from '../i18n'
 import { useStore, useSubmit } from '../data/store'
-import { AVATARS, Avatar } from '../ui/bits'
+import { Avatar } from '../ui/bits'
+import { IconEdit } from '../ui/icons'
+import { CharacterSheet } from './CharacterSheet'
+import { DeletedSheet, deletedCount } from './DeletedSheet'
 import { InstallCard } from '../ui/InstallCard'
 import { ThemePicker } from '../ui/ThemePicker'
 import { useUI } from '../ui/ui'
 
-/** You: character, name, language, theme, installing the app, signing out. Opened from the avatar in the top bar. */
+/** You: character, name, language, theme, deleted things, installing the app, signing out. Opened from the avatar in the top bar. */
 export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => Promise<void>; onResetDemo?: () => void }) {
   const { snap, repo, setPrefs } = useStore()
   const { submit, pending, busy } = useSubmit()
@@ -14,11 +17,15 @@ export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => Pro
   const ui = useUI()
   const { t, locale } = useI18n()
   const [name, setName] = useState(snap.me.displayName)
+  const deleted = deletedCount(snap)
 
   return (
     <>
       <div className="me-head">
-        <Avatar profile={snap.me} />
+        <button className="me-char" aria-label={t('character')} onClick={() => ui.push(<CharacterSheet />)}>
+          <Avatar profile={snap.me} />
+          <span className="badge"><IconEdit /></span>
+        </button>
         <h2>{snap.me.displayName || t('me')}</h2>
       </div>
       <div className="field">
@@ -40,17 +47,9 @@ export function ProfileSheet({ onSignOut, onResetDemo }: { onSignOut?: () => Pro
         <span className="label">{t('theme')}</span>
         <ThemePicker value={snap.me.theme} onChange={(theme) => setPrefs({ theme })} />
       </div>
-      <div className="field">
-        <span className="label">{t('character')}</span>
-        <div className="chars">
-          <button aria-pressed={!snap.me.avatar} aria-label={t('initialOnly')} onClick={() => setPrefs({ avatar: null })}>
-            {[...(snap.me.displayName || t('me'))][0]?.toUpperCase()}
-          </button>
-          {AVATARS.map((a) => (
-            <button key={a} aria-pressed={snap.me.avatar === a} onClick={() => setPrefs({ avatar: a })}>{a}</button>
-          ))}
-        </div>
-      </div>
+      {deleted > 0 && (
+        <button className="btn" onClick={() => ui.push(<DeletedSheet />)}>{t('deletedItems')} ({deleted})</button>
+      )}
       <InstallCard />
       {repo.mode === 'demo' && <p className="privacy">{t('demoMode')}</p>}
       <div className="btn-row">

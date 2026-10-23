@@ -9,7 +9,7 @@ import { SpaceSheet } from './SpaceSheet'
 
 const TONES: Tone[] = ['a', 'b', 'c', 'd']
 
-/** Pick a space, open a shared space's settings, create or join one, restore a deleted one. */
+/** Pick a space, open a shared space's settings, create or join one. */
 export function SpacesSheet() {
   const { snap, space, setSpace } = useStore()
   const { submit, pending, busy } = useSubmit()
@@ -75,23 +75,6 @@ export function SpacesSheet() {
         </div>
       </div>
 
-      {snap.deletedSpaces.length > 0 && (
-        <div className="field">
-          <span className="label">{t('deletedSpaces')}</span>
-          <div className="card list">
-            {snap.deletedSpaces.map((s) => (
-              <div key={s.id} className="row">
-                <SpaceDot name={s.name} tone={s.tone} />
-                <div className="main"><div className="t">{s.name}</div></div>
-                <button className="btn sm" disabled={busy} aria-busy={pending === `restore:${s.id}`}
-                  onClick={() => submit(`restore:${s.id}`, (r) => r.setSpaceDeleted(s.id, false), t('spaceRestored', { x: s.name }))}>
-                  {t('restore')}
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   )
 }

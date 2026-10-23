@@ -17,7 +17,7 @@ export interface Profile {
   displayName: string
   color: string
   locale: Locale
-  /** A character from AVATARS, or null for the initial of the name. */
+  /** A character id from CHARACTERS (ui/characters.tsx), or null for the initial of the name. */
   avatar: string | null
   theme: Theme
 }

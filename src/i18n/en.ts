@@ -55,7 +55,7 @@ export const en = {
   spaceSettings: '{x} settings', membersTitle: 'Members', owner: 'Owner', remove: 'Remove', confirmRemove: 'Tap again to remove',
   removed: 'Removed {x}', newCode: 'New code', codeReset: 'New invite code ready',
   deleteSpace: 'Delete space', 
-  spaceDeleted: 'Deleted {x}', deletedSpaces: 'Deleted spaces',
+  spaceDeleted: 'Deleted {x}', nothingDeleted: 'Nothing here.', 
   restore: 'Restore', spaceRestored: 'Restored {x}',
   editSchedule: 'Edit schedule', editThis: 'Edit this entry', nextDate: 'Next date', saveSchedule: 'Save schedule', stopRepeat: 'Stop repeating',
   scheduleSaved: 'Schedule updated', scheduleStopped: 'Stopped repeating',

@@ -34,6 +34,21 @@
   --mono: 'DM Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 }
 
+/* Profile characters (ui/characters.tsx): the same in every theme. */
+:root {
+  --char-1: #f2a54c;
+  --char-2: #5ec4b9;
+  --char-3: #e58bb0;
+  --char-4: #9ea8ff;
+  --char-5: #b5d86a;
+  --char-6: #f08b7d;
+  --char-7: #c9a2f2;
+  --char-8: #f2d36b;
+  --char-ink: #1d1a17;
+  --char-cheek: #e2625a;
+  --char-shine: #ffffff;
+}
+
 [data-skin='light'] {
   color-scheme: light;
   --bg: #eef0ed;

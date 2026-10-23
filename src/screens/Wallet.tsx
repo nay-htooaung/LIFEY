@@ -2,7 +2,7 @@ import { creditLimitUse, creditOutstanding, netPosition, nextCardPayment, source
 import type { MethodKind, SourceKind } from '../domain/types'
 import { parts } from '../domain/dates'
 import { useI18n, yen } from '../i18n'
-import { useLookups, useStore, useSubmit } from '../data/store'
+import { useLookups, useStore } from '../data/store'
 import { MethodSheet } from '../sheets/MethodSheet'
 import { SourceSheet } from '../sheets/SourceSheet'
 import { useUI } from '../ui/ui'
@@ -12,16 +12,11 @@ const METHOD_GLYPH: Record<MethodKind, string> = { cash: '¥', debit: 'D', credi
 
 export function Wallet() {
   const { snap, space, today } = useStore()
-  const { submit, pending, busy } = useSubmit()
   const { source } = useLookups()
   const ui = useUI()
   const { t, ordinal, month } = useI18n()
   const sources = snap.sources.filter((s) => s.spaceId === space.id && !s.archived)
   const methods = snap.methods.filter((m) => m.spaceId === space.id && !m.archived)
-  const deleted = [
-    ...snap.sources.filter((s) => s.spaceId === space.id && s.archived).map((s) => ({ id: s.id, name: s.name, source: true })),
-    ...snap.methods.filter((m) => m.spaceId === space.id && m.archived).map((m) => ({ id: m.id, name: m.name, source: false })),
-  ]
   const pos = netPosition(space.id, snap, today)
   const dueLabel = (d: string) => {
     const [, m, dd] = parts(d)
@@ -79,22 +74,6 @@ export function Wallet() {
             </button>
           ))}
         </div>
-      )}
-      {deleted.length > 0 && (
-        <>
-          <div className="sec-h"><h3>{t('deletedItems')}</h3></div>
-          <div className="card list">
-            {deleted.map((d) => (
-              <div key={d.id} className="row">
-                <div className="main"><div className="t muted">{d.name}</div></div>
-                <button className="btn sm" disabled={busy} aria-busy={pending === d.id}
-                  onClick={() => submit(d.id, (r) => (d.source ? r.setSourceArchived(d.id, false) : r.setMethodArchived(d.id, false)), t('spaceRestored', { x: d.name }))}>
-                  {t('restore')}
-                </button>
-              </div>
-            ))}
-          </div>
-        </>
       )}
     </>
   )
