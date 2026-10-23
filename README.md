@@ -69,6 +69,20 @@ Steps whose credentials are missing are skipped, so the workflow is safe to run 
 The anon key is safe in the browser: every table has row-level security, and the privacy rules
 are enforced by the database (see the comments at the top of the migration).
 
+### Inviting people
+
+Sign-up is invitation only. Each code lets one new account register and then it is spent; unused
+codes expire (7 days by default). The database enforces this, so the app cannot skip it.
+In the Supabase SQL editor of the right project:
+
+```sql
+select public.create_signup_invite('for Sam');      -- valid 7 days
+select public.create_signup_invite('for Sam', 1);   -- valid 1 day
+select * from public.signup_invites order by created_at desc;  -- who used what
+```
+
+Adding a user from the Supabase dashboard fails, because it cannot send a code. Invite people through the app.
+
 ### Local development against dev
 
 Put the dev project's values in `.env.local`:

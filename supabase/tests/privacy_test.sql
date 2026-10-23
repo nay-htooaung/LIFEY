@@ -14,10 +14,43 @@ select set_config('t.you', '00000000-0000-0000-0000-00000000000a', false),
        set_config('t.sam', '00000000-0000-0000-0000-00000000000b', false),
        set_config('t.eve', '00000000-0000-0000-0000-00000000000c', false);
 
+-- sign-up needs a single-use invitation code
+select set_config('t.inv1', public.create_signup_invite('you'), false),
+       set_config('t.inv2', public.create_signup_invite('sam'), false),
+       set_config('t.inv3', public.create_signup_invite('eve', 1), false),
+       set_config('t.inv_old', public.create_signup_invite('expired'), false);
+update public.signup_invites set expires_at = now() - interval '1 minute' where code = current_setting('t.inv_old');
+select t.ok(current_setting('t.inv1') ~ '^INV-[0-9A-F]{5}-[0-9A-F]{5}$', 'invitation code format');
+
 insert into auth.users (id, email, raw_user_meta_data) values
-  (current_setting('t.you')::uuid, 'you@example.com', '{"locale":"ja","display_name":"You"}'),
-  (current_setting('t.sam')::uuid, 'sam@example.com', '{}'),
-  (current_setting('t.eve')::uuid, 'eve@example.com', '{}');
+  (current_setting('t.you')::uuid, 'you@example.com',
+   jsonb_build_object('locale', 'ja', 'display_name', 'You', 'invite_code', current_setting('t.inv1'))),
+  (current_setting('t.sam')::uuid, 'sam@example.com', jsonb_build_object('invite_code', lower(current_setting('t.inv2')))),
+  (current_setting('t.eve')::uuid, 'eve@example.com', jsonb_build_object('invite_code', ' ' || current_setting('t.inv3') || ' '));
+
+select t.ok((select count(*) from public.signup_invites where used_at is not null) = 3, 'codes are spent on sign-up');
+select t.ok((select used_by from public.signup_invites where code = current_setting('t.inv2')) = current_setting('t.sam')::uuid,
+            'code records who used it');
+do $$ begin
+  insert into auth.users (id, email) values (gen_random_uuid(), 'nocode@example.com');
+  raise exception 'TEST FAIL: sign-up without a code';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into auth.users (id, email, raw_user_meta_data)
+  values (gen_random_uuid(), 'again@example.com', jsonb_build_object('invite_code', current_setting('t.inv1')));
+  raise exception 'TEST FAIL: a code worked twice';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into auth.users (id, email, raw_user_meta_data)
+  values (gen_random_uuid(), 'late@example.com', jsonb_build_object('invite_code', current_setting('t.inv_old')));
+  raise exception 'TEST FAIL: an expired code worked';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into auth.users (id, email, raw_user_meta_data)
+  values (gen_random_uuid(), 'guess@example.com', '{"invite_code":"INV-00000-00000"}');
+  raise exception 'TEST FAIL: an unknown code worked';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+select t.ok((select count(*) from auth.users) = 3, 'rejected sign-ups leave no user');
 
 select t.ok((select count(*) from public.profiles) = 3, 'sign-up creates a profile');
 select t.ok((select count(*) from public.spaces where kind = 'personal') = 3, 'sign-up creates a personal space');
@@ -111,6 +144,19 @@ select t.ok((select created_by from public.entries where id = current_setting('t
 do $$ begin
   perform public.seed_categories(current_setting('t.home')::uuid, 'household', 'en');
   raise exception 'TEST FAIL: internal seed_categories callable by users';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform 1 from public.signup_invites limit 1;
+  raise exception 'TEST FAIL: users can read invitation codes';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform public.create_signup_invite();
+  raise exception 'TEST FAIL: users can create invitation codes';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  set local role anon;
+  perform public.create_signup_invite();
+  raise exception 'TEST FAIL: anon can create invitation codes';
 exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 do $$ begin
   perform 1 from public.entries limit 1;

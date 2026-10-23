@@ -50,6 +50,8 @@ export const ja: Record<MessageKey, string> = {
   signInTitle: 'あなたと、一緒に暮らす人のための家計簿。', signInTab: 'ログイン', signUpTab: 'アカウント作成',
   email: 'メールアドレス', password: 'パスワード', passwordHint: '8文字以上。', badLogin: 'メールアドレスかパスワードが違います。確認してもう一度お試しください。',
   confirmEmail: '{e} に届いた確認メールを開いてから、ログインしてください。', tryDemo: 'サンプルデータで試す',
+  signupCode: '登録用の招待コード', signupCodeHint: '管理者にもらってください。1つのコードで1回だけ登録できます。',
+  badInvite: 'この招待コードは違うか、期限切れか、使用済みです。新しいコードをもらってください。',
   genericError: 'エラーが発生しました: {m}', offline: 'オフラインです。変更には接続が必要です。', loading: '読み込み中…',
   installHint: 'インストール: 共有 → ホーム画面に追加',
 }

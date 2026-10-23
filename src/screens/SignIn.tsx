@@ -9,6 +9,7 @@ export function SignIn({ sb, locale, setLocale, onDemo }: { sb: SupabaseClient; 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [invite, setInvite] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
@@ -20,10 +21,12 @@ export function SignIn({ sb, locale, setLocale, onDemo }: { sb: SupabaseClient; 
     setInfo(null)
     const res = mode === 'signin'
       ? await sb.auth.signInWithPassword({ email: email.trim(), password })
-      : await sb.auth.signUp({ email: email.trim(), password, options: { data: { locale } } })
+      : await sb.auth.signUp({ email: email.trim(), password, options: { data: { locale, invite_code: invite.trim() } } })
     setBusy(false)
     if (res.error) {
-      setError(res.error.code === 'invalid_credentials' ? t('badLogin') : t('genericError', { m: res.error.message }))
+      // the database refuses the new user when the invitation code is missing, wrong, expired or used
+      const badInvite = mode === 'signup' && /invalid invitation code|database error saving new user/i.test(res.error.message)
+      setError(res.error.code === 'invalid_credentials' ? t('badLogin') : badInvite ? t('badInvite') : t('genericError', { m: res.error.message }))
     } else if (mode === 'signup' && !res.data.session) {
       // the project still requires email confirmation
       setInfo(t('confirmEmail', { e: email.trim() }))
@@ -39,6 +42,14 @@ export function SignIn({ sb, locale, setLocale, onDemo }: { sb: SupabaseClient; 
         <button type="button" aria-pressed={mode === 'signup'} onClick={() => setMode('signup')}>{t('signUpTab')}</button>
       </div>
       <form className="stack" onSubmit={submit}>
+        {mode === 'signup' && (
+          <div className="field">
+            <label className="label" htmlFor="si-invite">{t('signupCode')}</label>
+            <input id="si-invite" className="num" required autoComplete="off" autoCapitalize="characters" spellCheck={false}
+              placeholder="INV-XXXXX-XXXXX" value={invite} onChange={(e) => setInvite(e.target.value)} />
+            <span className="tiny muted">{t('signupCodeHint')}</span>
+          </div>
+        )}
         <div className="field">
           <label className="label" htmlFor="si-email">{t('email')}</label>
           <input id="si-email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
