@@ -62,9 +62,8 @@ Steps whose credentials are missing are skipped, so the workflow is safe to run 
 3. **GitHub → Settings → Secrets and variables → Actions:**
    - Repository secrets: `CLOUDFLARE_API_TOKEN`, `SUPABASE_ACCESS_TOKEN` (supabase.com → Account → Access tokens).
    - Repository variable: `CLOUDFLARE_ACCOUNT_ID`.
-   - In **Settings → Environments**, for both `dev` and `production`:
-     variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `SUPABASE_PROJECT_REF`
-     and secret `SUPABASE_DB_PASSWORD`, each from the matching Supabase project.
+   - Project refs, URLs and publishable keys are public and set in `deploy.yml`. Migrations are applied by
+     `scripts/migrate.mjs` through the Supabase Management API, so no database password is needed.
 
 The anon key is safe in the browser: every table has row-level security, and the privacy rules
 are enforced by the database (see the comments at the top of the migration).
