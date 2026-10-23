@@ -236,6 +236,9 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
     async renameSpace(spaceId, name) {
       commit({ ...snap, spaces: snap.spaces.map((s) => (s.id === spaceId ? { ...s, name } : s)) })
     },
+    async setSpaceTone(spaceId, tone) {
+      commit({ ...snap, spaces: snap.spaces.map((s) => (s.id === spaceId ? { ...s, tone } : s)) })
+    },
     async removeMember(spaceId, memberId) {
       commit({ ...snap, spaces: snap.spaces.map((s) => (s.id === spaceId ? { ...s, memberIds: s.memberIds.filter((m) => m !== memberId) } : s)) })
     },

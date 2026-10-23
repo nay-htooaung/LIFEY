@@ -141,6 +141,9 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     async renameSpace(spaceId, name) {
       check(await sb.from('spaces').update({ name }).eq('id', spaceId))
     },
+    async setSpaceTone(spaceId, tone) {
+      check(await sb.from('spaces').update({ tone }).eq('id', spaceId))
+    },
     async removeMember(spaceId, memberId) {
       check(await sb.rpc('remove_space_member', { p_space: spaceId, p_user: memberId }))
     },

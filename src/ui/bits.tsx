@@ -1,4 +1,4 @@
-import type { Category, Profile, Theme } from '../domain/types'
+import type { Category, Profile, Theme, Tone } from '../domain/types'
 import { Character, isCharacter } from './characters'
 
 export function Glyph({ category }: { category?: Pick<Category, 'name' | 'color'> }) {
@@ -20,6 +20,19 @@ export function Avatar({ profile, label }: { profile?: Profile; label?: string }
 
 export function SpaceDot({ name, tone, large }: { name: string; tone: string; large?: boolean }) {
   return <span className={'sd' + (large ? ' lg' : '')} style={{ background: `var(--tone-${tone})` }}>{[...name][0]}</span>
+}
+
+/** Space colours, in the order shown. Each is a --tone-* token in styles/themes.css. */
+export const TONES: Tone[] = ['me', 'a', 'b', 'c', 'd']
+
+export function TonePicker({ value, onChange, label }: { value: Tone; onChange(tone: Tone): void; label: string }) {
+  return (
+    <div className="swatches" role="group" aria-label={label}>
+      {TONES.map((tone, i) => (
+        <button key={tone} style={{ background: `var(--tone-${tone})` }} aria-label={`${label} ${i + 1}`} aria-pressed={tone === value} onClick={() => onChange(tone)} />
+      ))}
+    </div>
+  )
 }
 
 export const SWATCHES = ['#2F8F7F', '#D0704B', '#4A7FC4', '#B05AAA', '#D3A42A', '#6A9C36', '#8A6AD8', '#C2566E', '#3F9AB0', '#9C7A50']

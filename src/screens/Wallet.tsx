@@ -43,36 +43,39 @@ export function Wallet() {
       </div>
 
       <div className="sec-h"><h3>{t('methods')}</h3><button className="link" onClick={() => ui.open(<MethodSheet />)}>{t('addMethod')}</button></div>
-      {methods.filter((m) => m.kind === 'credit').map((m) => {
-        const owed = creditOutstanding(m, snap.flows, today)
-        const next = nextCardPayment(m, snap.flows, today)
-        const lim = creditLimitUse(m, snap.methods, snap.flows, today)
-        const used = lim ? lim.used / lim.limit : 0
-        return (
-          <button key={m.id} className="cc" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
-            <div className="row1"><b>{m.name}</b><span className="muted">{t('credit')}</span></div>
-            <div><div className="tiny muted">{t('curBal')}</div><div className="bal">{yen(owed)}</div></div>
-            {lim ? <div className="util"><i style={{ width: `${Math.min(100, used * 100)}%` }} /></div> : null}
-            <div className="meta">
-              {lim ? <span>{t('ofLimit', { p: Math.round(used * 100), l: yen(lim.limit) })}</span> : <span />}
-              <span>{m.closingDay === 31 ? t('lastDay') : t('closes', { d: ordinal(m.closingDay ?? 31) })}</span>
-            </div>
-            <div className="meta">
-              <b>{next ? t('payIn', { a: yen(next.amount), d: dueLabel(next.on) }) : t('noPayment')}</b>
-              <span>{t('from', { s: source.get(m.sourceId)?.name ?? '—' })}</span>
-            </div>
-            {lim && lim.others.length > 0 && <div className="meta"><span>{t('alsoOnLimit', { x: lim.others.map((o) => o.name).join(', ') })}</span></div>}
-          </button>
-        )
-      })}
-      {methods.some((m) => m.kind !== 'credit') && (
+      {methods.length > 0 && (
         <div className="card list">
-          {methods.filter((m) => m.kind !== 'credit').map((m) => (
-            <button key={m.id} className="row" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
-              <span className="glyph plain">{METHOD_GLYPH[m.kind]}</span>
-              <div className="main"><div className="t">{m.name}</div><div className="s">{t(m.kind)} · {t('from', { s: source.get(m.sourceId)?.name ?? '—' })}</div></div>
-            </button>
-          ))}
+          {methods.map((m) => {
+            if (m.kind !== 'credit') {
+              return (
+                <button key={m.id} className="row" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
+                  <span className="glyph plain">{METHOD_GLYPH[m.kind]}</span>
+                  <div className="main"><div className="t">{m.name}</div><div className="s">{t(m.kind)} · {t('from', { s: source.get(m.sourceId)?.name ?? '—' })}</div></div>
+                </button>
+              )
+            }
+            // a card: what is owed now, the next payment, and how much of the limit is used
+            const owed = creditOutstanding(m, snap.flows, today)
+            const next = nextCardPayment(m, snap.flows, today)
+            const lim = creditLimitUse(m, snap.methods, snap.flows, today)
+            const used = lim ? lim.used / lim.limit : 0
+            return (
+              <button key={m.id} className="row" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
+                <span className="glyph acc">{METHOD_GLYPH.credit}</span>
+                <div className="main">
+                  <div className="t">{m.name}</div>
+                  <div className="s">{next ? t('payIn', { a: yen(next.amount), d: dueLabel(next.on) }) : t('noPayment')}</div>
+                  {lim && (
+                    <div className="util-row">
+                      <div className="util"><i style={{ width: `${Math.min(100, used * 100)}%`, ...(used > 0.9 ? { background: 'var(--neg)' } : {}) }} /></div>
+                      <span className="num">{Math.round(used * 100)}%</span>
+                    </div>
+                  )}
+                </div>
+                <span className="amt num">{yen(owed)}</span>
+              </button>
+            )
+          })}
         </div>
       )}
     </>

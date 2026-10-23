@@ -346,6 +346,18 @@ do $$ begin
 exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 update public.spaces set name = 'Our Place' where id = current_setting('t.home')::uuid;
 select t.ok((select name from public.spaces where id = current_setting('t.home')::uuid) = 'Our Place', 'members can rename a space');
+update public.spaces set tone = 'c' where id = current_setting('t.home')::uuid;
+select t.ok((select tone from public.spaces where id = current_setting('t.home')::uuid) = 'c', 'members can recolour a space');
+update public.spaces set tone = 'b' where id = current_setting('t.my_space')::uuid;
+select t.as_user('you');
+select t.ok((select tone from public.spaces where id = current_setting('t.my_space')::uuid) = 'me', 'sam cannot recolour your personal space');
+update public.spaces set tone = 'd' where id = current_setting('t.my_space')::uuid;
+select t.ok((select tone from public.spaces where id = current_setting('t.my_space')::uuid) = 'd', 'you can recolour your personal space');
+do $$ begin
+  update public.spaces set tone = 'x' where id = current_setting('t.my_space')::uuid;
+  raise exception 'TEST FAIL: an unknown colour was saved';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+select t.as_user('sam');
 
 -- sam leaves; nothing is deleted, and rejoining brings it all back
 select public.leave_household(current_setting('t.home')::uuid);
