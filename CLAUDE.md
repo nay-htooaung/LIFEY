@@ -27,14 +27,14 @@ README.md covers setup; this file is the rules and decisions every session needs
 
 The user asks for a change; carry it through to dev without being told each step:
 
-1. `git fetch` and work on `rebuild/money-mvp` (or merge it in first if on another branch). Read the code you change.
+1. `git fetch` and work on `develop` (a session given another branch merges `develop` in first and merges back into it). Read the code you change.
 2. Make the change. Database changes get a new migration and new checks in `supabase/tests/privacy_test.sql`;
    money logic gets unit tests in `src/domain/money.test.ts`.
 3. Test it the way the user will use it: build, serve, and drive the screens in Playwright at phone size
    (390×844). Look at the screenshots, fix what looks wrong, and test the edge cases (errors, empty states,
    long text, both languages).
 4. Run `npm run typecheck && npm test && npm run build && npm run test:db`; all four must pass.
-5. Commit with a message that says what changed for the user and why, then `git push -u origin rebuild/money-mvp`.
+5. Commit with a message that says what changed for the user and why, then `git push -u origin develop`.
 6. Wait for the Deploy run on that commit to finish (GitHub Actions). If it fails, read the job log, fix and push again.
    For migrations, confirm in the log that "Apply database migrations" applied them.
 7. Reply briefly: what changed, how it was tested, anything left or worth deciding. Ask before anything risky
@@ -44,23 +44,24 @@ The user asks for a change; carry it through to dev without being told each step
 
 | | dev | prod |
 | --- | --- | --- |
-| Branch | any except `main` (work happens on `rebuild/money-mvp`) | `main` |
+| Branch | `develop` | `main` |
 | Supabase | `lifey-dev` `uezezkydnlbksrqvaipr` | `lifey-prod` `klxhdsravxkprqxdgebv` |
 | Site | https://lifey-dev.naytech001.workers.dev | Worker `lifey` (not deployed yet) |
 
-- `.github/workflows/deploy.yml` runs on every push: `node scripts/migrate.mjs <ref>` applies pending migrations
+- `.github/workflows/deploy.yml` runs on pushes to `develop` and `main`: checks, then `node scripts/migrate.mjs <ref>` applies pending migrations
   through the Supabase Management API (only `SUPABASE_ACCESS_TOKEN` is needed; GitHub runners cannot reach the
   IPv6-only database), then builds and deploys to Cloudflare. Refs, URLs and publishable keys are public and live in the workflow.
 - Prod has only migrations `20261023000000` and `20261023010000`; the rest arrive with the first merge to `main`.
 - `main` still holds the old app (July, `frontend/`+`backend/`, Tailwind), as do the `story/*` branches.
-  Merging `rebuild/money-mvp` replaces it.
+  The user replaces it with `develop` at the v1.0.0 release (pushing `main` deploys prod). Other branches run
+  `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
 - Latest migration: `20261023080000_signup_theme.sql`.
 - Pushing deploys dev; to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
 - The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
 - Dev has throwaway test accounts (`smoke.*@example.com`); leave them.
-- Parallel sessions may work on their own branches (`ccr-*`) cut from `rebuild/money-mvp`. Before adding a
+- Parallel sessions may work on their own branches (`ccr-*`) cut from `develop`. Before adding a
   migration, `git fetch` and pick a timestamp later than any migration on any branch, so two never collide.
 
 ## Architecture and decisions

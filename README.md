@@ -43,14 +43,15 @@ With no Supabase settings the app runs in **demo mode**: example data stored on 
 
 | | dev | prod |
 | --- | --- | --- |
-| Git branch | any branch except `main` | `main` |
+| Git branch | `develop` | `main` |
 | Cloudflare Worker | `lifey-dev` | `lifey` |
 | Supabase project (free plan, Tokyo) | `lifey-dev` (`uezezkydnlbksrqvaipr`) | `lifey-prod` (`klxhdsravxkprqxdgebv`) |
 | GitHub environment | `dev` | `production` |
 
-`.github/workflows/deploy.yml` runs on every push: it applies database migrations, builds with that
+`.github/workflows/deploy.yml` runs on pushes to `develop` and `main`: it runs the checks, applies database migrations, builds with that
 environment's Supabase settings and deploys to Cloudflare (Workers static assets, see `wrangler.jsonc`).
 Steps whose credentials are missing are skipped, so the workflow is safe to run before setup is done.
+Other branches and pull requests run `.github/workflows/check.yml`: the same checks, no deploy.
 
 ### One-time setup
 

@@ -1,0 +1,22 @@
+name: Check
+# Feature branches and pull requests: the same checks as before a commit, no deploy.
+on:
+  push:
+    branches-ignore: [develop, main]
+  pull_request:
+    branches: [develop, main]
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      # throwaway local Postgres; the runner image ships PostgreSQL
+      - run: npm run test:db

@@ -1,8 +1,10 @@
 name: Deploy
-# main -> production (worker "lifey", prod Supabase)
-# any other branch -> dev (worker "lifey-dev", dev Supabase)
+# develop -> dev  (worker "lifey-dev", dev Supabase)
+# main    -> prod (worker "lifey", prod Supabase); main still holds the old app until the v1.0.0 release
+# Other branches only run checks (check.yml).
 on:
   push:
+    branches: [develop, main]
   workflow_dispatch:
 concurrency:
   group: deploy-${{ github.ref_name == 'main' && 'prod' || 'dev' }}
@@ -27,6 +29,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      # nothing reaches the database or Cloudflare unless every check passes
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:db
       - name: Apply database migrations
         if: env.HAS_SUPABASE == 'true'
         env:
