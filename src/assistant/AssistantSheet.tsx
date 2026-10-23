@@ -72,6 +72,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   // what happened in the app since the last message (applied, discarded), told to the model with the next one
   const notes = useRef<string[]>([])
   const seen = useRef(new Map<string, Entry>())
+  // one id per conversation, sent to the model provider
+  const session = useRef(crypto.randomUUID())
   const live = useRef({ snap, repo, space, today, person, paidWith, t, locale })
   live.current = { snap, repo, space, today, person, paidWith, t, locale }
   // a new chat drops replies still on their way
@@ -98,7 +100,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const res = await fetch('/api/chat', {
           method: 'POST', signal: ctl.signal,
           headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ messages: trimHistory(history.current), context }),
+          body: JSON.stringify({ messages: trimHistory(history.current), context, session: session.current }),
         })
         if (!res.ok || !res.body) throw new ChatError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'model')
         let aiId: number | null = null
@@ -195,6 +197,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       asking.current = null
       notes.current = []
       seen.current.clear()
+      session.current = crypto.randomUUID()
       setMsgs([])
       setTray([])
       setThinking(false)
