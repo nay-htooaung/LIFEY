@@ -38,13 +38,15 @@ async function chat(req: Request, env: Env): Promise<Response> {
 
   const raw = await req.text()
   if (raw.length > MAX_BODY) return fail(413, 'too_long')
-  let body: { messages?: Msg[]; context?: ChatContext }
+  let body: { messages?: Msg[]; context?: ChatContext; session?: string }
   try {
     body = JSON.parse(raw)
   } catch {
     return fail(400, 'bad_json')
   }
   const { messages, context } = body
+  // one id per conversation; OpenCode Go requires it for routing and prompt caching
+  const session = typeof body.session === 'string' && /^[\w-]{8,64}$/.test(body.session) ? body.session : crypto.randomUUID()
   if (!Array.isArray(messages) || !messages.length || messages.length > MAX_MESSAGES || !context?.space?.id) return fail(400, 'bad_request')
   // only the conversation itself; the system prompt and tools are set here
   const convo = messages
@@ -72,7 +74,10 @@ async function chat(req: Request, env: Env): Promise<Response> {
 
   const upstream = await fetch(`${env.AI_BASE_URL}/chat/completions`, {
     method: 'POST',
-    headers: { authorization: `Bearer ${env.OPENCODE_API_KEY}`, 'content-type': 'application/json' },
+    headers: {
+      authorization: `Bearer ${env.OPENCODE_API_KEY}`, 'content-type': 'application/json',
+      'x-opencode-session': session, 'user-agent': 'lifey-assistant/0.1',
+    },
     body: JSON.stringify({
       model: env.AI_MODEL,
       messages: [{ role: 'system', content: systemPrompt(ctx) }, ...convo],
