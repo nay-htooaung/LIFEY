@@ -9,6 +9,7 @@ import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
 import { usePaidWith } from '../ui/entry'
 import { IconChevron, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
+import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
 import { ChatError, readStream, runTool, trimHistory, type ApiMsg, type ToolCtx } from './run'
 import type { ChatContext } from './tools'
@@ -30,8 +31,15 @@ type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, 'id'> : never) : ne
 /** A proposed change in the tray; `skip` leaves it out when applying. */
 type Pending = Change & { skip?: boolean }
 
+interface ModelList { models: { id: string; name: string }[]; recommended: string | null }
+
 interface Assistant {
   msgs: Msg[]
+  /** The free models the Worker offers, once loaded; null before or when it cannot say. */
+  models: ModelList | null
+  /** The model picked on this device, or the recommended one. */
+  model: string | null
+  setModel(id: string): void
   tray: Pending[]
   thinking: boolean
   /** A typed message, or the answer to the open question. */
@@ -52,6 +60,15 @@ const useAssistant = () => {
   return a
 }
 
+const MODEL_KEY = 'lifey-ai-model'
+const readModel = () => {
+  try {
+    return localStorage.getItem(MODEL_KEY)
+  } catch {
+    return null
+  }
+}
+
 let nextId = 1
 /** Model calls per message, so a confused loop stops. */
 const MAX_STEPS = 8
@@ -66,6 +83,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [tray, setTray] = useState<Pending[]>([])
   const [thinking, setThinking] = useState(false)
+  const [models, setModels] = useState<ModelList | null>(null)
+  const [picked, setPicked] = useState(readModel)
+  // the pick stays while it is still offered; otherwise the recommended one
+  const model = models?.models.some((m) => m.id === picked) ? picked : (models?.recommended ?? picked)
+  const modelRef = useRef(model)
+  modelRef.current = model
   const history = useRef<ApiMsg[]>([])
   // the open ask_user call, answered by the next message
   const asking = useRef<{ callId: string; msgId: number } | null>(null)
@@ -79,6 +102,18 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   // a new chat drops replies still on their way
   const turn = useRef(0)
   const abort = useRef<AbortController | null>(null)
+
+  // the list is asked for once, when the provider starts
+  useEffect(() => {
+    let live = true
+    fetch('/api/models')
+      .then((r) => (r.ok ? (r.json() as Promise<ModelList>) : null))
+      .then((list) => live && list?.models.length && setModels(list))
+      .catch(() => { /* the Worker picks the recommended one */ })
+    return () => {
+      live = false
+    }
+  }, [])
 
   const add = useCallback((m: NewMsg) => {
     const id = nextId++
@@ -100,7 +135,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const res = await fetch('/api/chat', {
           method: 'POST', signal: ctl.signal,
           headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ messages: trimHistory(history.current), context, session: session.current }),
+          body: JSON.stringify({ messages: trimHistory(history.current), context, session: session.current, model: modelRef.current ?? undefined }),
         })
         if (!res.ok || !res.body) throw new ChatError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'model')
         let aiId: number | null = null
@@ -155,7 +190,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   }, [add])
 
   const value = useMemo<Assistant>(() => ({
-    msgs, tray, thinking, setTray,
+    msgs, tray, thinking, setTray, models, model,
+    setModel(id) {
+      setPicked(id)
+      try {
+        localStorage.setItem(MODEL_KEY, id)
+      } catch {
+        /* ignore */
+      }
+    },
     send(text) {
       const said = text.trim()
       if (!said || thinking) return
@@ -202,7 +245,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       setTray([])
       setThinking(false)
     },
-  }), [msgs, tray, thinking, run, add])
+  }), [msgs, tray, thinking, run, add, models, model])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -250,9 +293,17 @@ export function AssistantSheet() {
         <h2>{t('assistant')}</h2>
         {a.msgs.length > 0 && <button className="link" onClick={a.reset}>{t('newChat')}</button>}
       </div>
+      {a.models && a.model && (
+        <div className="chat-model">
+          <label className="pick-l" htmlFor="ai-model">{t('aiModel')}</label>
+          <Select id="ai-model" value={a.model} onChange={a.setModel}
+            options={a.models.models.map((m) => ({ value: m.id, label: m.name, hint: m.id === a.models!.recommended ? t('recommended') : undefined }))} />
+        </div>
+      )}
 
       <div className="chat-log">
         <AiBubble>{t('aiHello')}</AiBubble>
+        <p className="chat-note">{t('aiFreeNote')}</p>
         {a.msgs.map((m) =>
           m.role === 'user' ? <div key={m.id} className="bub me">{m.text}</div>
           : m.role === 'ai' ? <AiBubble key={m.id}>{m.text}</AiBubble>

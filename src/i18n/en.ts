@@ -70,6 +70,7 @@ export const en = {
   aiErrBusy: 'The AI is busy. Try again in a moment.', aiErrSetup: "The assistant isn't set up on this server yet.",
   aiErr: "The assistant couldn't answer.", tryAgain: 'Try again',
   thinking: 'Thinking…', changesN: '{n} changes', change1: '1 change', opAdd: 'New', opEdit: 'Edit', opDel: 'Delete',
+  aiModel: 'Model', recommended: 'Recommended', aiFreeNote: 'Uses free OpenCode models. What you send may be used to improve them.',
   leaveOut: 'Leave out', putBack: 'Put back', leftOut: 'Left out', afterApply: 'After applying', owed: 'owed', ofBudgetX: 'of {a}',
   holdApply: 'Hold to apply', holdHint: 'Keep holding to apply', discard: 'Discard', appliedN: 'Applied {n}', undo: 'Undo', undone: 'Undone',
   receiptN: 'Applied {n} changes', receipt1: 'Applied 1 change', tapToEdit: 'Tap a change to adjust it.', useDraft: 'Update change',

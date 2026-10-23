@@ -72,6 +72,7 @@ export const ja: Record<MessageKey, string> = {
   aiErrBusy: 'AIが混み合っています。少し待ってからもう一度お試しください。', aiErrSetup: 'このサーバーではアシスタントがまだ設定されていません。',
   aiErr: 'アシスタントが答えられませんでした。', tryAgain: 'もう一度',
   thinking: '考え中…', changesN: '{n}件の変更', change1: '1件の変更', opAdd: '追加', opEdit: '修正', opDel: '削除',
+  aiModel: 'モデル', recommended: 'おすすめ', aiFreeNote: 'OpenCodeの無料モデルを使います。送った内容はモデルの改善に使われることがあります。',
   leaveOut: '外す', putBack: '戻す', leftOut: '外しました', afterApply: '適用後', owed: '未払い', ofBudgetX: '予算{a}',
   holdApply: '長押しで適用', holdHint: 'そのまま長押しで適用', discard: '破棄', appliedN: '{n}件を適用しました', undo: '元に戻す', undone: '元に戻しました',
   receiptN: '{n}件の変更を適用', receipt1: '1件の変更を適用', tapToEdit: '変更をタップすると調整できます。', useDraft: '変更を更新',
