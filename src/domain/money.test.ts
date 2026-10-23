@@ -13,7 +13,7 @@ const chk: Source = { id: 'chk', spaceId: 'me', name: 'Bank', kind: 'bank', open
 let n = 0
 const entry = (p: Partial<Entry>): Entry => ({
   id: `e${n++}`, spaceId: 'me', kind: 'expense', amount: 1000, categoryId: 'food', methodId: 'deb', sourceId: null,
-  occurredOn: '2026-10-01', note: '', tags: [], repeat: 'none', repeatOf: null, createdBy: 'u1', ...p,
+  occurredOn: '2026-10-01', name: '', note: '', tags: [], repeat: 'none', repeatOf: null, createdBy: 'u1', ...p,
 })
 const flow = (methodId: string, amount: number, occurredOn: string): Flow => ({ methodId, sourceId: null, kind: 'expense', amount, occurredOn })
 
@@ -122,5 +122,13 @@ describe('shared credit limits', () => {
   })
   it('has no usage without a limit', () => {
     expect(creditLimitUse({ ...visa, creditLimit: null }, [], flows, '2026-10-22')).toBeNull()
+  })
+})
+
+describe('bank transfers', () => {
+  it('take an expense paid from a source off its balance on the day', () => {
+    const transfer: Flow = { methodId: null, sourceId: 'chk', kind: 'expense', amount: 80000, occurredOn: '2026-10-05' }
+    expect(sourceBalance(chk, [], [transfer], '2026-10-04')).toBe(100000)
+    expect(sourceBalance(chk, [], [transfer], '2026-10-05')).toBe(20000)
   })
 })

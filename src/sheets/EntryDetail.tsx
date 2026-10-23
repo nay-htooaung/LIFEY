@@ -31,8 +31,8 @@ export function EntryDetail({ id }: { id: string }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <Glyph category={c} />
         <div style={{ minWidth: 0 }}>
-          <h2>{e.note || c?.name || '—'}</h2>
-          <div className="small muted">{c?.name}</div>
+          <h2>{e.name || e.note || c?.name || '—'}</h2>
+          <div className="small muted">{[c?.name, e.name && e.note].filter(Boolean).join(' · ')}</div>
         </div>
       </div>
       <div className="amount-disp left num">{e.kind === 'expense' ? '-' : '+'}{yen(e.amount)}</div>

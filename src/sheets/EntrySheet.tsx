@@ -34,7 +34,8 @@ export function EntrySheet({ editId, prefill }: Props) {
   const [amount, setAmount] = useState(init.amount ? String(init.amount) : '0')
   const [spaceId, setSpaceId] = useState(init.spaceId ?? space.id)
   const [categoryId, setCategoryId] = useState<string | null>(init.categoryId ?? null)
-  const [via, setVia] = useState<string | null>((init.kind === 'income' ? init.sourceId : init.methodId) ?? null)
+  const [via, setVia] = useState<string | null>((init.kind === 'income' || !init.methodId ? init.sourceId : init.methodId) ?? null)
+  const [name, setName] = useState(init.name ?? '')
   const [note, setNote] = useState(init.note ?? '')
   const [tags, setTags] = useState((init.tags ?? []).join(', '))
   const [date, setDate] = useState(init.occurredOn ?? today)
@@ -45,13 +46,20 @@ export function EntrySheet({ editId, prefill }: Props) {
   const spaceName = (id: string) => snap.spaces.find((s) => s.id === id)?.name ?? ''
 
   // Any method/source from a space I belong to. The target space's own first, then mine, then other households.
+  // Expenses can also be paid straight from a bank or savings account (bank transfer).
   const options = useMemo(() => {
-    const pool = kind === 'expense' ? snap.methods : snap.sources
+    const transfers = snap.sources.filter((x) => x.kind !== 'cash')
+    const pool = kind === 'expense'
+      ? [...snap.methods.map((x) => ({ ...x, transfer: false })), ...transfers.map((x) => ({ ...x, transfer: true }))]
+      : snap.sources.map((x) => ({ ...x, transfer: false }))
     const rank = (sid: string) => (sid === spaceId ? 0 : sid === personal.id ? 1 : 2)
-    return [...pool]
+    return pool
       .sort((a, b) => rank(a.spaceId) - rank(b.spaceId))
-      .map((x) => ({ id: x.id, name: x.name, spaceId: x.spaceId, personal: x.spaceId === personal.id && spaceId !== personal.id }))
-  }, [kind, snap.methods, snap.sources, spaceId, personal.id])
+      .map((x) => ({
+        id: x.id, name: x.transfer ? t('bankTransfer', { s: x.name }) : x.name, spaceId: x.spaceId, transfer: x.transfer,
+        personal: x.spaceId === personal.id && spaceId !== personal.id,
+      }))
+  }, [kind, snap.methods, snap.sources, spaceId, personal.id, t])
 
   const catId = cats.some((c) => c.id === categoryId) ? categoryId : (cats[0]?.id ?? null)
   const last = readLast()[`${spaceId}:${kind}`]
@@ -71,8 +79,8 @@ export function EntrySheet({ editId, prefill }: Props) {
     if (!n || !viaId) return
     const entry: NewEntry = {
       spaceId, kind, amount: n, categoryId: catId,
-      methodId: kind === 'expense' ? viaId : null, sourceId: kind === 'income' ? viaId : null,
-      occurredOn: date, note: note.trim(), tags: tags.split(/[,、，]/).map((s) => s.trim()).filter(Boolean),
+      methodId: kind === 'expense' && !chosen?.transfer ? viaId : null, sourceId: kind === 'income' || chosen?.transfer ? viaId : null,
+      occurredOn: date, name: name.trim(), note: note.trim(), tags: tags.split(/[,、，]/).map((s) => s.trim()).filter(Boolean),
       repeat: base?.repeatOf ? 'none' : repeat, repeatOf: base?.repeatOf ?? null,
     }
     try {
@@ -98,43 +106,53 @@ export function EntrySheet({ editId, prefill }: Props) {
       </div>
       <div className={'amount-disp num' + (n ? '' : ' zero')} aria-live="polite">{kind === 'income' ? '+' : ''}{yen(n)}</div>
 
-      {!editId && snap.spaces.length > 1 && (
-        <div className="field">
-          <span className="label">{t('saveTo')}</span>
+      {/* label on the left, choices scroll sideways on the right */}
+      <div className="picks">
+        <div className="pick">
+          <label className="pick-l" htmlFor="entry-name">{t('name')}</label>
+          <input id="entry-name" className="input" value={name} maxLength={60} placeholder={t('optional')} onChange={(e) => setName(e.target.value)} />
+        </div>
+        {!editId && snap.spaces.length > 1 && (
+          <div className="pick">
+            <span className="pick-l">{t('saveTo')}</span>
+            <div className="chips">
+              {snap.spaces.map((s) => (
+                <button key={s.id} className="chip" aria-pressed={spaceId === s.id} onClick={() => setSpaceId(s.id)}>
+                  <span className="sw" style={{ background: toneVar(s), borderRadius: '50%' }} />{s.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="pick">
+          <span className="pick-l">{t('category')}</span>
           <div className="chips">
-            {snap.spaces.map((s) => (
-              <button key={s.id} className="chip" aria-pressed={spaceId === s.id} onClick={() => setSpaceId(s.id)}>
-                <span className="sw" style={{ background: toneVar(s), borderRadius: '50%' }} />{s.name}
+            {cats.map((c) => (
+              <button key={c.id} className="chip" aria-pressed={catId === c.id} onClick={() => setCategoryId(c.id)}>
+                <span className="sw" style={{ background: c.color }} />{c.name}
               </button>
             ))}
+            <button className="chip" onClick={() => ui.push(<CategorySheet spaceId={spaceId} kind={kind} onSaved={setCategoryId} />, toneVar(target))}>
+              {t('newShort')}
+            </button>
           </div>
         </div>
-      )}
-
-      <div className="chips" aria-label={t('category')}>
-        {cats.map((c) => (
-          <button key={c.id} className="chip" aria-pressed={catId === c.id} onClick={() => setCategoryId(c.id)}>
-            <span className="sw" style={{ background: c.color }} />{c.name}
-          </button>
-        ))}
-        <button className="chip" onClick={() => ui.open(<CategorySheet spaceId={spaceId} kind={kind} />, toneVar(target))}>{t('newShort')}</button>
-      </div>
-
-      <div className="field">
-        <span className="label">{kind === 'income' ? t('into') : t('paidWith')}</span>
-        {options.length ? (
-          <div className="chips">
-            {options.map((o) => (
-              <button key={o.id} className="chip" aria-pressed={viaId === o.id} onClick={() => setVia(o.id)}>
-                {o.personal && <IconLock />}
-                {o.name}
-                {o.spaceId !== spaceId && !o.personal && <span className="tag">{spaceName(o.spaceId)}</span>}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <span className="privacy">{kind === 'income' ? t('noSourceHint') : t('noMethodHint')}</span>
-        )}
+        <div className="pick">
+          <span className="pick-l">{kind === 'income' ? t('into') : t('paidWith')}</span>
+          {options.length ? (
+            <div className="chips">
+              {options.map((o) => (
+                <button key={o.id} className="chip" aria-pressed={viaId === o.id} onClick={() => setVia(o.id)}>
+                  {o.personal && <IconLock />}
+                  {o.name}
+                  {o.spaceId !== spaceId && !o.personal && <span className="tag">{spaceName(o.spaceId)}</span>}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <span className="privacy">{kind === 'income' ? t('noSourceHint') : t('noMethodHint')}</span>
+          )}
+        </div>
         {chosen?.personal && <span className="privacy">{t('hiddenHint')}</span>}
         {chosen && chosen.spaceId !== spaceId && !chosen.personal && <span className="privacy">{t('sharedHint')}</span>}
       </div>

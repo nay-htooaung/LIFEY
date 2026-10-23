@@ -9,9 +9,11 @@ interface Props {
   category?: Category
   spaceId?: string
   kind?: EntryKind
+  /** Called with the new or edited category's id once saved. */
+  onSaved?: (id: string) => void
 }
 
-export function CategorySheet({ category, spaceId, kind: initialKind }: Props) {
+export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }: Props) {
   const { snap, space, act } = useStore()
   const ui = useUI()
   const { t } = useI18n()
@@ -22,15 +24,16 @@ export function CategorySheet({ category, spaceId, kind: initialKind }: Props) {
   const [budget, setBudget] = useState(category?.monthlyBudget ? String(category.monthlyBudget) : '')
   const [confirm, setConfirm] = useState(false)
 
-  const save = () => {
+  const save = async () => {
     const n = name.trim()
     if (!n) return document.getElementById('cat-name')?.focus()
     const sort = category?.sort ?? snap.categories.filter((c) => c.spaceId === target.id).length + 1
     ui.close()
-    void act(
+    const id = await act(
       (r) => r.saveCategory({ id: category?.id, spaceId: target.id, name: n, color, kind, monthlyBudget: kind === 'expense' ? parseYen(budget) : 0, sort }),
       category ? t('saved') : t('created', { x: n }),
     )
+    if (id) onSaved?.(id)
   }
 
   return (

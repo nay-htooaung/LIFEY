@@ -25,7 +25,7 @@ export function Activity() {
   const needle = q.trim().toLowerCase()
   if (needle) {
     list = list.filter((e) =>
-      [e.note, e.categoryId ? cat.get(e.categoryId)?.name : '', e.tags.join(' '), String(e.amount)].join(' ').toLowerCase().includes(needle),
+      [e.name, e.note, e.categoryId ? cat.get(e.categoryId)?.name : '', e.tags.join(' '), String(e.amount)].join(' ').toLowerCase().includes(needle),
     )
   }
   const groups = new Map<string, typeof list>()

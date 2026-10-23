@@ -19,11 +19,11 @@ const toCategory = (r: Row): Category => ({
 })
 const toEntry = (r: Row): Entry => ({
   id: r.id, spaceId: r.space_id, kind: r.kind, amount: Number(r.amount), categoryId: r.category_id, methodId: r.method_id,
-  sourceId: r.source_id, occurredOn: r.occurred_on, note: r.note, tags: r.tags ?? [], repeat: r.repeat, repeatOf: r.repeat_of, createdBy: r.created_by,
+  sourceId: r.source_id, occurredOn: r.occurred_on, name: r.name ?? '', note: r.note, tags: r.tags ?? [], repeat: r.repeat, repeatOf: r.repeat_of, createdBy: r.created_by,
 })
 const entryRow = (e: Omit<Entry, 'id' | 'createdBy'>) => ({
   space_id: e.spaceId, kind: e.kind, amount: e.amount, category_id: e.categoryId, method_id: e.kind === 'expense' ? e.methodId : null,
-  source_id: e.kind === 'income' ? e.sourceId : null, occurred_on: e.occurredOn, note: e.note, tags: e.tags, repeat: e.repeat, repeat_of: e.repeatOf,
+  source_id: e.kind === 'income' || !e.methodId ? e.sourceId : null, occurred_on: e.occurredOn, name: e.name, note: e.note, tags: e.tags, repeat: e.repeat, repeat_of: e.repeatOf,
 })
 
 const methodRow = (m: Omit<PaymentMethod, 'id'>) => ({

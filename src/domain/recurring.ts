@@ -54,6 +54,7 @@ export function dueOccurrences(entries: Entry[], userId: string, upTo: Day, maxP
         methodId: t.methodId,
         sourceId: t.sourceId,
         occurredOn: d,
+        name: t.name,
         note: t.note,
         tags: t.tags,
         repeat: 'none',

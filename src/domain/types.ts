@@ -66,9 +66,12 @@ export interface Entry {
   /** Whole yen, always positive. */
   amount: number
   categoryId: string | null
+  /** Expenses: the payment method, or null when paid straight from `sourceId` (bank transfer). */
   methodId: string | null
   sourceId: string | null
   occurredOn: Day
+  /** Optional title; lists fall back to the note, then the category. */
+  name: string
   note: string
   tags: string[]
   repeat: Repeat

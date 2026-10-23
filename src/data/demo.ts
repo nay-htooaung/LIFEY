@@ -61,7 +61,7 @@ export function seedDemo(locale: Locale): Snapshot {
   const e = (spaceId: string, occurredOn: string, kind: Entry['kind'], amount: number, categoryId: string, via: string, en: string, ja: string, x: Partial<Entry> = {}) =>
     entries.push({
       id: uid(), spaceId, kind, amount, categoryId, methodId: kind === 'expense' && via !== 'hidden' ? via : null,
-      sourceId: kind === 'income' ? via : null, occurredOn, note: L(en, ja), tags: [], repeat: 'none', repeatOf: null, createdBy: ME, ...x,
+      sourceId: kind === 'income' ? via : null, occurredOn, name: '', note: L(en, ja), tags: [], repeat: 'none', repeatOf: null, createdBy: ME, ...x,
     })
   const hidden = 'hidden' // paid from another member's personal funds: no method we can see
   // personal

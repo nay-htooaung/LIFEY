@@ -69,6 +69,7 @@ button { cursor: pointer; }
 .tiny { font-size: 12px; }
 .empty { text-align: center; color: var(--muted); font-size: 14px; }
 .btn { border: 1px solid var(--line); background: var(--card-2); border-radius: 14px; padding: 10px 14px; font-weight: 600; font-size: 14px; flex: 1; }
+.btn.sm { flex: none; padding: 7px 11px; font-size: 12px; border-radius: 11px; }
 .btn.primary { background: var(--acc); color: var(--on-acc); border-color: var(--acc); }
 .btn.big { padding: 14px; font-size: 16px; }
 .btn.danger { color: var(--neg); }
@@ -102,6 +103,10 @@ button { cursor: pointer; }
 .date-chip b { display: block; font-family: var(--display); font-size: 16px; }
 .date-chip small { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
+.picks { display: flex; flex-direction: column; gap: 10px; }
+.pick { display: grid; grid-template-columns: 5.2em minmax(0, 1fr); align-items: center; gap: 10px; }
+.pick-l { font-size: 12px; font-weight: 700; color: var(--muted); line-height: 1.25; }
+.pick .input { padding: 8px 12px; }
 .chips { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
 .chips::-webkit-scrollbar { display: none; }
 .chips.wrap { flex-wrap: wrap; overflow: visible; }
@@ -129,12 +134,12 @@ button { cursor: pointer; }
 .ribbon span.bill { border-style: solid; opacity: 0.85; }
 .ribbon span.zero { opacity: 0.85; height: 3px; background: none; border-bottom: 3px dotted currentColor; border-radius: 0; }
 .ribbon-x { display: flex; justify-content: space-between; font-size: 10px; opacity: 0.7; margin-top: -8px; }
-.streak { display: flex; align-items: center; gap: 12px; }
-.streak .fl { width: 40px; height: 40px; border-radius: 14px; background: color-mix(in srgb, var(--flame) 16%, var(--card)); color: var(--flame); display: grid; place-items: center; flex: none; }
-.streak b { font-family: var(--display); font-size: 18px; }
-.week { display: flex; gap: 5px; margin-top: 10px; }
-.week div { flex: 1; text-align: center; font-size: 10px; color: var(--muted); display: flex; flex-direction: column; gap: 3px; align-items: center; }
-.week i { width: 100%; height: 6px; border-radius: 3px; background: var(--line); }
+.streak { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.streak .fl { width: 36px; height: 36px; border-radius: 12px; background: color-mix(in srgb, var(--flame) 16%, var(--card)); color: var(--flame); display: grid; place-items: center; flex: none; }
+.streak .main { flex: 1; min-width: 0; }
+.streak b { font-family: var(--display); font-size: 16px; }
+.week { display: flex; gap: 4px; margin-top: 5px; max-width: 150px; }
+.week i { flex: 1; height: 5px; border-radius: 3px; background: var(--line); }
 .week i.on { background: var(--flame); }
 .week i.ns { background: repeating-linear-gradient(90deg, var(--flame) 0 3px, transparent 3px 5px); }
 .contrib .bar2 { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 2px; margin: 10px 0; background: var(--card-2); }
@@ -166,13 +171,18 @@ button { cursor: pointer; }
 /* ---------- sheets ---------- */
 .sheet-wrap { position: absolute; inset: 0; background: var(--scrim); display: flex; align-items: flex-end; z-index: 20; animation: fade 0.18s; }
 .sheet {
-  background: var(--card); border-top: 1px solid var(--line); width: 100%; border-radius: 30px 30px 0 0; max-height: 94%; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 14px; animation: up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
-  padding: 10px max(18px, env(safe-area-inset-right, 0px)) calc(22px + var(--safe-b)) max(18px, env(safe-area-inset-left, 0px));
+  background: var(--card); border-top: 1px solid var(--line); width: 100%; border-radius: 30px 30px 0 0; max-height: 94%;
+  display: flex; flex-direction: column; overflow: hidden; animation: up 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+/* The handle stays put while the body scrolls; dragging it (or the body at its top) closes the sheet. */
+.grab-zone { flex: none; padding: 10px 0 8px; touch-action: none; cursor: grab; }
+.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto; }
+.sheet-body {
+  overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; gap: 14px;
+  padding: 2px max(18px, env(safe-area-inset-right, 0px)) calc(22px + var(--safe-b)) max(18px, env(safe-area-inset-left, 0px));
 }
 /* A tall sheet scrolls; without this, rows that scroll sideways (.chips) shrink to nothing. */
-.sheet > * { flex-shrink: 0; }
-.grab { width: 40px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto; flex: none; }
+.sheet-body > * { flex-shrink: 0; }
 .sheet h2 { margin: 0; font-family: var(--display); font-size: 22px; letter-spacing: -0.02em; }
 .sheet .lead { margin: -6px 0 0; color: var(--muted); font-size: 14px; }
 @keyframes up { from { transform: translateY(40px); opacity: 0.4; } }

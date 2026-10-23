@@ -3,8 +3,7 @@ import { dailyTotals, paidPersonallyFor, safeToSpend, spentByMember, upcoming } 
 import { streak } from '../domain/streak'
 import { addDays } from '../domain/dates'
 import { useI18n, yen } from '../i18n'
-import { toneVar, usePersonName, useStore } from '../data/store'
-import { EntrySheet } from '../sheets/EntrySheet'
+import { usePersonName, useStore } from '../data/store'
 import { SourceSheet } from '../sheets/SourceSheet'
 import { SpacesSheet } from '../sheets/SpacesSheet'
 import { Avatar, SpaceDot } from '../ui/bits'
@@ -96,29 +95,19 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
 
       <InstallCard dismissible />
 
-      <div className="card">
-        <div className="streak">
-          <span className="fl"><IconFlame /></span>
-          <div style={{ flex: 1 }}>
-            <b>{t('streak', { n: st.count })}</b>
-            <div className="small muted">{st.doneToday ? t('loggedToday') : t('keepStreak')}</div>
+      {/* one line: streak, this week, and the no-spend shortcut (logging is the + button) */}
+      <div className="card streak">
+        <span className="fl"><IconFlame /></span>
+        <div className="main">
+          <b>{t('streak', { n: st.count })}</b>
+          <div className="week" aria-hidden="true">
+            {week.map((d) => <i key={d} title={wd(d)} className={snap.noSpendDays.includes(d) ? 'ns' : st.days.has(d) ? 'on' : ''} />)}
           </div>
-        </div>
-        <div className="week">
-          {week.map((d) => (
-            <div key={d}>
-              <i className={snap.noSpendDays.includes(d) ? 'ns' : st.days.has(d) ? 'on' : ''} />
-              {[...wd(d)][0]}
-            </div>
-          ))}
         </div>
         {st.doneToday ? (
-          <p className="small muted" style={{ margin: '6px 0 0' }}>{t('doneToday')}</p>
+          <span className="small muted">{t('loggedToday')}</span>
         ) : (
-          <div className="btn-row" style={{ marginTop: 12 }}>
-            <button className="btn primary" onClick={() => ui.open(<EntrySheet />, toneVar(space))}>{t('logSpend')}</button>
-            <button className="btn" onClick={() => act((r) => r.markNoSpend(today), t('noSpendDone', { n: st.count + 1 }))}>{t('noSpend')}</button>
-          </div>
+          <button className="btn sm" onClick={() => act((r) => r.markNoSpend(today), t('noSpendDone', { n: st.count + 1 }))}>{t('noSpend')}</button>
         )}
       </div>
 

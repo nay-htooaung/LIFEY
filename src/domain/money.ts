@@ -66,7 +66,7 @@ export function sourceBalance(source: Source, methods: PaymentMethod[], flows: F
   let bal = source.openingBalance
   const from = source.createdOn
   for (const f of flows) {
-    if (f.kind === 'income' && f.sourceId === source.id && f.occurredOn >= from && f.occurredOn <= on) bal += f.amount
+    if (f.sourceId === source.id && f.occurredOn >= from && f.occurredOn <= on) bal += f.kind === 'income' ? f.amount : -f.amount
   }
   for (const m of methods.filter((x) => x.sourceId === source.id)) {
     for (const f of charges(flows, m.id)) {
@@ -187,10 +187,10 @@ export function spentByMember(entries: Entry[], spaceId: string, memberIds: stri
 /** What I paid this month for a household out of my own (personal) methods. */
 export function paidPersonallyFor(spaceId: string, s: Snapshot, on: Day): number {
   const mySpace = s.spaces.find((x) => x.kind === 'personal' && x.ownerId === s.me.id)?.id
-  const mine = new Set(s.methods.filter((m) => m.spaceId === mySpace).map((m) => m.id))
+  const mine = new Set([...s.methods, ...s.sources].filter((x) => x.spaceId === mySpace).map((x) => x.id))
   return sum(
     monthEntries(s.entries, spaceId, on)
-      .filter((e) => e.createdBy === s.me.id && e.methodId && mine.has(e.methodId))
+      .filter((e) => e.createdBy === s.me.id && mine.has(e.methodId ?? e.sourceId ?? ''))
       .map((e) => e.amount),
   )
 }

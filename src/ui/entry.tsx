@@ -17,8 +17,9 @@ export function usePaidWith() {
   return (e: Entry) => {
     const m = e.methodId ? method.get(e.methodId) : undefined
     const s = e.sourceId ? source.get(e.sourceId) : undefined
-    const visible = e.kind === 'income' ? s : m
-    const label = visible ? visible.name : t('hiddenSrc', { p: person(e.createdBy) })
+    const visible = e.methodId ? m : s
+    const label = !visible ? t('hiddenSrc', { p: person(e.createdBy) })
+      : e.kind === 'expense' && !e.methodId ? t('bankTransfer', { s: visible.name }) : visible.name
     const personal = !visible || (visible.spaceId !== e.spaceId && snap.spaces.find((x) => x.id === visible.spaceId)?.kind === 'personal')
     return { label, personal, mine: !!visible && personal }
   }
@@ -39,7 +40,7 @@ export function EntryRow({ entry, showDate }: { entry: Entry; showDate?: boolean
     <button className="row" onClick={() => ui.open(<EntryDetail id={entry.id} />)}>
       <Glyph category={c} />
       <div className="main">
-        <div className="t">{entry.note || c?.name || '—'}</div>
+        <div className="t">{entry.name || entry.note || c?.name || '—'}</div>
         <div className="s">
           {shared && (
             <span className="who"><i style={{ background: logger?.color ?? 'var(--muted)' }} />{person(entry.createdBy)} ·</span>

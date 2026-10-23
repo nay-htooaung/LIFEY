@@ -110,6 +110,17 @@ exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end 
 insert into public.entries (space_id, kind, amount, method_id, note)
 values (current_setting('t.home')::uuid, 'expense', 5400, current_setting('t.visa')::uuid, 'Pizza night')
 returning set_config('t.pizza', id::text, false) \gset
+-- a household entry paid by bank transfer from your personal account, with a name
+insert into public.entries (space_id, kind, amount, source_id, name)
+values (current_setting('t.home')::uuid, 'expense', 80000, current_setting('t.chk')::uuid, 'Rent')
+returning set_config('t.rent', id::text, false) \gset
+select t.ok((select method_id is null and name = 'Rent' from public.entries where id = current_setting('t.rent')::uuid), 'bank transfer keeps its source and name');
+select t.ok((select sum(amount) from public.money_flows() where source_id = current_setting('t.chk')::uuid and kind = 'expense') = 80000,
+            'your flows include the transfer');
+do $$ begin
+  insert into public.entries (space_id, kind, amount) values (current_setting('t.my_space')::uuid, 'expense', 1);
+  raise exception 'TEST FAIL: expense with no way to pay';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 -- a personal entry paid with the shared debit card
 insert into public.entries (space_id, kind, amount, method_id, note)
 values (current_setting('t.my_space')::uuid, 'expense', 1200, current_setting('t.jdeb')::uuid, 'Book for me');
@@ -143,7 +154,8 @@ select t.as_user('sam');
 select t.ok((select count(*) from public.spaces where id = current_setting('t.home')::uuid) = 0, 'sam cannot see the household before joining');
 select public.join_household(lower(current_setting('t.code')));
 select t.ok((select count(*) from public.spaces) = 2, 'sam sees personal + household after joining');
-select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 1, 'sam sees the household entry');
+select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 2, 'sam sees the household entries');
+select t.ok((select count(*) from public.money_flows() where source_id = current_setting('t.chk')::uuid) = 0, 'flows hide transfers from your personal bank');
 select t.ok((select created_by from public.entries where id = current_setting('t.pizza')::uuid) = current_setting('t.you')::uuid, 'sam sees who logged it');
 select t.ok((select count(*) from public.entries where space_id = current_setting('t.my_space')::uuid) = 0, 'sam cannot see your personal entries');
 select t.ok((select count(*) from public.payment_methods where id = current_setting('t.visa')::uuid) = 0, 'sam cannot see your personal card');

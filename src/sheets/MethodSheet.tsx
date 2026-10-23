@@ -16,7 +16,9 @@ export function MethodSheet({ editId }: { editId?: string }) {
   const sources = snap.sources.filter((s) => s.spaceId === spaceId)
   const [name, setName] = useState(base?.name ?? '')
   const [kind, setKind] = useState<MethodKind>(base?.kind ?? 'credit')
-  const [sourceId, setSourceId] = useState(base?.sourceId ?? sources[0]?.id ?? '')
+  const [sourceChoice, setSourceId] = useState(base?.sourceId ?? '')
+  // falls back to the first source, which may have just been added from this sheet
+  const sourceId = sourceChoice || sources[0]?.id || ''
   const [limit, setLimit] = useState(base?.creditLimit ? String(base.creditLimit) : '')
   const [sharedWith, setSharedWith] = useState(base?.limitSharedWith ?? '')
   const [close, setClose] = useState(base?.closingDay ?? 15)
@@ -32,7 +34,7 @@ export function MethodSheet({ editId }: { editId?: string }) {
       <>
         <h2>{t('mTitle')}</h2>
         <p className="lead">{t('needSource')}</p>
-        <button className="btn primary big" onClick={() => ui.open(<SourceSheet />)}>{t('srcTitle')}</button>
+        <button className="btn primary big" onClick={() => ui.push(<SourceSheet />)}>{t('srcTitle')}</button>
       </>
     )
   }
