@@ -31,7 +31,7 @@ export const ja: Record<MessageKey, string> = {
   hiddenHint: '鍵マークはあなた個人の支払い方法です。メンバーには記録だけが見え、カードや口座は見えません。',
   sharedHint: 'スペース名の付いた支払い方法は共有です。そのメンバーには金額が見えます。',
   private: 'あなただけ', sharedWith: '{n}人で共有', loggedBy: '記録した人', hiddenSrc: '{p}の個人のお金', onlyYou: 'あなただけに表示', space: 'スペース',
-  logAgain: 'もう一度記録', edit: '編集', del: '削除', confirmDel: 'もう一度押すと削除', deleted: '削除しました',
+  logAgain: '複製', edit: '編集', del: '削除', confirmDel: 'もう一度押すと削除', deleted: '削除しました',
   srcTitle: '口座・現金を追加', srcSub: '{s}のお金の置き場所。', name: '名前', srcPh: '例: 旅行用の貯金', type: '種類', balance: '今日の残高',
   mTitle: '支払い方法を追加', mPh: '例: 楽天カード ••1003', kind: '種類', creditCard: 'クレジットカード', debitCard: 'デビットカード',
   limit: '利用限度額', stmtClose: '締め日', payDue: '支払日（翌月）', dueHint: '締め日までの利用分は、翌月の支払日に引き落とされます。',

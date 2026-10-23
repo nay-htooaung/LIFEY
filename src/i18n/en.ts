@@ -29,7 +29,7 @@ export const en = {
   hiddenHint: 'Methods with a lock are yours. Members see the entry, not the card or account.',
   sharedHint: 'Methods marked with a space name are shared. Its members will see the charge amount.',
   private: 'Only you', sharedWith: 'Shared with {n} members', loggedBy: 'Logged by', hiddenSrc: "{p}'s personal funds", onlyYou: 'only you can see this', space: 'Space',
-  logAgain: 'Log again', edit: 'Edit', del: 'Delete', confirmDel: 'Tap again to delete', deleted: 'Deleted',
+  logAgain: 'Duplicate', edit: 'Edit', del: 'Delete', confirmDel: 'Tap again to delete', deleted: 'Deleted',
   srcTitle: 'Add a source', srcSub: 'Where money lives in {s}.', name: 'Name', srcPh: 'e.g. Travel savings', type: 'Type', balance: 'Balance today',
   mTitle: 'Add a payment method', mPh: 'e.g. Rakuten Card ••1003', kind: 'Kind', creditCard: 'Credit card', debitCard: 'Debit card',
   limit: 'Credit limit', stmtClose: 'Closing day', payDue: 'Payment day (next month)', dueHint: 'Charges up to the closing day are paid on the payment day of the following month.',
