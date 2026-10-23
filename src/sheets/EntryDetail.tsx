@@ -30,13 +30,13 @@ export function EntryDetail({ id }: { id: string }) {
   return (
     <>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <Glyph category={c} />
+        <Glyph category={e.kind === 'transfer' ? { name: '⇄', color: 'var(--card-2)' } : c} />
         <div style={{ minWidth: 0 }}>
-          <h2>{e.name || e.note || c?.name || '—'}</h2>
+          <h2>{e.name || e.note || (e.kind === 'transfer' ? t('transfer') : c?.name) || '—'}</h2>
           <div className="small muted">{[c?.name, e.name && e.note].filter(Boolean).join(' · ')}</div>
         </div>
       </div>
-      <div className="amount-disp left num">{e.kind === 'expense' ? '-' : '+'}{yen(e.amount)}</div>
+      <div className="amount-disp left num">{e.kind === 'expense' ? '-' : e.kind === 'income' ? '+' : ''}{yen(e.amount)}</div>
       <div>
         <div className="kv"><span>{t('date')}</span><span>{dateLong(e.occurredOn)}</span></div>
         <div className="kv"><span>{t('space')}</span><span>{sp.name} · {shared ? t('sharedWith', { n: sp.memberIds.length }) : t('private')}</span></div>
@@ -45,12 +45,13 @@ export function EntryDetail({ id }: { id: string }) {
             <span className="who"><i style={{ background: snap.profiles[e.createdBy]?.color ?? 'var(--muted)' }} />{person(e.createdBy)}</span></div>
         )}
         <div className="kv">
-          <span>{e.kind === 'income' ? t('into') : t('paidWith')}</span>
+          <span>{e.kind === 'income' ? t('into') : e.kind === 'transfer' ? t('transfer') : t('paidWith')}</span>
           <span>
             {shared && pw.personal && <IconLock />} {pw.label}
             {shared && pw.mine && <><br /><small className="muted">{t('onlyYou')}</small></>}
           </span>
         </div>
+        {e.fee > 0 && <div className="kv"><span>{t('fee')}</span><span className="num">{yen(e.fee)}</span></div>}
         <div className="kv"><span>{t('repeat')}</span><span>{e.repeat === 'none' ? (e.repeatOf ? t('repeats') : t('never')) : t(e.repeat)}</span></div>
         <div className="kv"><span>{t('tags')}</span><span>{e.tags.length ? e.tags.map((g) => <span key={g} className="pill" style={{ marginLeft: 4 }}>#{g}</span>) : '—'}</span></div>
       </div>

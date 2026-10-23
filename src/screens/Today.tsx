@@ -92,7 +92,11 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
         <>
           <div className="sec-h"><h3>{t('comingUp')}</h3><button className="link" onClick={() => go('plan')}>{t('allBills')}</button></div>
           <div className="card list">
-            {up.slice(0, 6).map((u) => <UpcomingRow key={u.key} item={u} sourceName={snap.sources.find((x) => x.id === u.sourceId)?.name} />)}
+            {up.slice(0, 6).map((u) => {
+              const name = (id?: string | null) => snap.sources.find((x) => x.id === id)?.name
+              const via = u.kind === 'transfer' ? [name(u.sourceId), name(u.toSourceId)].filter(Boolean).join(' → ') : name(u.sourceId)
+              return <UpcomingRow key={u.key} item={u} sourceName={via} />
+            })}
           </div>
           <Forecast items={up} />
         </>

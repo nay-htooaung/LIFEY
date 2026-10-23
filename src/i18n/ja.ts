@@ -65,7 +65,8 @@ export const ja: Record<MessageKey, string> = {
   removed: '{x}を外しました', newCode: '新しいコード', newCodeHint: '古いコードは使えなくなります。', codeReset: '新しい招待コードを作りました',
   deleteSpace: 'スペースを削除', deleteHint: 'メンバーは見られなくなります。あとで中身ごと元に戻せます。',
   leaveHint: '招待コードでまた参加できます。記録は残ります。', spaceDeleted: '{x}を削除しました', deletedSpaces: '削除したスペース',
-  restore: '元に戻す', spaceRestored: '{x}を元に戻しました', bankTransfer: '銀行振込 · {s}',
+  restore: '元に戻す', spaceRestored: '{x}を元に戻しました', transfer: '振替', transferFrom: '出金元', transferTo: '入金先', fee: '手数料', addFee: '+ 手数料', amountLabel: '金額',
+  moveX: '{a}を振替', movedTo: '{s}に{a}を振替えました',
   installTitle: 'Lifeyをインストール', installBody: 'ホーム画面から、ほかのアプリと同じように全画面で開けます。', installBtn: 'インストール',
   installIos: 'Safariの共有ボタンを押して「ホーム画面に追加」を選んでください。', notNow: 'あとで', installed: 'インストールしました',
 }

@@ -1,4 +1,5 @@
 import { addDays, dayInMonth, parts, today } from '../domain/dates'
+import { flowsOf } from '../domain/money'
 import { dueOccurrences } from '../domain/recurring'
 import type { Category, Entry, Locale, PaymentMethod, Profile, Snapshot, Source, Space, Tone } from '../domain/types'
 import { RepoError, uid, type CategoryInput, type NewMethod, type NewSource, type Repo } from './repo'
@@ -61,7 +62,7 @@ export function seedDemo(locale: Locale): Snapshot {
   const e = (spaceId: string, occurredOn: string, kind: Entry['kind'], amount: number, categoryId: string, via: string, en: string, ja: string, x: Partial<Entry> = {}) =>
     entries.push({
       id: uid(), spaceId, kind, amount, categoryId, methodId: kind === 'expense' && via !== 'hidden' ? via : null,
-      sourceId: kind === 'income' ? via : null, occurredOn, name: '', note: L(en, ja), tags: [], repeat: 'none', repeatOf: null, createdBy: ME, ...x,
+      sourceId: kind === 'income' ? via : null, toSourceId: null, fee: 0, occurredOn, name: '', note: L(en, ja), tags: [], repeat: 'none', repeatOf: null, createdBy: ME, ...x,
     })
   const hidden = 'hidden' // paid from another member's personal funds: no method we can see
   // personal
@@ -120,7 +121,8 @@ function withFlows(s: Snapshot): Snapshot {
     me: { ...s.me, avatar: s.me.avatar ?? null, theme: s.me.theme ?? 'midnight' },
     sources: s.sources.map((x) => ({ ...x, archived: x.archived ?? false })),
     methods: s.methods.map((x) => ({ ...x, archived: x.archived ?? false })),
-    flows: s.entries.map((e) => ({ methodId: e.methodId, sourceId: e.sourceId, kind: e.kind, amount: e.amount, occurredOn: e.occurredOn })),
+    entries: s.entries.map((e) => ({ ...e, toSourceId: e.toSourceId ?? null, fee: e.fee ?? 0 })),
+    flows: flowsOf(s.entries),
   }
 }
 

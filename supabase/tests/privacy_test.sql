@@ -130,6 +130,29 @@ do $$ begin
   insert into public.entries (space_id, kind, amount) values (current_setting('t.my_space')::uuid, 'expense', 1);
   raise exception 'TEST FAIL: expense with no way to pay';
 exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+-- a transfer from your personal bank into the shared account, with a fee
+insert into public.entries (space_id, kind, amount, fee, source_id, to_source_id, category_id, method_id)
+values (current_setting('t.my_space')::uuid, 'transfer', 50000, 220, current_setting('t.chk')::uuid, current_setting('t.joint')::uuid,
+        (select id from public.categories where space_id = current_setting('t.my_space')::uuid limit 1), current_setting('t.visa')::uuid)
+returning set_config('t.move', id::text, false) \gset
+select t.ok((select method_id is null and category_id is null from public.entries where id = current_setting('t.move')::uuid),
+            'a transfer has no method or category');
+select t.ok((select sum(amount) from public.money_flows() where source_id = current_setting('t.chk')::uuid and kind = 'expense') = 80000 + 50220,
+            'a transfer takes amount and fee out of the source');
+select t.ok((select sum(amount) from public.money_flows() where source_id = current_setting('t.joint')::uuid and kind = 'income') = 50000,
+            'a transfer puts the amount into the target');
+do $$ begin
+  insert into public.entries (space_id, kind, amount, source_id, to_source_id)
+  values (current_setting('t.my_space')::uuid, 'transfer', 1, current_setting('t.chk')::uuid, current_setting('t.chk')::uuid);
+  raise exception 'TEST FAIL: transfer to the same source';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.entries (space_id, kind, amount, fee, source_id) values (current_setting('t.my_space')::uuid, 'expense', 1, 5, current_setting('t.chk')::uuid);
+  if (select fee from public.entries where kind = 'expense' and amount = 1 order by created_at desc limit 1) <> 0 then
+    raise exception 'TEST FAIL: an expense kept a fee';
+  end if;
+  delete from public.entries where kind = 'expense' and amount = 1;
+end $$;
 -- a personal entry paid with the shared debit card
 insert into public.entries (space_id, kind, amount, method_id, note)
 values (current_setting('t.my_space')::uuid, 'expense', 1200, current_setting('t.jdeb')::uuid, 'Book for me');
@@ -165,6 +188,14 @@ select public.join_household(lower(current_setting('t.code')));
 select t.ok((select count(*) from public.spaces) = 2, 'sam sees personal + household after joining');
 select t.ok((select count(*) from public.entries where space_id = current_setting('t.home')::uuid) = 2, 'sam sees the household entries');
 select t.ok((select count(*) from public.money_flows() where source_id = current_setting('t.chk')::uuid) = 0, 'flows hide transfers from your personal bank');
+select t.ok((select sum(amount) from public.money_flows() where source_id = current_setting('t.joint')::uuid and kind = 'income') = 50000,
+            'sam sees money arrive in the shared account');
+select t.ok((select count(*) from public.entries where id = current_setting('t.move')::uuid) = 0, 'sam cannot see your personal transfer entry');
+do $$ begin
+  insert into public.entries (space_id, kind, amount, source_id, to_source_id)
+  values (current_setting('t.home')::uuid, 'transfer', 1, current_setting('t.joint')::uuid, current_setting('t.chk')::uuid);
+  raise exception 'TEST FAIL: sam moved money into your personal bank';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 select t.ok((select created_by from public.entries where id = current_setting('t.pizza')::uuid) = current_setting('t.you')::uuid, 'sam sees who logged it');
 select t.ok((select count(*) from public.entries where space_id = current_setting('t.my_space')::uuid) = 0, 'sam cannot see your personal entries');
 select t.ok((select count(*) from public.payment_methods where id = current_setting('t.visa')::uuid) = 0, 'sam cannot see your personal card');

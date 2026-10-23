@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Category, EntryKind } from '../domain/types'
+import type { Category, MoneyKind } from '../domain/types'
 import { useI18n } from '../i18n'
 import { useStore, useSubmit } from '../data/store'
 import { parseYen, SWATCHES } from '../ui/bits'
@@ -8,7 +8,7 @@ import { Select } from '../ui/Select'
 interface Props {
   category?: Category
   spaceId?: string
-  kind?: EntryKind
+  kind?: MoneyKind
   /** Called with the new or edited category's id once saved. */
   onSaved?: (id: string) => void
 }
@@ -20,7 +20,7 @@ export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }:
   const target = snap.spaces.find((s) => s.id === (category?.spaceId ?? spaceId)) ?? space
   const [name, setName] = useState(category?.name ?? '')
   const [color, setColor] = useState(category?.color ?? SWATCHES[0])
-  const [kind, setKind] = useState<EntryKind>(category?.kind ?? initialKind ?? 'expense')
+  const [kind, setKind] = useState<MoneyKind>(category?.kind ?? initialKind ?? 'expense')
   const [budget, setBudget] = useState(category?.monthlyBudget ? String(category.monthlyBudget) : '')
   const [confirm, setConfirm] = useState(false)
 
@@ -53,7 +53,7 @@ export function CategorySheet({ category, spaceId, kind: initialKind, onSaved }:
       <div className="two">
         <div className="field">
           <label className="label" htmlFor="cat-kind">{t('type')}</label>
-          <Select id="cat-kind" value={kind} disabled={!!category} onChange={(v) => setKind(v as EntryKind)}
+          <Select id="cat-kind" value={kind} disabled={!!category} onChange={(v) => setKind(v as MoneyKind)}
             options={[{ value: 'expense', label: t('expense') }, { value: 'income', label: t('incomeT') }]} />
         </div>
         {kind === 'expense' && (

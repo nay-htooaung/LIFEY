@@ -8,7 +8,10 @@ import { Glyph } from './bits'
 import { IconLock, IconRepeat } from './icons'
 import { useUI } from './ui'
 
-/** How an entry was paid, from the viewer's side: other members' personal methods stay hidden. */
+/**
+ * How an entry was paid, from the viewer's side: other members' personal methods stay hidden.
+ * For a transfer, the label reads "from → to", each side hidden the same way.
+ */
 export function usePaidWith() {
   const { snap } = useStore()
   const { method, source } = useLookups()
@@ -18,8 +21,10 @@ export function usePaidWith() {
     const m = e.methodId ? method.get(e.methodId) : undefined
     const s = e.sourceId ? source.get(e.sourceId) : undefined
     const visible = e.methodId ? m : s
-    const label = !visible ? t('hiddenSrc', { p: person(e.createdBy) })
-      : e.kind === 'expense' && !e.methodId ? t('bankTransfer', { s: visible.name }) : visible.name
+    const nameOf = (x?: { name: string }) => x?.name ?? t('hiddenSrc', { p: person(e.createdBy) })
+    const label = e.kind === 'transfer'
+      ? `${nameOf(s)} → ${nameOf(e.toSourceId ? source.get(e.toSourceId) : undefined)}`
+      : nameOf(visible)
     const personal = !visible || (visible.spaceId !== e.spaceId && snap.spaces.find((x) => x.id === visible.spaceId)?.kind === 'personal')
     return { label, personal, mine: !!visible && personal }
   }
@@ -38,9 +43,9 @@ export function EntryRow({ entry, showDate }: { entry: Entry; showDate?: boolean
   const logger = snap.profiles[entry.createdBy]
   return (
     <button className="row" onClick={() => ui.open(<EntryDetail id={entry.id} />)}>
-      <Glyph category={c} />
+      <Glyph category={entry.kind === 'transfer' ? { name: '⇄', color: 'var(--card-2)' } : c} />
       <div className="main">
-        <div className="t">{entry.name || entry.note || c?.name || '—'}</div>
+        <div className="t">{entry.name || entry.note || (entry.kind === 'transfer' ? t('transfer') : c?.name) || '—'}</div>
         <div className="s">
           {shared && (
             <span className="who"><i style={{ background: logger?.color ?? 'var(--muted)' }} />{person(entry.createdBy)} ·</span>
@@ -48,11 +53,13 @@ export function EntryRow({ entry, showDate }: { entry: Entry; showDate?: boolean
           {shared && pw.personal && <IconLock />}
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{pw.label}</span>
           {(entry.repeat !== 'none' || entry.repeatOf) && <IconRepeat />}
+          {entry.fee > 0 && <span>· {t('fee')} {yen(entry.fee)}</span>}
           {showDate && <span>· {entry.occurredOn === today ? t('today') : dateShort(entry.occurredOn)}</span>}
         </div>
       </div>
+      {/* a transfer is not spending or income, so it carries no sign */}
       <span className={'amt num' + (entry.kind === 'income' ? ' amt-in' : '')}>
-        {entry.kind === 'expense' ? '-' : '+'}{yen(entry.amount)}
+        {entry.kind === 'expense' ? '-' : entry.kind === 'income' ? '+' : ''}{yen(entry.amount)}
       </span>
     </button>
   )
@@ -68,11 +75,12 @@ export function UpcomingRow({ item, sourceName }: { item: Upcoming; sourceName?:
     <div className="row">
       <span className="date-chip"><b>{d}</b><small>{month(m)}</small></span>
       <div className="main">
-        <div className="t">{item.name}</div>
+        <div className="t">{item.name || (item.kind === 'transfer' ? t('transfer') : '')}</div>
         <div className="s">
           {n === 0 ? t('today') : n === 1 ? t('tomorrow') : t('inDays', { n })} ·{' '}
           {item.kind === 'card' ? <span className="pill warn">{t('cardPay')}</span>
             : item.kind === 'income' ? <span className="pill">{t('income')}</span>
+            : item.kind === 'transfer' ? <span className="pill mute">⇄ {t('transfer')}</span>
             : <span className="pill mute"><IconRepeat /> {t('repeats')}</span>}
         </div>
         {sourceName && <div className="s">{sourceName}</div>}

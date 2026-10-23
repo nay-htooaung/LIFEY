@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { addDays, addMonths, fromParts, monthKey, parts, weekday } from '../domain/dates'
+import { spendingView } from '../domain/money'
 import type { Day, Entry } from '../domain/types'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useStore } from '../data/store'
@@ -23,10 +24,12 @@ export function Activity() {
   useEffect(() => ensureMonth(month), [month, ensureMonth])
 
   const inMonth = snap.entries.filter((e) => e.spaceId === space.id && e.occurredOn.startsWith(month))
+  // the list shows every entry; totals count transfer fees as spending and leave the moved money out
   const byDay = new Map<Day, Entry[]>()
   for (const e of inMonth) byDay.set(e.occurredOn, [...(byDay.get(e.occurredOn) ?? []), e])
-  const out = sum(inMonth.filter((e) => e.kind === 'expense'))
-  const inc = sum(inMonth.filter((e) => e.kind === 'income'))
+  const money = spendingView(inMonth)
+  const out = sum(money.filter((e) => e.kind === 'expense'))
+  const inc = sum(money.filter((e) => e.kind === 'income'))
 
   // Six weeks from the Sunday on or before the 1st, so every month has the same height.
   const first = fromParts(y, m, 1)
@@ -82,7 +85,7 @@ export function Activity() {
       <div className={'card cal' + (loading ? ' loading' : '')} aria-busy={loading}>
         {cells.slice(0, 7).map((d) => <div key={d} className={'cal-wd wd' + weekday(d)}>{wd(d)}</div>)}
         {cells.slice(0, weeks * 7).map((d) => {
-          const es = byDay.get(d) ?? []
+          const es = spendingView(byDay.get(d) ?? [])
           const dOut = sum(es.filter((e) => e.kind === 'expense'))
           const dIn = sum(es.filter((e) => e.kind === 'income'))
           const other = !d.startsWith(month)

@@ -63,7 +63,8 @@ export const en = {
   removed: 'Removed {x}', newCode: 'New code', newCodeHint: 'The old code stops working.', codeReset: 'New invite code ready',
   deleteSpace: 'Delete space', deleteHint: 'Members lose access. You can restore it later with everything in it.',
   leaveHint: 'You can rejoin with the invite code. Your entries stay.', spaceDeleted: 'Deleted {x}', deletedSpaces: 'Deleted spaces',
-  restore: 'Restore', spaceRestored: 'Restored {x}', bankTransfer: 'Bank transfer · {s}',
+  restore: 'Restore', spaceRestored: 'Restored {x}', transfer: 'Transfer', transferFrom: 'From', transferTo: 'To', fee: 'Fee', addFee: '+ Fee', amountLabel: 'Amount',
+  moveX: 'Move {a}', movedTo: 'Moved {a} to {s}',
   installTitle: 'Install Lifey', installBody: 'Open it from your home screen, full screen, like any other app.', installBtn: 'Install',
   installIos: 'In Safari, tap Share, then Add to Home Screen.', notNow: 'Not now', installed: 'Installed',
 } as const

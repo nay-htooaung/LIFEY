@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { accountForecast, creditLimitUse, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { accountForecast, creditLimitUse, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { dueOccurrences, nextOccurrence } from './recurring'
 import type { Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
 
@@ -12,7 +12,7 @@ const chk: Source = { id: 'chk', spaceId: 'me', name: 'Bank', kind: 'bank', open
 let n = 0
 const entry = (p: Partial<Entry>): Entry => ({
   id: `e${n++}`, spaceId: 'me', kind: 'expense', amount: 1000, categoryId: 'food', methodId: 'deb', sourceId: null,
-  occurredOn: '2026-10-01', name: '', note: '', tags: [], repeat: 'none', repeatOf: null, createdBy: 'u1', ...p,
+  occurredOn: '2026-10-01', toSourceId: null, fee: 0, name: '', note: '', tags: [], repeat: 'none', repeatOf: null, createdBy: 'u1', ...p,
 })
 const flow = (methodId: string, amount: number, occurredOn: string): Flow => ({ methodId, sourceId: null, kind: 'expense', amount, occurredOn })
 
@@ -134,5 +134,19 @@ describe('account forecast', () => {
   })
   it('leaves out bills charged to a card', () => {
     expect(accountForecast([up('bill', 1000, '2026-10-10', null)], snap, '2026-10-01')).toEqual([])
+  })
+})
+
+describe('transfers', () => {
+  const sav: Source = { ...chk, id: 'sav', openingBalance: 0 }
+  const move = entry({ kind: 'transfer', methodId: null, categoryId: 'food', sourceId: 'chk', toSourceId: 'sav', amount: 30000, fee: 220, occurredOn: '2026-10-05' })
+  it('move the amount and take the fee from the source', () => {
+    const flows = flowsOf([move])
+    expect(sourceBalance(chk, [], flows, '2026-10-05')).toBe(100000 - 30220)
+    expect(sourceBalance(sav, [], flows, '2026-10-05')).toBe(30000)
+  })
+  it('count only the fee as spending', () => {
+    expect(monthEntries([move], 'me', '2026-10-31').map((e) => [e.amount, e.categoryId])).toEqual([[220, null]])
+    expect(monthEntries([move], 'me', '2026-10-31', 'income')).toEqual([])
   })
 })

@@ -1,6 +1,6 @@
 import { addDays, dayInMonth, daysBetween, daysInMonth, monthKey, parts } from './dates'
 import { isTemplate, nextOccurrence } from './recurring'
-import type { Category, Day, Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
+import type { Category, Day, Entry, Flow, MoneyKind, PaymentMethod, Snapshot, Source } from './types'
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 
@@ -60,6 +60,18 @@ export function nextCardPayment(method: PaymentMethod, flows: Flow[], on: Day): 
   return first ? { on: first, amount: byDate.get(first)! } : null
 }
 
+/** The flows money_flows() returns, for data held on the device (demo mode). Keep the two in step. */
+export function flowsOf(entries: Entry[]): Flow[] {
+  return entries.flatMap((e): Flow[] =>
+    e.kind === 'transfer'
+      ? [
+          { methodId: null, sourceId: e.sourceId, kind: 'expense', amount: e.amount + e.fee, occurredOn: e.occurredOn },
+          { methodId: null, sourceId: e.toSourceId, kind: 'income', amount: e.amount, occurredOn: e.occurredOn },
+        ]
+      : [{ methodId: e.methodId, sourceId: e.methodId ? null : e.sourceId, kind: e.kind, amount: e.amount, occurredOn: e.occurredOn }],
+  )
+}
+
 // ------------------------------------------------------------ balances
 
 export function sourceBalance(source: Source, methods: PaymentMethod[], flows: Flow[], on: Day): number {
@@ -91,9 +103,20 @@ export function netPosition(spaceId: string, s: Snapshot, on: Day) {
 
 // ------------------------------------------------------------ month views
 
-export function monthEntries(entries: Entry[], spaceId: string, on: Day, kind: Entry['kind'] = 'expense') {
+/**
+ * This month's expenses (or income) in a space, up to `on`. Transfer fees count as expenses
+ * (as uncategorised entries of the fee amount); the money a transfer moves is neither.
+ */
+export function monthEntries(entries: Entry[], spaceId: string, on: Day, kind: MoneyKind = 'expense') {
   const mk = monthKey(on)
-  return entries.filter((e) => e.spaceId === spaceId && e.kind === kind && monthKey(e.occurredOn) === mk && e.occurredOn <= on)
+  return spendingView(entries).filter((e) => e.spaceId === spaceId && e.kind === kind && monthKey(e.occurredOn) === mk && e.occurredOn <= on)
+}
+
+/** Entries as spending and income: a transfer becomes its fee (an expense) or disappears. */
+export function spendingView(entries: Entry[]): Entry[] {
+  return entries.flatMap((e) =>
+    e.kind !== 'transfer' ? [e] : e.fee > 0 ? [{ ...e, kind: 'expense' as const, amount: e.fee, categoryId: null }] : [],
+  )
 }
 
 export function dailyTotals(entries: Entry[], spaceId: string, on: Day): number[] {
@@ -105,9 +128,13 @@ export function dailyTotals(entries: Entry[], spaceId: string, on: Day): number[
 
 export interface Upcoming {
   key: string
-  kind: 'bill' | 'income' | 'card'
+  kind: 'bill' | 'income' | 'card' | 'transfer'
   name: string
   amount: number
+  /** Transfer only. */
+  fee?: number
+  /** Transfer only: where the money lands. */
+  toSourceId?: string | null
   on: Day
   categoryId: string | null
   /** The account the money leaves or lands in. Null for bills charged to a credit card (counted at the card payment). */
@@ -128,12 +155,14 @@ export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = UP
       const method = t.methodId ? s.methods.find((m) => m.id === t.methodId) : undefined
       out.push({
         key: `r-${t.id}`,
-        kind: t.kind === 'income' ? 'income' : 'bill',
-        name: t.note || cat?.name || '',
+        kind: t.kind === 'income' ? 'income' : t.kind === 'transfer' ? 'transfer' : 'bill',
+        name: t.name || t.note || cat?.name || '',
         amount: t.amount,
+        fee: t.fee,
         on: next,
         categoryId: t.categoryId,
         sourceId: t.methodId ? (method && method.kind !== 'credit' ? method.sourceId : null) : t.sourceId,
+        toSourceId: t.toSourceId,
       })
     }
   }
@@ -160,18 +189,25 @@ export interface AccountForecast {
  */
 export function accountForecast(items: Upcoming[], s: Snapshot, on: Day): AccountForecast[] {
   const by = new Map<string, AccountForecast>()
-  for (const item of items) {
-    const source = item.sourceId ? s.sources.find((x) => x.id === item.sourceId) : undefined
-    if (!source) continue
+  const add = (sourceId: string | null | undefined, inAmt: number, outAmt: number) => {
+    const source = sourceId ? s.sources.find((x) => x.id === sourceId) : undefined
+    if (!source) return
     let f = by.get(source.id)
     if (!f) {
       const now = sourceBalance(source, s.methods, s.flows, on)
       f = { source, now, in: 0, out: 0, after: now }
       by.set(source.id, f)
     }
-    if (item.kind === 'income') f.in += item.amount
-    else f.out += item.amount
+    f.in += inAmt
+    f.out += outAmt
     f.after = f.now + f.in - f.out
+  }
+  for (const item of items) {
+    if (item.kind === 'transfer') {
+      add(item.sourceId, 0, item.amount + (item.fee ?? 0))
+      add(item.toSourceId, item.amount, 0)
+    } else if (item.kind === 'income') add(item.sourceId, item.amount, 0)
+    else add(item.sourceId, 0, item.amount)
   }
   return [...by.values()]
 }

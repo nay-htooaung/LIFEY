@@ -4,7 +4,10 @@ export type SpaceKind = 'personal' | 'household'
 export type Tone = 'me' | 'a' | 'b' | 'c' | 'd'
 export type SourceKind = 'bank' | 'savings' | 'cash'
 export type MethodKind = 'cash' | 'debit' | 'credit' | 'emoney'
-export type EntryKind = 'expense' | 'income'
+/** What a category or a flow of money is. */
+export type MoneyKind = 'expense' | 'income'
+/** Entries can also move money between two sources. */
+export type EntryKind = MoneyKind | 'transfer'
 export type Repeat = 'none' | 'weekly' | 'biweekly' | 'monthly' | 'yearly'
 /** Calendar date in the user's local time, `YYYY-MM-DD`. */
 export type Day = string
@@ -63,7 +66,7 @@ export interface Category {
   spaceId: string
   name: string
   color: string
-  kind: EntryKind
+  kind: MoneyKind
   monthlyBudget: number
   sort: number
 }
@@ -75,9 +78,14 @@ export interface Entry {
   /** Whole yen, always positive. */
   amount: number
   categoryId: string | null
-  /** Expenses: the payment method, or null when paid straight from `sourceId` (bank transfer). */
+  /** Expenses: the payment method, or null when paid straight from `sourceId`. */
   methodId: string | null
+  /** Income: where it lands. Expense without a method: where it is paid from. Transfer: where it leaves. */
   sourceId: string | null
+  /** Transfer only: where the money lands. */
+  toSourceId: string | null
+  /** Transfer only: a charge taken from sourceId on top of amount. It counts as spending; the amount does not. */
+  fee: number
   occurredOn: Day
   /** Optional title; lists fall back to the note, then the category. */
   name: string
@@ -94,7 +102,7 @@ export type NewEntry = Omit<Entry, 'id' | 'createdBy'>
 export interface Flow {
   methodId: string | null
   sourceId: string | null
-  kind: EntryKind
+  kind: MoneyKind
   amount: number
   occurredOn: Day
 }
