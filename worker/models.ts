@@ -3,11 +3,12 @@
 // free tier (only GEMINI_MODELS, since newer Flash models were overloaded).
 
 export type Provider = 'go' | 'gemini'
-export interface Model { id: string; name: string; provider: Provider }
+/** `vision`: it can read photos. */
+export interface Model { id: string; name: string; provider: Provider; vision: boolean }
 export interface ModelList { models: Model[]; recommended: string | null }
 
 /** models.dev's entry for a model (the catalogue OpenCode uses). */
-interface Catalogue { name?: string; tool_call?: boolean; status?: string; provider?: { npm?: string } }
+interface Catalogue { name?: string; tool_call?: boolean; status?: string; provider?: { npm?: string }; modalities?: { input?: string[] } }
 
 const GO_URL = 'https://opencode.ai/zen/go/v1'
 const CATALOGUE = 'https://models.dev/api.json'
@@ -27,14 +28,14 @@ export function goModels(live: string[], catalogue: Record<string, Catalogue> | 
       const chat = !c.provider?.npm || c.provider.npm === '@ai-sdk/openai-compatible'
       return chat && c.tool_call !== false && c.status !== 'deprecated'
     })
-    .map((id) => ({ id: `go:${id}`, name: catalogue?.[id]?.name ?? id, provider: 'go' as const }))
+    .map((id) => ({ id: `go:${id}`, name: catalogue?.[id]?.name ?? id, provider: 'go' as const, vision: !!catalogue?.[id]?.modalities?.input?.includes('image') }))
 }
 
 const GEMINI_NAMES: Record<string, string> = { 'gemini-3.6-flash': 'Gemini 3.6 Flash' }
 
 /** Both lists together, the preferred ones first; the first is recommended. Pure, for tests. */
 export function pickModels(go: Model[], gemini: string[], preferred: string[] = []): ModelList {
-  const all = [...go, ...gemini.map((id) => ({ id: `gemini:${id}`, name: GEMINI_NAMES[id] ?? id, provider: 'gemini' as const }))]
+  const all = [...go, ...gemini.map((id) => ({ id: `gemini:${id}`, name: GEMINI_NAMES[id] ?? id, provider: 'gemini' as const, vision: true }))]
   const rank = (id: string) => (preferred.includes(id) ? preferred.indexOf(id) : preferred.length)
   const models = all.map((m, i) => ({ m, i })).sort((a, b) => rank(a.m.id) - rank(b.m.id) || a.i - b.i).map(({ m }) => m)
   return { models, recommended: models[0]?.id ?? null }

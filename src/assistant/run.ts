@@ -9,8 +9,10 @@ import type { Repo } from '../data/repo'
 
 /** `extra_content` carries Gemini's thought signature, which must be sent back with the call. */
 export interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string }; extra_content?: unknown }
+/** A user message with a photo is a list of parts, as in the OpenAI chat format. */
+export type UserPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
 export type ApiMsg =
-  | { role: 'user'; content: string }
+  | { role: 'user'; content: string | UserPart[] }
   | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
   | { role: 'tool'; tool_call_id: string; content: string }
 
@@ -195,9 +197,11 @@ export class ChatError extends Error {
 
 /** Reads an OpenAI-style event stream: text as it arrives, and the tool calls once complete. */
 /** Reads an OpenAI-style event stream: text as it arrives, and the tool calls once complete. Fails when nothing arrives for `stallMs`. */
-export async function readStream(body: ReadableStream<Uint8Array>, onText: (text: string) => void, stallMs = 60_000, onThinking?: (thought: string) => void): Promise<{ text: string; toolCalls: ToolCall[] }> {
+export async function readStream(
+  body: ReadableStream<Uint8Array>, onText: (text: string) => void, stallMs = 60_000, onThinking?: (thought: string) => void, onModel?: (id: string) => void,
+): Promise<{ text: string; toolCalls: ToolCall[] }> {
   const reader = body.pipeThrough(new TextDecoderStream()).getReader()
-  const acc = streamAccumulator(onText, onThinking)
+  const acc = streamAccumulator(onText, onThinking, onModel)
   for (;;) {
     let timer: ReturnType<typeof setTimeout> | undefined
     const stalled = new Promise<never>((_, reject) => {
@@ -226,7 +230,7 @@ export function within<T>(p: Promise<T>, ms: number, code: string): Promise<T> {
 }
 
 /** The stream parser on its own, fed chunks of text. `onThinking` gets each summary of what the model is thinking about. */
-export function streamAccumulator(onText: (text: string) => void, onThinking?: (thought: string) => void) {
+export function streamAccumulator(onText: (text: string) => void, onThinking?: (thought: string) => void, onModel?: (id: string) => void) {
   let buf = ''
   let text = ''
   const calls: ToolCall[] = []
@@ -234,13 +238,14 @@ export function streamAccumulator(onText: (text: string) => void, onThinking?: (
     if (!l.startsWith('data:')) return
     const data = l.slice(5).trim()
     if (!data || data === '[DONE]') return
-    let ev: { choices?: { delta?: { content?: string | null; thinking?: string; tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }[] } }[]; error?: { code?: string } }
+    let ev: { choices?: { delta?: { content?: string | null; thinking?: string; tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }[] } }[]; error?: { code?: string }; answered_by?: string }
     try {
       ev = JSON.parse(data)
     } catch {
       return
     }
     if (ev.error) throw new ChatError(ev.error.code ?? 'model')
+    if (ev.answered_by) onModel?.(ev.answered_by)
     const delta = ev.choices?.[0]?.delta
     if (delta?.thinking) onThinking?.(delta.thinking)
     if (delta?.content) {
@@ -269,6 +274,14 @@ export function streamAccumulator(onText: (text: string) => void, onThinking?: (
       return { text, toolCalls: calls.filter(Boolean).map((c, i) => ({ ...c, id: c.id || `call_${i}` })) }
     },
   }
+}
+
+/** Only the newest photo is sent again; older ones become a note, so each request stays small. */
+export function dropOldPhotos(msgs: ApiMsg[]): ApiMsg[] {
+  const last = msgs.map((m) => m.role === 'user' && Array.isArray(m.content)).lastIndexOf(true)
+  return msgs.map((m, i) => (m.role === 'user' && Array.isArray(m.content) && i !== last
+    ? { role: 'user', content: m.content.map((p) => (p.type === 'text' ? p.text : '(a photo sent earlier)')).join('\n') }
+    : m))
 }
 
 /** Keeps the conversation short enough to send: whole turns from the end, never splitting a tool call from its results. */

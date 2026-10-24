@@ -5,9 +5,11 @@
 // Gemini 3 signs its function calls ("thought signatures"); they travel to the app in a call's extra_content and
 // must come back on the same call.
 
+export type UserPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
 export interface OpenAiMsg {
   role: 'user' | 'assistant' | 'tool'
-  content: string | null
+  /** A user message with a photo is a list of parts. */
+  content: string | null | UserPart[]
   tool_calls?: { id: string; function: { name: string; arguments: string }; extra_content?: { google?: { thought_signature?: string } } }[]
   tool_call_id?: string
 }
@@ -15,6 +17,7 @@ export interface OpenAiTool { function: { name: string; description: string; par
 
 type Part =
   | { text: string; thought?: boolean; thoughtSignature?: string }
+  | { inlineData: { mimeType: string; data: string } }
   | { functionCall: { name: string; args: unknown }; thoughtSignature?: string }
   | { functionResponse: { name: string; response: Record<string, unknown> } }
 interface Content { role: 'user' | 'model'; parts: Part[] }
@@ -40,9 +43,18 @@ export function toGemini(system: string, messages: OpenAiMsg[], tools: readonly 
     else contents.push({ role, parts })
   }
   for (const m of messages) {
-    if (m.role === 'user') push('user', [{ text: m.content ?? '' }])
+    if (m.role === 'user') {
+      push('user', Array.isArray(m.content)
+        ? m.content.map((p): Part => {
+          if (p.type === 'text') return { text: p.text }
+          // data:image/jpeg;base64,....
+          const [, mimeType = 'image/jpeg', data = ''] = p.image_url.url.match(/^data:([^;]+);base64,(.*)$/) ?? []
+          return { inlineData: { mimeType, data } }
+        })
+        : [{ text: m.content ?? '' }])
+    }
     else if (m.role === 'assistant') {
-      const parts: Part[] = m.content ? [{ text: m.content }] : []
+      const parts: Part[] = typeof m.content === 'string' && m.content ? [{ text: m.content }] : []
       for (const [i, tc] of (m.tool_calls ?? []).entries()) {
         names.set(tc.id, tc.function.name)
         // Gemini 3 wants the first call of a step signed; a call another model made gets the documented stand-in
@@ -51,7 +63,7 @@ export function toGemini(system: string, messages: OpenAiMsg[], tools: readonly 
       }
       push('model', parts)
     } else {
-      const result = parse(m.content ?? '')
+      const result = parse(typeof m.content === 'string' ? m.content : '')
       const response = result && typeof result === 'object' && !Array.isArray(result) ? (result as Record<string, unknown>) : { result }
       push('user', [{ functionResponse: { name: names.get(m.tool_call_id ?? '') ?? 'unknown', response } }])
     }

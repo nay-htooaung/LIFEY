@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Entry, PaymentMethod, Snapshot, Source } from '../domain/types'
-import { buildEntry, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
+import { buildEntry, dropOldPhotos, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 
 const src = (id: string, kind: Source['kind'], spaceId = 'me'): Source =>
   ({ id, spaceId, name: id, kind, openingBalance: 1000, createdOn: '2026-01-01', archived: false, fixed: false })
@@ -94,5 +94,22 @@ describe('assistant waits', () => {
     const enc = new TextEncoder()
     const body = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(enc.encode('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n')) } })
     await expect(readStream(body, () => {}, 20)).rejects.toMatchObject({ code: 'stalled' })
+  })
+})
+
+describe('assistant photos', () => {
+  it('sends only the newest photo again', () => {
+    const photo = (text: string): ApiMsg => ({ role: 'user', content: [{ type: 'text', text }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AA' } }] })
+    const msgs: ApiMsg[] = [photo('first'), { role: 'assistant', content: 'ok' }, photo('second'), { role: 'assistant', content: 'ok' }]
+    const out = dropOldPhotos(msgs)
+    expect(out[0]).toEqual({ role: 'user', content: 'first\n(a photo sent earlier)' })
+    expect(out[2]).toBe(msgs[2])
+  })
+  it('tells which model answered', () => {
+    const by: string[] = []
+    const acc = streamAccumulator(() => {}, undefined, (id) => by.push(id))
+    acc.push('data: {"answered_by":"gemini:gemini-3.6-flash"}\n\n')
+    acc.finish()
+    expect(by).toEqual(['gemini:gemini-3.6-flash'])
   })
 })
