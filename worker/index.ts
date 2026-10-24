@@ -65,6 +65,8 @@ async function chat(req: Request, env: Env): Promise<Response> {
     space: { id: String(context.space.id).slice(0, 64), name: String(context.space.name ?? '').slice(0, 60) },
   }
 
+  const t0 = Date.now()
+  console.log('chat start', convo.length, 'messages')
   // who is asking, and is there allowance left today
   const use = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/ai_use`, {
     method: 'POST',
@@ -79,6 +81,7 @@ async function chat(req: Request, env: Env): Promise<Response> {
     return fail(502, 'usage_check')
   }
 
+  console.log('signed in', Date.now() - t0, 'ms')
   // the model picked in the app, if it is still a free one; otherwise the recommended one
   const { models, recommended } = await freeModels(env.GEMINI_API_KEY, preferred(env))
   // when the list cannot be had, Gemini's own alias for its newest Flash
@@ -98,6 +101,8 @@ async function chat(req: Request, env: Env): Promise<Response> {
       tool_choice: 'auto',
       stream: true,
       max_tokens: 2000,
+      // Gemini thinks silently before its first word; keep that short so replies start quickly
+      reasoning_effort: 'low',
     }),
   }).catch((e: unknown) => e as Error).finally(() => clearTimeout(timer))
   if (upstream instanceof Error) {
