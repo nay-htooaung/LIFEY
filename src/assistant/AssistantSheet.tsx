@@ -28,8 +28,7 @@ type Msg =
   /** Applied changes, with what Undo needs: the ids the new entries got. */
   /** `undos` follows the setup changes in order; null where the app cannot undo one (leaving a space, …). */
   | { id: number; role: 'receipt'; changes: Proposal[]; added: string[]; undos: Undo[]; undone?: boolean }
-  /** `more`: it ran out of steps, and Continue picks up where it stopped. */
-  | { id: number; role: 'error'; text: string; more?: boolean }
+  | { id: number; role: 'error'; text: string }
   /** The person stopped the reply. */
   | { id: number; role: 'stopped' }
 
@@ -84,8 +83,6 @@ const readModel = () => {
 }
 
 let nextId = 1
-/** Model calls per message, so a confused loop stops; Continue allows as many again. Logging a statement takes many. */
-const MAX_STEPS = 20
 
 /** Keeps the conversation while the sheet is closed, and runs the model's tool calls on the person's own data. */
 export function AssistantProvider({ children }: { children: ReactNode }) {
@@ -152,7 +149,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     const L = () => live.current
     const told = new Set<string>()
     try {
-      for (let step = 0; step < MAX_STEPS; step++) {
+      // as many steps as the work takes; the person can stop it
+      for (;;) {
         // the Worker checks who is asking; without a session (demo mode) it answers signed_out
         // each wait has a limit, so a stuck step ends in an error with its code instead of loading forever
         const token = supabase ? (await within(supabase.auth.getSession(), 10_000, 'session_timeout')).data.session?.access_token : undefined
@@ -213,8 +211,6 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         // the answer to the question goes back as the tool's result, with the next message
         if (asked) return
       }
-      // still working when the steps ran out: say so, and Continue goes on
-      add({ role: 'error', text: L().t('aiStepLimit'), more: true })
     } catch (e) {
       if (turn.current !== n || ctl.signal.aborted) return
       if (e instanceof ChatError) ctl.abort()
@@ -442,7 +438,7 @@ export function AssistantSheet() {
           : m.role === 'error' ? (
             <div key={m.id} className="chat-err" role="alert">
               <span>{m.text}</span>
-              {m === last && <button className="link" onClick={a.retry}>{m.more ? t('aiContinue') : t('tryAgain')}</button>}
+              {m === last && <button className="link" onClick={a.retry}>{t('tryAgain')}</button>}
             </div>
           )
           : m.role === 'ask' ? (

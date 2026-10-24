@@ -70,7 +70,7 @@ export const ja: Record<MessageKey, string> = {
   aiReadOverview: '口座と予算を確認しました', aiReadComing: '今後の予定を確認しました', aiReadMonth: '{y}年{m}月の記録を確認しました',
   aiErrSignedOut: 'アシスタントを使うには、もう一度ログインしてください。', aiErrLimit: '今日のアシスタントの利用上限に達しました。明日また使えます。',
   aiErrBusy: 'このモデルの無料枠に達しました。少し待つか、別のモデルを選んでください。', aiErrSetup: 'このサーバーではアシスタントがまだ設定されていません。',
-  aiStop: '止める', aiStopped: '止めました。', aiContinue: '続ける', aiStepLimit: '手順が多いため一時停止しました。', aiErrEmpty: '答えが返ってきませんでした。', aiErr: 'アシスタントが答えられませんでした。', tryAgain: 'もう一度',
+  aiStop: '止める', aiStopped: '止めました。', aiErrEmpty: '答えが返ってきませんでした。', aiErr: 'アシスタントが答えられませんでした。', tryAgain: 'もう一度',
   thinking: '考え中…', changesN: '{n}件の変更', change1: '1件の変更', opAdd: '追加', opEdit: '修正', opDel: '削除',
   aiModel: 'モデル', recommended: 'おすすめ', aiFreeNote: 'Google Geminiの無料枠を使います。送った内容はGoogleのサービス改善に使われることがあります。',
   photo: '写真', removePhoto: '写真を外す', photoReady: '送信する写真', photoPh: 'メモを添えるか、そのまま送信', receiptPrompt: 'このレシートを記録して。', photoError: '写真を読み込めませんでした。別の写真をお試しください。', aiUsedModel: '{m}が答えました', aiErrNoPhotoModel: '今は写真を読めるモデルがありません。',

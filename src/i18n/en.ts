@@ -68,7 +68,7 @@ export const en = {
   aiReadOverview: 'Looked at your accounts and budgets', aiReadComing: "Checked what's coming up", aiReadMonth: 'Read entries for {m}/{y}',
   aiErrSignedOut: 'Sign in again to use the assistant.', aiErrLimit: "You've used today's assistant allowance. It resets tomorrow.",
   aiErrBusy: "This model's free limit is reached. Wait a minute or pick another model.", aiErrSetup: "The assistant isn't set up on this server yet.",
-  aiStop: 'Stop', aiStopped: 'Stopped.', aiContinue: 'Continue', aiStepLimit: 'Paused after many steps.', aiErrEmpty: 'No answer came back.', aiErr: "The assistant couldn't answer.", tryAgain: 'Try again',
+  aiStop: 'Stop', aiStopped: 'Stopped.', aiErrEmpty: 'No answer came back.', aiErr: "The assistant couldn't answer.", tryAgain: 'Try again',
   thinking: 'Thinking…', changesN: '{n} changes', change1: '1 change', opAdd: 'New', opEdit: 'Edit', opDel: 'Delete',
   aiModel: 'Model', recommended: 'Recommended', aiFreeNote: "Uses Google Gemini's free tier. Google may use what you send to improve its products.",
   photo: 'Photo', removePhoto: 'Remove photo', photoReady: 'Photo ready to send', photoPh: 'Add a note, or just send', receiptPrompt: 'Log this receipt.', photoError: "Couldn't read that photo. Try another one.", aiUsedModel: 'Answered by {m}', aiErrNoPhotoModel: 'None of the models can read photos right now.',
