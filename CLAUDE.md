@@ -54,13 +54,16 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
 | Site | https://lifey-dev.naytech001.workers.dev | Worker `lifey` (not deployed yet) |
 
 - The Worker (`worker/index.ts`) serves the static build, `/api/chat` (the assistant's model proxy) and `/api/models`.
-  It uses Google Gemini's free tier through Gemini's OpenAI-compatible endpoint. `worker/models.ts` lists the
-  key's models live and offers only Flash chat models (free tier, tool calls), newest recommended (`AI_PREFERRED`
-  overrides); the app's model dropdown remembers a pick per device. Each environment needs the secret
-  `GEMINI_API_KEY` (type Secret; a Text variable is wiped by the next deploy) from an AI Studio project without
-  billing. Gemini 3 needs each tool call's `extra_content` (thought signature) sent back unchanged.
-  OpenCode was tried and dropped: its free tier works only inside OpenCode, and the user has no paid plan.
-  This sandbox cannot reach the Gemini API; check on dev (`wrangler tail lifey-dev`).
+  It uses Google Gemini's free tier through Gemini's native streaming API (`worker/gemini.ts` translates to and from
+  the OpenAI chat format the app speaks; the OpenAI-compatible endpoint sent nothing for 40 s, then everything).
+  The reply streams at once with a keep-alive every 5 s, since phones drop silent connections. Gemini 3 needs each
+  tool call's thought signature (`extra_content`) sent back unchanged. `worker/models.ts` lists the key's Flash
+  models live; `AI_PREFERRED` (3.6 Flash, then 3.5) is recommended because newer ones were overloaded. A model that
+  is busy (429/503), refused (404, then hidden for an hour) or silent for 20 s hands over to the next, up to three.
+  Each environment needs the secret `GEMINI_API_KEY` (type Secret; a Text variable is wiped by the next deploy) from
+  an AI Studio project without billing. OpenCode was tried and dropped: its free tier works only inside OpenCode.
+  This sandbox cannot reach Gemini; test on dev with the account `smoke.assistant@example.com` (password in the
+  session scratchpad only) and `wrangler tail lifey-dev` (pipe `tail -f /dev/null` into it so it stays open).
 - `.github/workflows/deploy.yml` runs on pushes to `develop` and `main`: checks, then `node scripts/migrate.mjs <ref>` applies pending migrations
   through the Supabase Management API (only `SUPABASE_ACCESS_TOKEN` is needed; GitHub runners cannot reach the
   IPv6-only database), then builds and deploys to Cloudflare. Refs, URLs and publishable keys are public and live in the workflow.
