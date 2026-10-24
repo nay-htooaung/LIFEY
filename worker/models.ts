@@ -30,11 +30,19 @@ export function pickModels(list: GeminiModel[], preferred: string[] = []): Model
   }
 }
 
+/** Models Gemini refused (404) while listing them anyway, hidden for an hour. */
+const broken = new Map<string, number>()
+export const markBroken = (id: string) => void broken.set(id, Date.now() + KEEP_MS)
+const usable = (list: ModelList): ModelList => {
+  const models = list.models.filter((m) => (broken.get(m.id) ?? 0) < Date.now())
+  return { models, recommended: models.some((m) => m.id === list.recommended) ? list.recommended : (models[0]?.id ?? null) }
+}
+
 /** The list, kept in memory for an hour (the Cache API does nothing on workers.dev). */
 let kept: { at: number; list: ModelList } | null = null
 
 export async function freeModels(key: string, preferred: string[]): Promise<ModelList> {
-  if (kept && Date.now() - kept.at < KEEP_MS) return kept.list
+  if (kept && Date.now() - kept.at < KEEP_MS) return usable(kept.list)
   let models: GeminiModel[] = []
   try {
     const r = await fetch(LIST_URL, { headers: { 'x-goog-api-key': key } })
@@ -46,5 +54,5 @@ export async function freeModels(key: string, preferred: string[]): Promise<Mode
   const list = pickModels(models, preferred)
   // keep only a real answer, so a hiccup is retried on the next request
   if (list.models.length) kept = { at: Date.now(), list }
-  return list
+  return usable(list)
 }
