@@ -42,6 +42,8 @@ interface Assistant {
   setModel(id: string): void
   tray: Pending[]
   thinking: boolean
+  /** What the model says it is thinking about, while it thinks. */
+  thought: string | null
   /** A typed message, or the answer to the open question. */
   send(text: string): void
   retry(): void
@@ -83,6 +85,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [tray, setTray] = useState<Pending[]>([])
   const [thinking, setThinking] = useState(false)
+  const [thought, setThought] = useState<string | null>(null)
   const [models, setModels] = useState<ModelList | null>(null)
   const [picked, setPicked] = useState(readModel)
   // the pick stays while it is still offered; otherwise the recommended one
@@ -140,9 +143,11 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         let aiId: number | null = null
         const out = await readStream(res.body, (text) => {
           if (turn.current !== n) return
+          setThought(null)
           if (aiId === null) aiId = add({ role: 'ai', text })
           else setMsgs((x) => x.map((m) => (m.id === aiId ? { ...m, text } : m)))
-        })
+        }, undefined, (summary) => turn.current === n && setThought(thoughtTitle(summary)))
+        setThought(null)
         if (turn.current !== n) return
         history.current.push({ role: 'assistant', content: out.text || null, ...(out.toolCalls.length ? { tool_calls: out.toolCalls } : {}) })
         if (!out.toolCalls.length) return
@@ -187,12 +192,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           : `${t('aiErr')} (${code})`,
       })
     } finally {
-      if (turn.current === n) setThinking(false)
+      if (turn.current === n) {
+        setThinking(false)
+        setThought(null)
+      }
     }
   }, [add])
 
   const value = useMemo<Assistant>(() => ({
-    msgs, tray, thinking, setTray, models, model,
+    msgs, tray, thinking, thought, setTray, models, model,
     setModel(id) {
       setPicked(id)
       try {
@@ -246,10 +254,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       setTray([])
       setThinking(false)
     },
-  }), [msgs, tray, thinking, run, add, models, model])
+  }), [msgs, tray, thinking, thought, run, add, models, model])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
+
+/** A thought summary's headline: Gemini starts each with a bold title. */
+const thoughtTitle = (summary: string) =>
+  (summary.match(/\*\*(.+?)\*\*/)?.[1] ?? summary.split('\n').find((l) => l.trim()) ?? '').trim().slice(0, 80)
 
 /** A quiet line saying what the assistant looked at. Proposals show in the tray instead; failed calls show nothing. */
 function toolLabel(name: string, args: string, result: string, t: ReturnType<typeof useI18n>['t']): string | null {
@@ -328,7 +340,12 @@ export function AssistantSheet() {
           )
           : <Receipt key={m.id} msg={m} />,
         )}
-        {a.thinking && last?.role !== 'ai' && <div className="typing" role="status" aria-label={t('thinking')}><i /><i /><i /></div>}
+        {a.thinking && last?.role !== 'ai' && (
+          <div className="typing" role="status" aria-label={a.thought ?? t('thinking')}>
+            <span className="dots"><i /><i /><i /></span>
+            {a.thought && <span className="thought">{a.thought}</span>}
+          </div>
+        )}
         <div ref={end} />
       </div>
 

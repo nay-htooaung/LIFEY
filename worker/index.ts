@@ -5,7 +5,7 @@
 // The tools themselves run in the app (src/assistant/run.ts), on the data the person can already see.
 import { systemPrompt, TOOLS, type ChatContext } from '../src/assistant/tools'
 import { sseChunks, toGemini, translator, type OpenAiMsg } from './gemini'
-import { freeModels } from './models'
+import { freeModels, markBroken } from './models'
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> }
@@ -20,6 +20,8 @@ interface Env {
 interface Msg { role: 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: unknown[]; tool_call_id?: string }
 
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
+const FIRST_WORDS_MS = 20_000
+const REPLY_MS = 120_000
 const MAX_BODY = 400_000
 const MAX_MESSAGES = 120
 
@@ -96,43 +98,73 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
   const send = (s: string) => out.write(enc.encode(s)).catch(() => {})
   void send(': ok\n\n')
   const ping = setInterval(() => void send(': ping\n\n'), 5000)
+  // the picked model first, then the others in the list's order; a model that is busy, refused or silent
+  // before its first words hands over to the next one
+  const order = [model, ...models.map((m) => m.id).filter((id) => id !== model)].slice(0, 3)
   const stream = async () => {
-    const started = Date.now()
+    let failed = 'model_unreachable'
     try {
-      const body = (thinking: boolean) => JSON.stringify(toGemini(systemPrompt(ctx), convo as OpenAiMsg[], TOOLS, model, thinking))
-      const call = (thinking: boolean) => fetch(`${GEMINI}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`, {
-        method: 'POST', signal: AbortSignal.timeout(120_000),
-        headers: { 'x-goog-api-key': env.GEMINI_API_KEY!, 'content-type': 'application/json' },
-        body: body(thinking),
-      })
-      let res = await call(true)
-      // a model that does not take the thinking settings gets the request without them
-      if (res.status === 400) {
-        const text = await res.text()
-        console.error('model refused thinking settings', model, text.slice(0, 400))
-        res = await call(false)
+      for (const m of order) {
+        const r = await attempt(m)
+        if (r === 'done') return
+        failed = r
       }
-      console.log('model answered', model, res.status, Date.now() - started, 'ms')
-      if (!res.ok || !res.body) {
-        console.error('model failed', model, res.status, (await res.text()).slice(0, 800))
-        return void (await send(`data: ${JSON.stringify({ error: { code: res.status === 429 ? 'model_busy' : `model_${res.status}` } })}\n\n`))
-      }
-      const translate = translator()
-      let first = true
-      for await (const chunk of sseChunks(res.body)) {
-        if (first) console.log('first words', Date.now() - started, 'ms')
-        first = false
-        const events = translate(chunk)
-        if (events) await send(events)
-      }
-      await send('data: [DONE]\n\n')
-      console.log('model done', Date.now() - started, 'ms')
-    } catch (e) {
-      console.error('model stream failed', model, Date.now() - started, 'ms', String(e))
-      await send(`data: ${JSON.stringify({ error: { code: e instanceof Error && e.name === 'TimeoutError' ? 'model_timeout' : 'model_unreachable' } })}\n\n`)
+      await send(`data: ${JSON.stringify({ error: { code: failed } })}\n\n`)
     } finally {
       clearInterval(ping)
       await out.close().catch(() => {})
+    }
+  }
+  /** One model's try: 'done' once it has answered (or failed after starting), else the error code to try the next with. */
+  const attempt = async (m: string): Promise<'done' | string> => {
+    const started = Date.now()
+    // until the first words arrive this is short, then the whole reply gets two minutes
+    const ctl = new AbortController()
+    let timer = setTimeout(() => ctl.abort(), FIRST_WORDS_MS)
+    const call = (thinking: boolean) => fetch(`${GEMINI}/models/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`, {
+      method: 'POST', signal: ctl.signal,
+      headers: { 'x-goog-api-key': env.GEMINI_API_KEY!, 'content-type': 'application/json' },
+      body: JSON.stringify(toGemini(systemPrompt(ctx), convo as OpenAiMsg[], TOOLS, m, thinking)),
+    })
+    let spoke = false
+    try {
+      let res = await call(true)
+      // a model that does not take the thinking settings gets the request without them
+      if (res.status === 400) {
+        console.error('model refused thinking settings', m, (await res.text()).slice(0, 400))
+        res = await call(false)
+      }
+      console.log('model answered', m, res.status, Date.now() - started, 'ms')
+      if (!res.ok || !res.body) {
+        console.error('model failed', m, res.status, (await res.text()).slice(0, 600))
+        if (res.status === 404) markBroken(m)
+        const code = res.status === 429 || res.status === 503 ? 'model_busy' : `model_${res.status}`
+        if ([404, 429, 500, 503].includes(res.status)) return code
+        await send(`data: ${JSON.stringify({ error: { code } })}\n\n`)
+        return 'done'
+      }
+      const translate = translator()
+      for await (const chunk of sseChunks(res.body)) {
+        const events = translate(chunk)
+        if (!events) continue
+        if (!spoke) {
+          console.log('first words', m, Date.now() - started, 'ms')
+          clearTimeout(timer)
+          timer = setTimeout(() => ctl.abort(), REPLY_MS)
+        }
+        spoke = true
+        await send(events)
+      }
+      await send('data: [DONE]\n\n')
+      console.log('model done', m, Date.now() - started, 'ms')
+      return 'done'
+    } catch (e) {
+      console.error('model stream failed', m, Date.now() - started, 'ms', String(e))
+      if (!spoke) return ctl.signal.aborted ? 'model_timeout' : 'model_unreachable'
+      await send(`data: ${JSON.stringify({ error: { code: ctl.signal.aborted ? 'model_timeout' : 'model_unreachable' } })}\n\n`)
+      return 'done'
+    } finally {
+      clearTimeout(timer)
     }
   }
   worker.waitUntil(stream())
