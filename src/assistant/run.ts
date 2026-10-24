@@ -194,15 +194,35 @@ export class ChatError extends Error {
 }
 
 /** Reads an OpenAI-style event stream: text as it arrives, and the tool calls once complete. */
-export async function readStream(body: ReadableStream<Uint8Array>, onText: (text: string) => void): Promise<{ text: string; toolCalls: ToolCall[] }> {
+/** Reads an OpenAI-style event stream: text as it arrives, and the tool calls once complete. Fails when nothing arrives for `stallMs`. */
+export async function readStream(body: ReadableStream<Uint8Array>, onText: (text: string) => void, stallMs = 60_000): Promise<{ text: string; toolCalls: ToolCall[] }> {
   const reader = body.pipeThrough(new TextDecoderStream()).getReader()
   const acc = streamAccumulator(onText)
   for (;;) {
-    const { value, done } = await reader.read()
-    if (done) break
-    acc.push(value)
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const stalled = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new ChatError('stalled')), stallMs)
+    })
+    try {
+      const { value, done } = await Promise.race([reader.read(), stalled])
+      if (done) break
+      acc.push(value)
+    } catch (e) {
+      void reader.cancel().catch(() => {})
+      throw e
+    } finally {
+      clearTimeout(timer)
+    }
   }
   return acc.finish()
+}
+
+/** `p`, or a ChatError with `code` after `ms`. */
+export function within<T>(p: Promise<T>, ms: number, code: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  return Promise.race([p, new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new ChatError(code)), ms)
+  })]).finally(() => clearTimeout(timer))
 }
 
 /** The stream parser on its own, fed chunks of text. */

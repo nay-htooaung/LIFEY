@@ -11,7 +11,7 @@ import { usePaidWith } from '../ui/entry'
 import { IconChevron, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
-import { ChatError, readStream, runTool, trimHistory, type ApiMsg, type ToolCtx } from './run'
+import { ChatError, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 import type { ChatContext } from './tools'
 
 /** What the chat shows. The conversation sent to the model is kept separately (ApiMsg). */
@@ -128,13 +128,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     try {
       for (let step = 0; step < MAX_STEPS; step++) {
         // the Worker checks who is asking; without a session (demo mode) it answers signed_out
-        const token = supabase ? (await supabase.auth.getSession()).data.session?.access_token : undefined
+        // each wait has a limit, so a stuck step ends in an error with its code instead of loading forever
+        const token = supabase ? (await within(supabase.auth.getSession(), 10_000, 'session_timeout')).data.session?.access_token : undefined
         const context: ChatContext = { today: L().today, locale: L().locale, space: { id: L().space.id, name: L().space.name } }
-        const res = await fetch('/api/chat', {
+        const res = await within(fetch('/api/chat', {
           method: 'POST', signal: ctl.signal,
           headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
           body: JSON.stringify({ messages: trimHistory(history.current), context, model: modelRef.current ?? undefined }),
-        })
+        }), 90_000, 'request_timeout')
         if (!res.ok || !res.body) throw new ChatError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'model')
         let aiId: number | null = null
         const out = await readStream(res.body, (text) => {
@@ -175,12 +176,15 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       }
     } catch (e) {
       if (turn.current !== n || ctl.signal.aborted) return
-      const code = e instanceof ChatError ? e.code : navigator.onLine ? 'model' : 'offline'
+      if (e instanceof ChatError) ctl.abort()
+      const code = e instanceof ChatError ? e.code : navigator.onLine ? (e instanceof Error ? e.name : 'unknown') : 'offline'
       const { t } = L()
       add({
         role: 'error',
         text: code === 'signed_out' ? t('aiErrSignedOut') : code === 'daily_limit' ? t('aiErrLimit') : code === 'model_busy' ? t('aiErrBusy')
-          : code === 'not_configured' ? t('aiErrSetup') : code === 'offline' ? t('offline') : t('aiErr'),
+          : code === 'not_configured' ? t('aiErrSetup') : code === 'offline' ? t('offline')
+          // the code says where it went wrong, for fixing it
+          : `${t('aiErr')} (${code})`,
       })
     } finally {
       if (turn.current === n) setThinking(false)
