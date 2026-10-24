@@ -4,6 +4,8 @@
 @media (display-mode: browser) { :root { --safe-b: 0px; } }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; }
+/* An app, not a page: no double-tap zoom, and the page itself never slides sideways (screens scroll inside .scroll). */
+html, body { overflow: hidden; touch-action: manipulation; }
 body { margin: 0; background: var(--bg); color: var(--ink); transition: background-color 0.25s, color 0.25s; font-family: var(--body); font-size: 15px; line-height: 1.5; overscroll-behavior: none; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
