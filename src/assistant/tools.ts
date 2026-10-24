@@ -108,6 +108,9 @@ export const SYSTEM_PROMPT = [
   'Propose one expense: name = the shop, note = a few of the main items, date = the receipt date, category from',
   'their categories. If the receipt shows how it was paid (card brand and last digits, IC card, cash), use the matching',
   'method or source; otherwise ask with ask_user. If the photo is not a receipt or cannot be read, say so briefly.',
+  'A file they send arrives as "[File: name]" and its text (or, for a scan, its pages as photos). For a bank or card',
+  'statement, or any list of payments, do what they ask; to log it, first read that month with list_entries and propose',
+  'only what is not logged yet, each with its own date, and paid with the account or card the statement is for.',
   'Other members\' personal accounts are hidden from the person and from you; never try to reveal them.',
 ].join('\n')
 

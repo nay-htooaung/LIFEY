@@ -11,8 +11,9 @@ import { proposeCategory, proposeMethod, proposePot, proposePotMove, proposeProf
 
 /** `extra_content` carries Gemini's thought signature, which must be sent back with the call. */
 export interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string }; extra_content?: unknown }
-/** A user message with a photo is a list of parts, as in the OpenAI chat format. */
-export type UserPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
+/** A user message with a photo or a file is a list of parts, as in the OpenAI chat format. `file` (kept in the app,
+ * never sent) names the file a text part holds. */
+export type UserPart = { type: 'text'; text: string; file?: string } | { type: 'image_url'; image_url: { url: string } }
 export type ApiMsg =
   | { role: 'user'; content: string | UserPart[] }
   | { role: 'assistant'; content: string | null; tool_calls?: ToolCall[] }
@@ -315,12 +316,14 @@ export function streamAccumulator(onText: (text: string) => void, onThinking?: (
   }
 }
 
-/** Only the newest photo is sent again; older ones become a note, so each request stays small. */
-export function dropOldPhotos(msgs: ApiMsg[]): ApiMsg[] {
+/** Only the newest photo or file is sent again; older ones become a note, so each request stays small. */
+export function dropOldAttachments(msgs: ApiMsg[]): ApiMsg[] {
   const last = msgs.map((m) => m.role === 'user' && Array.isArray(m.content)).lastIndexOf(true)
-  return msgs.map((m, i) => (m.role === 'user' && Array.isArray(m.content) && i !== last
-    ? { role: 'user', content: m.content.map((p) => (p.type === 'text' ? p.text : '(a photo sent earlier)')).join('\n') }
-    : m))
+  return msgs.map((m, i): ApiMsg => {
+    if (m.role !== 'user' || !Array.isArray(m.content)) return m
+    if (i === last) return m.content.some((p) => p.type === 'text' && p.file) ? { role: 'user', content: m.content.map((p) => (p.type === 'text' ? { type: 'text', text: p.text } : p)) } : m
+    return { role: 'user', content: m.content.map((p) => (p.type === 'image_url' ? '(a photo sent earlier)' : p.file ? `(the file "${p.file}", sent earlier)` : p.text)).join('\n') }
+  })
 }
 
 /** Keeps the conversation short enough to send: whole turns from the end, never splitting a tool call from its results. */

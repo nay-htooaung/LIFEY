@@ -349,6 +349,13 @@ details[open] summary { margin-bottom: 10px; }
 .photo-chip img { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; flex: none; }
 .photo-chip span { flex: 1; min-width: 0; }
 .photo-chip .ch-x { align-self: center; height: 38px; }
+.photo-chip .file-ico { width: 44px; height: 44px; border-radius: 10px; flex: none; display: grid; place-items: center; background: var(--card-2); color: var(--acc); }
+.photo-chip .file-ico svg { width: 22px; height: 22px; }
+.photo-chip .chip-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.photo-chip small { display: block; color: var(--muted); font-weight: 500; font-size: 12px; }
+.bub-file { display: flex; align-items: center; gap: 8px; max-width: 220px; padding: 10px 12px; border-radius: 14px; background: var(--card-2); color: var(--ink); font-size: 13px; font-weight: 600; }
+.bub-file svg { width: 20px; height: 20px; flex: none; color: var(--acc); }
+.bub-file span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bub.with-photo { display: flex; flex-direction: column; gap: 6px; padding: 6px 6px 9px; }
 .bub.with-photo .bub-text { padding: 0 7px; }
 .bub-photo { display: block; width: 180px; max-width: 100%; max-height: 240px; object-fit: cover; border-radius: 14px; }

@@ -8,17 +8,18 @@ import { supabase } from '../data/supabase'
 import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
 import { usePaidWith } from '../ui/entry'
-import { IconCamera, IconChevron, IconImage, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
+import { IconCamera, IconChevron, IconClip, IconFile, IconImage, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
+import { FILE_ACCEPT, FileError, fileText, isPhotoFile, readFile, type ReadFile } from './file'
 import { shrinkPhoto } from './photo'
 import type { Proposal, SetupChange, Undo } from './setup'
-import { ChatError, dropOldPhotos, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
+import { ChatError, dropOldAttachments, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 import type { ChatContext } from './tools'
 
 /** What the chat shows. The conversation sent to the model is kept separately (ApiMsg). */
 type Msg =
-  | { id: number; role: 'user'; text: string; photo?: string }
+  | { id: number; role: 'user'; text: string; photo?: string; file?: string }
   | { id: number; role: 'ai'; text: string }
   /** What the assistant looked at, as a quiet line. */
   | { id: number; role: 'tool'; text: string }
@@ -34,6 +35,9 @@ type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, 'id'> : never) : ne
 /** A proposed change in the tray; `skip` leaves it out when applying. */
 type Pending = Proposal & { skip?: boolean }
 
+/** One photo or one file goes with a message. */
+type Attached = { photo: string } | { file: ReadFile }
+
 interface ModelList { models: { id: string; name: string; provider: 'go' | 'gemini' }[]; recommended: string | null }
 
 interface Assistant {
@@ -47,8 +51,8 @@ interface Assistant {
   thinking: boolean
   /** What the model says it is thinking about, while it thinks. */
   thought: string | null
-  /** A typed message (with a photo, if attached), or the answer to the open question. */
-  send(text: string, photo?: string): void
+  /** A typed message (with a photo or a file, if attached), or the answer to the open question. */
+  send(text: string, attached?: Attached): void
   retry(): void
   setTray(fn: (tray: Pending[]) => Pending[]): void
   /** Moves the applied changes from the tray into a receipt in the chat. */
@@ -151,7 +155,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const res = await within(fetch('/api/chat', {
           method: 'POST', signal: ctl.signal,
           headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ messages: trimHistory(dropOldPhotos(history.current)), context, model: modelRef.current ?? undefined, session: session.current }),
+          body: JSON.stringify({ messages: trimHistory(dropOldAttachments(history.current)), context, model: modelRef.current ?? undefined, session: session.current }),
         }), 90_000, 'request_timeout')
         if (!res.ok || !res.body) throw new ChatError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'model')
         let aiId: number | null = null
@@ -233,9 +237,11 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         /* ignore */
       }
     },
-    send(text, photo) {
-      // a photo on its own asks to log it
-      const said = text.trim() || (photo ? live.current.t('receiptPrompt') : '')
+    send(text, attached) {
+      const photo = attached && 'photo' in attached ? attached.photo : undefined
+      const file = attached && 'file' in attached ? attached.file : undefined
+      // a photo on its own asks to log it; a file on its own, to read it
+      const said = text.trim() || (photo ? live.current.t('receiptPrompt') : file ? live.current.t('filePrompt') : '')
       if (!said || thinking) return
       const { today, locale, space } = live.current
       const now: ChatContext = { today, locale, space: { id: space.id, name: space.name } }
@@ -251,17 +257,25 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       const ask = asking.current
       asking.current = null
       const user = (words: string): ApiMsg => ({
-        role: 'user', content: photo ? [{ type: 'text', text: words }, { type: 'image_url', image_url: { url: photo } }] : words,
+        role: 'user',
+        content: photo ? [{ type: 'text', text: words }, { type: 'image_url', image_url: { url: photo } }]
+          : file?.pages ? [
+            { type: 'text', text: words },
+            { type: 'text', text: `[File: ${file.name}, a scan: ${file.cut ? 'its first pages' : 'its pages'} follow as photos]`, file: file.name },
+            ...file.pages.map((url) => ({ type: 'image_url' as const, image_url: { url } })),
+          ]
+          : file ? [{ type: 'text', text: words }, { type: 'text', text: fileText(file), file: file.name }]
+          : words,
       })
       if (ask) {
         setMsgs((x) => x.map((m) => (m.id === ask.msgId && m.role === 'ask' ? { ...m, answer: said } : m)))
-        history.current.push({ role: 'tool', tool_call_id: ask.callId, content: JSON.stringify({ answer: photo ? '(sent a photo, below)' : said }) })
-        if (photo || notes.current.length) history.current.push(user([...notes.current, ...(photo ? [said] : [])].join('\n')))
+        history.current.push({ role: 'tool', tool_call_id: ask.callId, content: JSON.stringify({ answer: photo ? '(sent a photo, below)' : file ? '(sent a file, below)' : said }) })
+        if (attached || notes.current.length) history.current.push(user([...notes.current, ...(attached ? [said] : [])].join('\n')))
       } else {
         history.current.push(user([...notes.current, said].join('\n')))
       }
       notes.current = []
-      add({ role: 'user', text: said, ...(photo ? { photo } : {}) })
+      add({ role: 'user', text: said, ...(photo ? { photo } : {}), ...(file ? { file: file.name } : {}) })
       void run()
     },
     retry() {
@@ -335,11 +349,15 @@ export function AssistantSheet() {
     log.current?.scrollTo({ top: log.current.scrollHeight, behavior: 'smooth' })
   }, [a.msgs.length, last?.role === 'ai' ? last.text.length : 0, a.thinking, a.tray.length])
 
-  const [photo, setPhoto] = useState<string | null>(null)
+  const [attached, setAttached] = useState<Attached | null>(null)
+  const photo = attached && 'photo' in attached ? attached.photo : null
+  const file = attached && 'file' in attached ? attached.file : null
   const [reading, setReading] = useState(false)
-  // the camera straight away, or the gallery; some browsers offer only the gallery to a plain file input
+  // the camera straight away, the gallery, or any file (a statement as CSV or PDF); some browsers offer only the
+  // gallery to a plain image input
   const camera = useRef<HTMLInputElement>(null)
   const gallery = useRef<HTMLInputElement>(null)
+  const files = useRef<HTMLInputElement>(null)
   const [choosing, setChoosing] = useState(false)
   const choose = (input: HTMLInputElement | null) => {
     setChoosing(false)
@@ -351,9 +369,9 @@ export function AssistantSheet() {
     if (!file) return
     setReading(true)
     try {
-      setPhoto(await shrinkPhoto(file))
-    } catch {
-      ui.toast(t('photoError'), { error: true })
+      setAttached(isPhotoFile(file) ? { photo: await shrinkPhoto(file) } : { file: await readFile(file) })
+    } catch (err) {
+      ui.toast(t(isPhotoFile(file) ? 'photoError' : err instanceof FileError && err.code === 'unsupported' ? 'fileUnsupported' : 'fileError'), { error: true })
     } finally {
       setReading(false)
     }
@@ -361,10 +379,10 @@ export function AssistantSheet() {
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if ((!text.trim() && !photo) || a.thinking) return
-    a.send(text, photo ?? undefined)
+    if ((!text.trim() && !attached) || a.thinking) return
+    a.send(text, attached ?? undefined)
     setText('')
-    setPhoto(null)
+    setAttached(null)
   }
 
   return (
@@ -391,9 +409,10 @@ export function AssistantSheet() {
         {a.models?.models.find((m) => m.id === a.model)?.provider === 'gemini' && <p className="chat-note">{t('aiFreeNote')}</p>}
         {a.msgs.map((m) =>
           m.role === 'user' ? (
-            <div key={m.id} className={'bub me' + (m.photo ? ' with-photo' : '')}>
+            <div key={m.id} className={'bub me' + (m.photo || m.file ? ' with-photo' : '')}>
               {m.photo && <img className="bub-photo" src={m.photo} alt={t('photo')} />}
-              {m.photo ? <span className="bub-text">{m.text}</span> : m.text}
+              {m.file && <span className="bub-file"><IconFile /><span>{m.file}</span></span>}
+              {m.photo || m.file ? <span className="bub-text">{m.text}</span> : m.text}
             </div>
           )
           : m.role === 'ai' ? <AiBubble key={m.id}>{m.text}</AiBubble>
@@ -431,29 +450,41 @@ export function AssistantSheet() {
           <div className="photo-chip">
             <img src={photo} alt={t('photo')} />
             <span>{t('photoReady')}</span>
-            <button type="button" className="ch-x" aria-label={t('removePhoto')} onClick={() => setPhoto(null)}><IconX /></button>
+            <button type="button" className="ch-x" aria-label={t('removePhoto')} onClick={() => setAttached(null)}><IconX /></button>
+          </div>
+        )}
+        {file && (
+          <div className="photo-chip">
+            {file.pages ? <img src={file.pages[0]} alt="" /> : <span className="file-ico" aria-hidden="true"><IconFile /></span>}
+            <span>
+              <span className="chip-name">{file.name}</span>
+              <small>{file.pages ? t('fileAsPhotos') : file.cut ? t('fileCut') : t('fileReady')}</small>
+            </span>
+            <button type="button" className="ch-x" aria-label={t('removeFile')} onClick={() => setAttached(null)}><IconX /></button>
           </div>
         )}
         <form className="composer" onSubmit={submit}>
           {/* camera or gallery, as the phone offers */}
           <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={pick} />
           <input ref={gallery} type="file" accept="image/*" hidden onChange={pick} />
+          <input ref={files} type="file" accept={FILE_ACCEPT} hidden onChange={pick} />
           <div className="attach-wrap">
-            <button type="button" className="attach" aria-label={t('attachPhoto')} aria-haspopup="menu" aria-expanded={choosing}
-              aria-busy={reading} disabled={a.thinking || reading} onClick={() => setChoosing((c) => !c)}>{!reading && <IconCamera />}</button>
+            <button type="button" className="attach" aria-label={t('attach')} aria-haspopup="menu" aria-expanded={choosing}
+              aria-busy={reading} disabled={a.thinking || reading} onClick={() => setChoosing((c) => !c)}>{!reading && <IconClip />}</button>
             {choosing && (
               <>
                 <div className="sel-scrim" onClick={() => setChoosing(false)} />
                 <div className="attach-menu" role="menu">
                   <button type="button" role="menuitem" onClick={() => choose(camera.current)}><IconCamera />{t('takePhoto')}</button>
                   <button type="button" role="menuitem" onClick={() => choose(gallery.current)}><IconImage />{t('choosePhoto')}</button>
+                  <button type="button" role="menuitem" onClick={() => choose(files.current)}><IconFile />{t('chooseFile')}</button>
                 </div>
               </>
             )}
           </div>
-          <input className="input" value={text} maxLength={500} placeholder={photo ? t('photoPh') : t('askPh')} aria-label={t('askPh')}
+          <input className="input" value={text} maxLength={500} placeholder={attached ? t('photoPh') : t('askPh')} aria-label={t('askPh')}
             enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
-          <button className="send" aria-label={t('send')} disabled={(!text.trim() && !photo) || a.thinking}><IconSend /></button>
+          <button className="send" aria-label={t('send')} disabled={(!text.trim() && !attached) || a.thinking}><IconSend /></button>
         </form>
       </div>
     </div>

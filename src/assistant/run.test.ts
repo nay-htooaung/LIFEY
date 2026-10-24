@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Entry, PaymentMethod, Snapshot, Source } from '../domain/types'
 import { makeI18n } from '../i18n'
 import type { SetupChange } from './setup'
-import { buildEntry, dropOldPhotos, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
+import { buildEntry, dropOldAttachments, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 
 const src = (id: string, kind: Source['kind'], spaceId = 'me'): Source =>
   ({ id, spaceId, name: id, kind, openingBalance: 1000, createdOn: '2026-01-01', archived: false, fixed: false })
@@ -104,9 +104,17 @@ describe('assistant photos', () => {
   it('sends only the newest photo again', () => {
     const photo = (text: string): ApiMsg => ({ role: 'user', content: [{ type: 'text', text }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,AA' } }] })
     const msgs: ApiMsg[] = [photo('first'), { role: 'assistant', content: 'ok' }, photo('second'), { role: 'assistant', content: 'ok' }]
-    const out = dropOldPhotos(msgs)
+    const out = dropOldAttachments(msgs)
     expect(out[0]).toEqual({ role: 'user', content: 'first\n(a photo sent earlier)' })
     expect(out[2]).toBe(msgs[2])
+  })
+  it('sends only the newest file again, without the app\'s file name field', () => {
+    const file = (name: string): ApiMsg => ({ role: 'user', content: [{ type: 'text', text: 'Log these.' }, { type: 'text', text: `[File: ${name}]\n...`, file: name }] })
+    const msgs: ApiMsg[] = [file('a.csv'), { role: 'assistant', content: 'ok' }, file('b.csv'), { role: 'user', content: 'and?' }]
+    const out = dropOldAttachments(msgs)
+    expect(out[0]).toEqual({ role: 'user', content: 'Log these.\n(the file "a.csv", sent earlier)' })
+    expect(out[2]).toEqual({ role: 'user', content: [{ type: 'text', text: 'Log these.' }, { type: 'text', text: '[File: b.csv]\n...' }] })
+    expect(out[3]).toBe(msgs[3])
   })
   it('tells which model answered', () => {
     const by: string[] = []
