@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Entry, PaymentMethod, Snapshot, Source } from '../domain/types'
-import { buildEntry, runTool, streamAccumulator, trimHistory, type ApiMsg, type ToolCtx } from './run'
+import { buildEntry, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 
 const src = (id: string, kind: Source['kind'], spaceId = 'me'): Source =>
   ({ id, spaceId, name: id, kind, openingBalance: 1000, createdOn: '2026-01-01', archived: false, fixed: false })
@@ -82,5 +82,17 @@ describe('assistant stream', () => {
     ]
     expect(trimHistory(msgs, 3)).toEqual(msgs.slice(3))
     expect(trimHistory(msgs, 10)).toBe(msgs)
+  })
+})
+
+describe('assistant waits', () => {
+  it('ends a stuck wait with its code', async () => {
+    await expect(within(new Promise(() => {}), 10, 'session_timeout')).rejects.toMatchObject({ code: 'session_timeout' })
+    await expect(within(Promise.resolve(1), 10, 'x')).resolves.toBe(1)
+  })
+  it('ends a stream that stops sending', async () => {
+    const enc = new TextEncoder()
+    const body = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(enc.encode('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n')) } })
+    await expect(readStream(body, () => {}, 20)).rejects.toMatchObject({ code: 'stalled' })
   })
 })

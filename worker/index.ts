@@ -84,8 +84,12 @@ async function chat(req: Request, env: Env): Promise<Response> {
   // when the list cannot be had, Gemini's own alias for its newest Flash
   const model = models.some((m) => m.id === body.model) ? body.model! : (recommended ?? 'gemini-flash-latest')
 
+  // a limit on waiting for the model to start answering; the answer itself then streams through
+  const started = Date.now()
+  const wait = new AbortController()
+  const timer = setTimeout(() => wait.abort(), 60_000)
   const upstream = await fetch(`${env.AI_BASE_URL}/chat/completions`, {
-    method: 'POST',
+    method: 'POST', signal: wait.signal,
     headers: { authorization: `Bearer ${env.GEMINI_API_KEY}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       model,
@@ -95,11 +99,16 @@ async function chat(req: Request, env: Env): Promise<Response> {
       stream: true,
       max_tokens: 2000,
     }),
-  })
+  }).catch((e: unknown) => e as Error).finally(() => clearTimeout(timer))
+  if (upstream instanceof Error) {
+    console.error('model unreachable', model, Date.now() - started, 'ms', String(upstream))
+    return fail(504, wait.signal.aborted ? 'model_timeout' : 'model_unreachable')
+  }
+  console.log('model answered', model, upstream.status, Date.now() - started, 'ms')
   if (!upstream.ok || !upstream.body) {
     const text = await upstream.text()
-    console.error('model failed', upstream.status, text.slice(0, 500))
-    return fail(upstream.status === 429 ? 429 : 502, upstream.status === 429 ? 'model_busy' : 'model')
+    console.error('model failed', model, upstream.status, text.slice(0, 800))
+    return fail(upstream.status === 429 ? 429 : 502, upstream.status === 429 ? 'model_busy' : `model_${upstream.status}`)
   }
   return new Response(upstream.body, { headers: { 'content-type': 'text/event-stream', 'cache-control': 'no-store' } })
 }
