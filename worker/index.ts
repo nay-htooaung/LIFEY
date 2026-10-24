@@ -1,7 +1,7 @@
 // Serves the app's static build, plus /api/chat (the assistant's model calls, streamed from OpenCode Go or from
 // Gemini through worker/gemini.ts) and /api/models (which models it may use, worker/models.ts).
 // The model's API key lives here as a secret and never reaches the app. Each request first calls ai_use() with
-// the person's Supabase token, which checks who they are and counts it against their daily allowance.
+// the person's Supabase token, which checks who they are and counts the request (there is no limit).
 // The tools themselves run in the app (src/assistant/run.ts), on the data the person can already see.
 import { appGuide, SYSTEM_PROMPT, TOOLS, type ChatContext } from '../src/assistant/tools'
 import { sseChunks, sseLines, toGemini, translator, type OpenAiMsg, type UserPart } from './gemini'
@@ -89,7 +89,7 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
 
   const t0 = Date.now()
   console.log('chat start', convo.length, 'messages')
-  // who is asking, and is there allowance left today
+  // who is asking; the request is counted
   const use = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/ai_use`, {
     method: 'POST',
     headers: { apikey: env.SUPABASE_ANON_KEY, authorization: `Bearer ${token}`, 'content-type': 'application/json' },
@@ -97,7 +97,6 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
   })
   if (!use.ok) {
     const text = await use.text()
-    if (text.includes('ai daily limit')) return fail(429, 'daily_limit')
     if (use.status === 401 || use.status === 403 || text.includes('not signed in') || text.includes('JWT')) return fail(401, 'signed_out')
     console.error('ai_use failed', use.status, text)
     return fail(502, 'usage_check')

@@ -77,7 +77,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   The user replaces it with `develop` at the v1.0.0 release (pushing `main` deploys prod). Other branches run
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
-- Latest migration: `20261024000000_savings.sql`.
+- Latest migration: `20261024010000_ai_no_limit.sql`.
 - Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
 - The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
@@ -124,8 +124,8 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     (`setAside`). お財布 splits 純資産 into うち貯金 and 自由に使えるお金. Pots are archived, never deleted.
   - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`). The balance card under it projects each account to the end
     of next month (`projection`): every repeating occurrence still to come, and the card payments they lead to.
-- Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token and the daily
-  allowance (`ai_use()`, 150 requests per person per day) before each call. Its tools (`tools.ts`) run in the app
+- Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token (`ai_use()`, which
+  also counts requests per person per day, with no limit) before each call. Its tools (`tools.ts`) run in the app
   (`run.ts`, `setup.ts`) on the signed-in person's data, so it sees only what they see. It can propose anything the
   person can do (entries, schedules, categories and budgets, sources, payment methods, spaces, profile) but never
   saves: every `propose_*` tool adds a change to a tray the person reviews (entry before/after from

@@ -148,6 +148,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     setThinking(true)
     const L = () => live.current
     const told = new Set<string>()
+    // what this reply has done so far: each look-up once, proposals counted by kind on one line each
+    const shown = new Set<string>()
+    const proposedN = new Map<string, { id: number; n: number }>()
     try {
       // as many steps as the work takes; the person can stop it
       for (;;) {
@@ -205,8 +208,20 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
             proposed.push(r.change)
             setTray((x) => [...x, r.change!])
           }
+          if (r.change) {
+            const kind = proposalKind(call.function.name)
+            const was = proposedN.get(kind)
+            const n = (was?.n ?? 0) + 1
+            const text = L().t(n === 1 ? `aiDid${kind}1` as const : `aiDid${kind}` as const, { n })
+            if (was) setMsgs((x) => x.map((m) => (m.id === was.id ? { ...m, text } : m)))
+            proposedN.set(kind, { id: was?.id ?? add({ role: 'tool', text }), n })
+            continue
+          }
           const label = toolLabel(call.function.name, call.function.arguments, r.content, L().t)
-          if (label) add({ role: 'tool', text: label })
+          if (label && !shown.has(label)) {
+            shown.add(label)
+            add({ role: 'tool', text: label })
+          }
         }
         // the answer to the question goes back as the tool's result, with the next message
         if (asked) return
@@ -218,7 +233,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       const { t } = L()
       add({
         role: 'error',
-        text: code === 'signed_out' ? t('aiErrSignedOut') : code === 'daily_limit' ? t('aiErrLimit') : code === 'model_busy' ? t('aiErrBusy')
+        text: code === 'signed_out' ? t('aiErrSignedOut') : code === 'model_busy' ? t('aiErrBusy')
           : code === 'not_configured' ? t('aiErrSetup') : code === 'offline' ? t('offline') : code === 'no_photo_model' ? t('aiErrNoPhotoModel')
           : code === 'empty' ? t('aiErrEmpty')
           // the code says where it went wrong, for fixing it
@@ -336,7 +351,14 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
 const thoughtTitle = (summary: string) =>
   (summary.match(/\*\*(.+?)\*\*/)?.[1] ?? summary.split('\n').find((l) => l.trim()) ?? '').trim().slice(0, 80)
 
-/** A quiet line saying what the assistant looked at. Proposals show in the tray instead; failed calls show nothing. */
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+/** Proposals are counted on one line per kind: new entries, edits, deletions, schedules, and setup (the rest). */
+function proposalKind(tool: string): 'Entry' | 'Edit' | 'Delete' | 'Schedule' | 'Setup' {
+  return tool === 'propose_entry' ? 'Entry' : tool === 'propose_edit' ? 'Edit' : tool === 'propose_delete' ? 'Delete' : tool === 'propose_schedule' ? 'Schedule' : 'Setup'
+}
+
+/** A quiet line saying what the assistant looked at, once per reply. Failed calls show nothing; the model tries again. */
 function toolLabel(name: string, args: string, result: string, t: ReturnType<typeof useI18n>['t']): string | null {
   if (result.startsWith('{"error"')) return null
   if (name === 'get_overview') return t('aiReadOverview')
@@ -347,7 +369,7 @@ function toolLabel(name: string, args: string, result: string, t: ReturnType<typ
       month = String(JSON.parse(args).month ?? '')
     } catch { /* no month */ }
     const [y, m] = month.split('-').map(Number)
-    return y && m ? t('aiReadMonth', { y, m }) : null
+    return y && m ? t('aiReadMonth', { y, m, mon: MONTHS_EN[m - 1] ?? m }) : null
   }
   return null
 }
@@ -457,7 +479,7 @@ export function AssistantSheet() {
         {a.thinking && last?.role !== 'ai' && (
           <div className="typing" role="status" aria-label={a.thought ?? t('thinking')}>
             <span className="dots"><i /><i /><i /></span>
-            {a.thought && <span className="thought">{a.thought}</span>}
+            <span className="thought">{a.thought ?? t('thinking')}</span>
           </div>
         )}
       </div>
