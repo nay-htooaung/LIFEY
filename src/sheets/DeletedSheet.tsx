@@ -13,9 +13,10 @@ interface Item {
 
 export function deletedCount(snap: ReturnType<typeof useStore>['snap']) {
   return snap.deletedSpaces.length + snap.sources.filter((s) => s.archived).length + snap.methods.filter((m) => m.archived).length
+    + snap.pots.filter((p) => p.archived).length
 }
 
-/** Everything deleted, in one place: spaces I own, and sources and methods in my spaces. Each can be restored. */
+/** Everything deleted, in one place: spaces I own, and sources, methods and 貯金 pots in my spaces. Each can be restored. */
 export function DeletedSheet() {
   const { snap } = useStore()
   const { submit, pending, busy } = useSubmit()
@@ -27,6 +28,8 @@ export function DeletedSheet() {
       .map((s) => ({ key: `src:${s.id}`, name: s.name, where: spaceName(s.spaceId), restore: (r) => r.setSourceArchived(s.id, false) }))],
     [t('methods'), snap.methods.filter((m) => m.archived)
       .map((m) => ({ key: `m:${m.id}`, name: m.name, where: spaceName(m.spaceId), restore: (r) => r.setMethodArchived(m.id, false) }))],
+    [t('savings'), snap.pots.filter((p) => p.archived)
+      .map((p) => ({ key: `pot:${p.id}`, name: p.name, where: spaceName(p.spaceId), restore: (r) => r.setPotArchived(p.id, false) }))],
   ]
   const tones = new Map(snap.deletedSpaces.map((s) => [`sp:${s.id}`, s.tone]))
 

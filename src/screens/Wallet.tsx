@@ -1,4 +1,4 @@
-import { creditLimitUse, creditOutstanding, netPosition, nextCardPayment, sourceBalance } from '../domain/money'
+import { creditLimitUse, creditOutstanding, netPosition, nextCardPayment, savedTotal, sourceBalance } from '../domain/money'
 import type { MethodKind, SourceKind } from '../domain/types'
 import { parts } from '../domain/dates'
 import { useI18n, yen } from '../i18n'
@@ -18,6 +18,8 @@ export function Wallet() {
   const sources = snap.sources.filter((s) => s.spaceId === space.id && !s.archived)
   const methods = snap.methods.filter((m) => m.spaceId === space.id && !m.archived)
   const pos = netPosition(space.id, snap, today)
+  // 貯金 is set aside on paper: what is left is free to use
+  const saved = savedTotal(space.id, snap)
   const dueLabel = (d: string) => {
     const [, m, dd] = parts(d)
     return `${month(m)} ${ordinal(dd)}`
@@ -29,6 +31,7 @@ export function Wallet() {
         <div className="label">{space.kind === 'personal' ? t('netWorth') : t('netShared')}</div>
         <div className="big num">{yen(pos.net)}</div>
         <div className="small muted">{t('inSources', { a: yen(pos.assets), b: yen(pos.credit) })}</div>
+        {saved !== 0 && <div className="small nw-split">{t('savedSplit', { a: yen(saved), b: yen(pos.net - saved) })}</div>}
       </div>
 
       <div className="sec-h"><h3>{t('sources')}</h3><button className="link" onClick={() => ui.open(<SourceSheet />)}>{t('addSource')}</button></div>

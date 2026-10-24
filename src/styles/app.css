@@ -4,6 +4,8 @@
 @media (display-mode: browser) { :root { --safe-b: 0px; } }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body, #root { height: 100%; }
+/* An app, not a page: no double-tap zoom, and the page itself never slides sideways (screens scroll inside .scroll). */
+html, body { overflow: hidden; touch-action: manipulation; }
 body { margin: 0; background: var(--bg); color: var(--ink); transition: background-color 0.25s, color 0.25s; font-family: var(--body); font-size: 15px; line-height: 1.5; overscroll-behavior: none; }
 button, input, select { font: inherit; color: inherit; }
 button { cursor: pointer; }
@@ -47,6 +49,8 @@ button { cursor: pointer; }
 }
 .scroll::-webkit-scrollbar { display: none; }
 .scroll > * { flex-shrink: 0; }
+/* a button on its own in a screen keeps its height (.btn grows inside a .btn-row) */
+.scroll > .btn { flex: none; }
 .nav {
   position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
   padding: 8px 14px calc(8px + var(--safe-b));
@@ -221,6 +225,11 @@ button { cursor: pointer; }
 .bud .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .bud .use { flex: none; font-size: 13px; }
 .bud .of { color: var(--muted); }
+.pot-s { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); }
+.pot-sum { display: flex; flex-direction: column; gap: 2px; }
+.pot-sum .big { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -0.03em; line-height: 1.05; }
+.pot-move .ch-x { align-self: center; height: 38px; }
+.nw-split { margin-top: 4px; color: var(--acc); font-weight: 600; }
 .bar { height: 8px; border-radius: 4px; background: var(--card-2); border: 1px solid var(--line); overflow: hidden; position: relative; }
 .bar i { display: block; height: 100%; border-radius: 4px; }
 .bar .pace { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: 0.6; }

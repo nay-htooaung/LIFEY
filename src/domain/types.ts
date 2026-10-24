@@ -109,6 +109,32 @@ export interface Flow {
   occurredOn: Day
 }
 
+/** 貯金: money set aside on paper in a space. Not tied to any account. */
+export interface Pot {
+  id: string
+  spaceId: string
+  name: string
+  color: string
+  /** The total to reach, or null for none. */
+  goal: number | null
+  /** To set aside each month; it comes off what is left to spend. 0 for none. */
+  monthly: number
+  sort: number
+  /** Deleted by the user: hidden, kept so its total stays, can be restored. */
+  archived: boolean
+}
+
+/** Money put into a pot (positive) or taken out (negative). */
+export interface PotMove {
+  id: string
+  potId: string
+  spaceId: string
+  amount: number
+  occurredOn: Day
+  note: string
+  createdBy: string
+}
+
 export interface Snapshot {
   me: Profile
   profiles: Record<string, Profile>
@@ -120,4 +146,7 @@ export interface Snapshot {
   categories: Category[]
   entries: Entry[]
   flows: Flow[]
+  /** Every pot of my spaces, archived ones too, and all their moves (totals need every month). */
+  pots: Pot[]
+  potMoves: PotMove[]
 }

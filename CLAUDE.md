@@ -77,7 +77,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   The user replaces it with `develop` at the v1.0.0 release (pushing `main` deploys prod). Other branches run
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
-- Latest migration: `20261023110000_ai_usage.sql`.
+- Latest migration: `20261024000000_savings.sql`.
 - Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
 - The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
@@ -116,7 +116,14 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     creator posts copies, for the whole month when it starts (`monthEnd`).
   - **Editing a schedule** goes through `scheduleChange`: it never edits records dated today or earlier, replaces
     later copies, and splits the schedule into a new template. "Edit this entry" on a running template splits too.
-  - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`); `accountForecast` sums it per source.
+  - **What is left this month** (`safeToSpend`, Today): the space's category budgets, less what was spent in them,
+    the repeating bills in them still due this month, and what 貯金 sets aside; the daily figure spreads it over the days left.
+  - **貯金 pots** (`pots`, `pot_moves`) belong to a space like categories: money set aside on paper, not an account.
+    Moves are logged by hand (+ button, 貯金 tab; positive saves, negative takes out); totals are summed, never
+    stored. Each pot's monthly amount (or more, if more went in this month) comes off what is left to spend
+    (`setAside`). お財布 splits 純資産 into うち貯金 and 自由に使えるお金. Pots are archived, never deleted.
+  - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`). The balance card under it projects each account to the end
+    of next month (`projection`): every repeating occurrence still to come, and the card payments they lead to.
 - Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token and the daily
   allowance (`ai_use()`, 150 requests per person per day) before each call. Its tools (`tools.ts`) run in the app
   (`run.ts`, `setup.ts`) on the signed-in person's data, so it sees only what they see. It can propose anything the

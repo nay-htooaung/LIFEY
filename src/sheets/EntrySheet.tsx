@@ -7,6 +7,7 @@ import { useI18n, yen } from '../i18n'
 import { toneVar, useStore, useSubmit } from '../data/store'
 import { CategorySheet } from './CategorySheet'
 import { MethodSheet } from './MethodSheet'
+import { PotMoveForm } from './PotSheet'
 import { SourceSheet } from './SourceSheet'
 import { IconLock } from '../ui/icons'
 import { useUI } from '../ui/ui'
@@ -59,6 +60,9 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
   const [tags, setTags] = useState((init.tags ?? []).join(', '))
   const [date, setDate] = useState(init.occurredOn ?? today)
   const [repeat, setRepeat] = useState<Repeat>(base?.repeat ?? 'none')
+  // the 貯金 tab: only when logging something new
+  const [saving, setSaving] = useState(false)
+  const canSave = !editId && !scheduleOf && !onDraft
 
   const target = snap.spaces.find((s) => s.id === spaceId) ?? space
   const cats = kind === 'transfer' ? [] : snap.categories.filter((c) => c.spaceId === spaceId && c.kind === kind)
@@ -104,6 +108,7 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
     })
   }
   const switchKind = (k: EntryKind) => {
+    setSaving(false)
     setKind(k)
     setField('amount')
   }
@@ -157,10 +162,12 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
         </div>
       )}
       <div className="seg" role="group">
-        <button aria-pressed={kind === 'expense'} onClick={() => switchKind('expense')}>{t('expense')}</button>
-        <button aria-pressed={kind === 'income'} onClick={() => switchKind('income')}>{t('incomeT')}</button>
-        <button aria-pressed={kind === 'transfer'} onClick={() => switchKind('transfer')}>{t('transfer')}</button>
+        <button aria-pressed={!saving && kind === 'expense'} onClick={() => switchKind('expense')}>{t('expense')}</button>
+        <button aria-pressed={!saving && kind === 'income'} onClick={() => switchKind('income')}>{t('incomeT')}</button>
+        <button aria-pressed={!saving && kind === 'transfer'} onClick={() => switchKind('transfer')}>{t('transfer')}</button>
+        {canSave && <button aria-pressed={saving} onClick={() => setSaving(true)}>{t('savings')}</button>}
       </div>
+      {saving ? <PotMoveForm initialSpaceId={spaceId} /> : <>
       {kind === 'transfer' ? (
         // two numbers, one keypad: tap a number to type into it; the one being typed is outlined
         <div className="amounts">
@@ -256,6 +263,7 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
       <button className="btn primary big" disabled={!ready || !!pending} aria-busy={pending === 'save'} onClick={save}>
         {series && repeat === 'none' ? t('stopRepeat') : !n ? t('enterAmt') : onDraft ? t('useDraft') : series ? t('saveSchedule') : editId ? t('saveX', { a: yen(n) }) : kind === 'transfer' ? t('moveX', { a: yen(n + feeN) }) : t('logX', { a: yen(n) })}
       </button>
+      </>}
     </>
   )
 }

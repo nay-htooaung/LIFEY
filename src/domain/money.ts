@@ -1,6 +1,6 @@
 import { addDays, dayInMonth, daysBetween, daysInMonth, monthKey, parts } from './dates'
-import { isTemplate, nextOccurrence } from './recurring'
-import type { Category, Day, Entry, Flow, MoneyKind, PaymentMethod, Snapshot, Source } from './types'
+import { isTemplate, nextOccurrence, occurrence } from './recurring'
+import type { Category, Day, Entry, Flow, MoneyKind, PaymentMethod, Pot, PotMove, Snapshot, Source } from './types'
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 
@@ -185,67 +185,106 @@ export interface AccountForecast {
   now: number
   in: number
   out: number
-  /** Balance once every upcoming item touching this account has gone through. */
+  /** Balance once everything coming has gone through. */
   after: number
 }
 
+/** The last day of next month: how far the balance projection looks. */
+export const nextMonthEnd = (on: Day): Day => {
+  const [y, m] = parts(on)
+  return dayInMonth(y, m + 1, 31)
+}
+
 /**
- * Upcoming items summed per account: several cards paid from one bank show as one line for that bank.
- * Items that move no account I can see (bills charged to a card, someone else's account) are left out.
+ * Flows as they will be by `until`: the real ones, plus every repeating entry still to come (each occurrence,
+ * not only the next one) that has not been posted yet. Card payments follow from these through the statements.
  */
-export function accountForecast(items: Upcoming[], s: Snapshot, on: Day): AccountForecast[] {
-  const by = new Map<string, AccountForecast>()
-  const add = (sourceId: string | null | undefined, inAmt: number, outAmt: number) => {
-    const source = sourceId ? s.sources.find((x) => x.id === sourceId) : undefined
-    if (!source) return
-    let f = by.get(source.id)
-    if (!f) {
-      const now = sourceBalance(source, s.methods, s.flows, on)
-      f = { source, now, in: 0, out: 0, after: now }
-      by.set(source.id, f)
+export function projectedFlows(s: Snapshot, on: Day, until: Day): Flow[] {
+  const posted = new Set(s.entries.filter((e) => e.repeatOf).map((e) => `${e.repeatOf}|${e.occurredOn}`))
+  const coming: Entry[] = []
+  for (const t of s.entries.filter(isTemplate)) {
+    for (let n = 1; ; n++) {
+      const d = occurrence(t, n)
+      if (d > until) break
+      if (d > on && !posted.has(`${t.id}|${d}`)) coming.push({ ...t, occurredOn: d, repeat: 'none', repeatOf: t.id })
     }
-    f.in += inAmt
-    f.out += outAmt
-    f.after = f.now + f.in - f.out
   }
-  for (const item of items) {
-    if (item.kind === 'transfer') {
-      add(item.sourceId, 0, item.amount + (item.fee ?? 0))
-      add(item.toSourceId, item.amount, 0)
-    } else if (item.kind === 'income') add(item.sourceId, item.amount, 0)
-    else add(item.sourceId, 0, item.amount)
-  }
-  return [...by.values()]
+  return [...s.flows, ...flowsOf(coming)]
 }
 
 /**
- * The forecast shown in a space. An account's future depends on everything that touches it, so items from
- * every space I belong to are summed (a personal bank also pays personal bills and cards). Only accounts that
- * matter here are listed: the space's own accounts with anything coming, and any its upcoming items move money through.
+ * Each account's balance at `until` (the end of next month by default): today's balance, what comes in and
+ * goes out by then (repeating entries and card payments, across every space that touches the account), and
+ * what is left. Lists the space's own accounts and the ones its repeating entries and cards move money through.
  */
-export function spaceForecast(spaceId: string, s: Snapshot, on: Day): AccountForecast[] {
-  const all = s.spaces.flatMap((sp) => upcoming(sp.id, s, on))
-  const here = all.filter((u) => s.entries.some((e) => e.id === u.templateId && e.spaceId === spaceId) || isCardIn(u, spaceId, s))
-  const touched = new Set(here.flatMap((u) => [u.sourceId, u.toSourceId]).filter(Boolean))
-  return accountForecast(all, s, on).filter((f) => f.source.spaceId === spaceId || touched.has(f.source.id))
+export function projection(spaceId: string, s: Snapshot, on: Day, until: Day = nextMonthEnd(on)): AccountForecast[] {
+  const flows = projectedFlows(s, on, until)
+  const methodSource = new Map(s.methods.map((m) => [m.id, m.sourceId]))
+  const touched = new Set([
+    ...s.entries.filter((e) => e.spaceId === spaceId && isTemplate(e))
+      .flatMap((e) => [e.sourceId, e.toSourceId, e.methodId ? methodSource.get(e.methodId) : null]),
+    ...s.methods.filter((m) => m.spaceId === spaceId && !m.archived).map((m) => m.sourceId),
+  ])
+  return s.sources
+    .filter((src) => !src.archived && (src.spaceId === spaceId || touched.has(src.id)))
+    .map((source) => {
+      const now = sourceBalance(source, s.methods, s.flows, on)
+      const after = sourceBalance(source, s.methods, flows, until)
+      // money landing in the account directly; everything else that changes it goes out
+      const inAmt = sum(flows.filter((f) => f.sourceId === source.id && f.kind === 'income' && f.occurredOn > on && f.occurredOn <= until).map((f) => f.amount))
+      return { source, now, in: inAmt, out: now + inAmt - after, after }
+    })
 }
-
-/** A card payment belongs to the space of its card. */
-const isCardIn = (u: Upcoming, spaceId: string, s: Snapshot) =>
-  u.kind === 'card' && s.methods.some((m) => `c-${m.id}` === u.key && m.spaceId === spaceId)
 
 export interface SafeToSpend {
   budget: number
   spent: number
   committed: number
+  /** Set aside for 貯金 this month (each pot's monthly amount, or more if more went in). */
+  saving: number
+  /** Of that, what is still to be put into the pots. */
+  savingDue: number
   left: number
   today: number
   daysLeft: number
 }
 
+// ------------------------------------------------------------ 貯金
+
+/** All that is in a pot: everything put in, less everything taken out. */
+export const potTotal = (pot: Pick<Pot, 'id'>, moves: PotMove[]) => sum(moves.filter((m) => m.potId === pot.id).map((m) => m.amount))
+
+/** What went into a pot this month, less what came out. */
+export const potThisMonth = (pot: Pick<Pot, 'id'>, moves: PotMove[], on: Day) =>
+  sum(moves.filter((m) => m.potId === pot.id && monthKey(m.occurredOn) === monthKey(on)).map((m) => m.amount))
+
 /**
- * What can be spent today without breaking this month's budgets: remaining budget minus bills already
- * scheduled for the rest of the month, spread evenly over the days left (today included).
+ * 貯金 this month in a space: each pot sets aside its monthly amount, or what went in if that is more.
+ * `due` is what is still to be put in to reach the monthly amounts.
+ */
+export function setAside(spaceId: string, s: Pick<Snapshot, 'pots' | 'potMoves'>, on: Day) {
+  const pots = s.pots.filter((p) => p.spaceId === spaceId && !p.archived)
+  const month = pots.map((p) => Math.max(0, potThisMonth(p, s.potMoves, on)))
+  return {
+    reserve: sum(pots.map((p, i) => Math.max(p.monthly, month[i]))),
+    due: sum(pots.map((p, i) => Math.max(0, p.monthly - month[i]))),
+  }
+}
+
+/** Everything in a space's pots, deleted ones included (the money is still set aside until taken out). */
+export const savedTotal = (spaceId: string, s: Pick<Snapshot, 'pots' | 'potMoves'>) =>
+  sum(s.pots.filter((p) => p.spaceId === spaceId).map((p) => potTotal(p, s.potMoves)))
+
+/** Who put how much into a pot, all time, largest first. */
+export function potShares(pot: Pick<Pot, 'id'>, moves: PotMove[]) {
+  const by = new Map<string, number>()
+  for (const m of moves.filter((x) => x.potId === pot.id)) by.set(m.createdBy, (by.get(m.createdBy) ?? 0) + m.amount)
+  return [...by].map(([id, amount]) => ({ id, amount })).sort((a, b) => b.amount - a.amount)
+}
+
+/**
+ * What can be spent without breaking this month's budgets: the budgets, less what was spent, the bills still
+ * scheduled this month and what this month sets aside for 貯金; spread evenly over the days left (today included).
  */
 export function safeToSpend(spaceId: string, s: Snapshot, on: Day): SafeToSpend {
   const budgeted = s.categories.filter((c) => c.spaceId === spaceId && c.kind === 'expense' && c.monthlyBudget > 0)
@@ -261,9 +300,10 @@ export function safeToSpend(spaceId: string, s: Snapshot, on: Day): SafeToSpend 
   )
   const [y, m, d] = parts(on)
   const daysLeft = daysInMonth(y, m) - d + 1
-  const left = budget - spent - committed
+  const { reserve: saving, due: savingDue } = setAside(spaceId, s, on)
+  const left = budget - spent - committed - saving
   const today = Math.floor((left + spentToday) / daysLeft - spentToday)
-  return { budget, spent, committed, left, today, daysLeft }
+  return { budget, spent, committed, saving, savingDue, left, today, daysLeft }
 }
 
 export function categorySpent(entries: Entry[], category: Category, on: Day): number {

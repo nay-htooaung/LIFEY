@@ -451,5 +451,62 @@ do $$ begin
   raise exception 'TEST FAIL: anon used the assistant';
 exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 
+
+reset role;
+
+-- 貯金: a pot belongs to its space; members see it and its moves, strangers do not, nobody deletes a pot
+select t.as_user('you');
+set role authenticated;
+with x as (
+  insert into public.pots (space_id, name, goal, monthly) values (current_setting('t.home')::uuid, '旅行', 300000, 20000) returning id
+)
+select set_config('t.pot', (select id::text from x), false);
+insert into public.pot_moves (pot_id, space_id, amount, created_by)
+  values (current_setting('t.pot')::uuid, current_setting('t.home')::uuid, 20000, current_setting('t.sam')::uuid);
+select t.ok((select created_by from public.pot_moves where pot_id = current_setting('t.pot')::uuid) = current_setting('t.you')::uuid,
+            'a move is always logged as its maker');
+do $$ begin
+  insert into public.pots (space_id, name)
+    values ((select id from public.spaces where kind = 'personal' and owner_id = current_setting('t.sam')::uuid), 'Not yours');
+  raise exception 'TEST FAIL: made a pot in someone else''s space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.pot_moves (pot_id, space_id, amount)
+    values (current_setting('t.pot')::uuid, (select id from public.spaces where kind = 'personal' and owner_id = auth.uid()), 1000);
+  raise exception 'TEST FAIL: logged a move under another space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.pot_moves (pot_id, space_id, amount) values (current_setting('t.pot')::uuid, current_setting('t.home')::uuid, 0);
+  raise exception 'TEST FAIL: logged a move of 0';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  delete from public.pots where id = current_setting('t.pot')::uuid;
+  raise exception 'TEST FAIL: deleted a pot';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+select t.ok((select count(*) from public.pots where id = current_setting('t.pot')::uuid) = 1, 'a pot cannot be deleted, only archived');
+
+select t.as_user('sam');
+select t.ok((select count(*) from public.pots where id = current_setting('t.pot')::uuid) = 1, 'members see a shared pot');
+select t.ok((select sum(amount) from public.pot_moves where pot_id = current_setting('t.pot')::uuid) = 20000, 'members see its moves');
+update public.pot_moves set amount = 1 where pot_id = current_setting('t.pot')::uuid;
+delete from public.pot_moves where pot_id = current_setting('t.pot')::uuid;
+select t.ok((select sum(amount) from public.pot_moves where pot_id = current_setting('t.pot')::uuid) = 20000, 'members cannot change or delete others'' moves');
+insert into public.pot_moves (pot_id, space_id, amount) values (current_setting('t.pot')::uuid, current_setting('t.home')::uuid, -5000);
+update public.pots set archived = true where id = current_setting('t.pot')::uuid;
+select t.ok((select archived from public.pots where id = current_setting('t.pot')::uuid), 'members can archive a shared pot');
+
+select t.as_user('eve');
+select t.ok((select count(*) from public.pots where id = current_setting('t.pot')::uuid) = 0, 'strangers do not see a pot');
+select t.ok((select count(*) from public.pot_moves where pot_id = current_setting('t.pot')::uuid) = 0, 'strangers do not see its moves');
+do $$ begin
+  insert into public.pot_moves (pot_id, space_id, amount) values (current_setting('t.pot')::uuid, current_setting('t.home')::uuid, 100);
+  raise exception 'TEST FAIL: a stranger put money in a pot';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+reset role;
+set role anon;
+do $$ begin
+  perform 1 from public.pots;
+  raise exception 'TEST FAIL: anon read pots';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 reset role;
 \echo 'privacy tests passed'
