@@ -371,6 +371,7 @@ details[open] summary { margin-bottom: 10px; }
 .ch-main .t { display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 14px; min-width: 0; }
 .ch-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ch-main .s { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 4px; min-width: 0; white-space: nowrap; overflow: hidden; }
+.ch-main .s.ch-detail { white-space: normal; line-height: 1.35; display: block; }
 .ch-via { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ch-main s, .receipt .struck { color: var(--muted); opacity: 0.8; }
 .ch-main .amt { display: flex; flex-direction: column; align-items: flex-end; font-size: 14px; white-space: nowrap; }

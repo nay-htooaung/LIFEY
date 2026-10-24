@@ -118,9 +118,14 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`); `accountForecast` sums it per source.
 - Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token and the daily
   allowance (`ai_use()`, 150 requests per person per day) before each call. Its tools (`tools.ts`) run in the app
-  (`run.ts`) on the signed-in person's data, so it sees only what they see. It never saves: `propose_*` tools fill a
-  tray of changes the person reviews (before/after from `domain/changes.ts`) and applies with a long press; Undo reverses them.
-  Repeating entries are left to Edit schedule.
+  (`run.ts`, `setup.ts`) on the signed-in person's data, so it sees only what they see. It can propose anything the
+  person can do (entries, schedules, categories and budgets, sources, payment methods, spaces, profile) but never
+  saves: every `propose_*` tool adds a change to a tray the person reviews (entry before/after from
+  `domain/changes.ts`) and applies with a long press, setup first; a proposal can use what an earlier one creates by
+  its `new:…` id. Undo reverses what the app can (not leaving a space, removing a member, a new invite code,
+  deleting a category, a schedule change). The system prompt never changes; the app guide (`appGuide`, with the
+  screens' real names, today, language and space) goes with the first message of a conversation only, and later
+  moves (space, date, language) are told as `[app]` notes, so each conversation's requests share a cacheable start.
 - Privacy: other members never see your personal methods or sources, only "<name>'s personal funds".
   Members may update only a space's `name` and `tone` (column grant).
 

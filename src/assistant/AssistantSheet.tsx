@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { changeImpact, type Change } from '../domain/changes'
 import { asNew } from '../domain/recurring'
-import type { Entry, NewEntry } from '../domain/types'
+import type { Category, Entry, NewEntry } from '../domain/types'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useLookups, usePersonName, useStore, useSubmit } from '../data/store'
 import { supabase } from '../data/supabase'
@@ -12,6 +12,7 @@ import { IconCamera, IconChevron, IconImage, IconSend, IconSpark, IconUndo, Icon
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
 import { shrinkPhoto } from './photo'
+import type { Proposal, SetupChange, Undo } from './setup'
 import { ChatError, dropOldPhotos, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 import type { ChatContext } from './tools'
 
@@ -24,13 +25,14 @@ type Msg =
   /** A question with tappable answers; `answer` is set once answered. */
   | { id: number; role: 'ask'; text: string; options: string[]; answer?: string }
   /** Applied changes, with what Undo needs: the ids the new entries got. */
-  | { id: number; role: 'receipt'; changes: Change[]; added: string[]; undone?: boolean }
+  /** `undos` follows the setup changes in order; null where the app cannot undo one (leaving a space, …). */
+  | { id: number; role: 'receipt'; changes: Proposal[]; added: string[]; undos: Undo[]; undone?: boolean }
   | { id: number; role: 'error'; text: string }
 
 type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, 'id'> : never) : never
 
 /** A proposed change in the tray; `skip` leaves it out when applying. */
-type Pending = Change & { skip?: boolean }
+type Pending = Proposal & { skip?: boolean }
 
 interface ModelList { models: { id: string; name: string; provider: 'go' | 'gemini' }[]; recommended: string | null }
 
@@ -50,7 +52,7 @@ interface Assistant {
   retry(): void
   setTray(fn: (tray: Pending[]) => Pending[]): void
   /** Moves the applied changes from the tray into a receipt in the chat. */
-  applied(changes: Change[], added: string[], leftOut: number): void
+  applied(changes: Proposal[], added: string[], undos: Undo[], leftOut: number): void
   discarded(): void
   undone(receiptId: number): void
   reset(): void
@@ -98,6 +100,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const history = useRef<ApiMsg[]>([])
   // the open ask_user call, answered by the next message
   const asking = useRef<{ callId: string; msgId: number } | null>(null)
+  // the tray as tools see it, including what this reply has proposed so far
+  const trayRef = useRef(tray)
+  trayRef.current = tray
+  // where the conversation started (the guide in its first message says so); later moves are told as notes
+  const opening = useRef<ChatContext | null>(null)
+  const lastTold = useRef<ChatContext | null>(null)
   // what happened in the app since the last message (applied, discarded), told to the model with the next one
   const notes = useRef<string[]>([])
   const seen = useRef(new Map<string, Entry>())
@@ -139,7 +147,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         // the Worker checks who is asking; without a session (demo mode) it answers signed_out
         // each wait has a limit, so a stuck step ends in an error with its code instead of loading forever
         const token = supabase ? (await within(supabase.auth.getSession(), 10_000, 'session_timeout')).data.session?.access_token : undefined
-        const context: ChatContext = { today: L().today, locale: L().locale, space: { id: L().space.id, name: L().space.name } }
+        const context = opening.current!
         const res = await within(fetch('/api/chat', {
           method: 'POST', signal: ctl.signal,
           headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
@@ -164,7 +172,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         history.current.push({ role: 'assistant', content: out.text || null, ...(out.toolCalls.length ? { tool_calls: out.toolCalls } : {}) })
         if (!out.toolCalls.length) return
 
-        const ctx: ToolCtx = { ...L(), seen: seen.current }
+        const proposed: Proposal[] = trayRef.current.filter((p) => !p.skip)
+        const ctx: ToolCtx = { ...L(), seen: seen.current, tray: proposed }
         let asked = false
         for (const call of out.toolCalls) {
           if (call.function.name === 'ask_user') {
@@ -184,7 +193,10 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           const r = await runTool(call.function.name, call.function.arguments, ctx)
           if (turn.current !== n) return
           history.current.push({ role: 'tool', tool_call_id: call.id, content: r.content })
-          if (r.change) setTray((x) => [...x, r.change!])
+          if (r.change) {
+            proposed.push(r.change)
+            setTray((x) => [...x, r.change!])
+          }
           const label = toolLabel(call.function.name, call.function.arguments, r.content, L().t)
           if (label) add({ role: 'tool', text: label })
         }
@@ -225,6 +237,17 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       // a photo on its own asks to log it
       const said = text.trim() || (photo ? live.current.t('receiptPrompt') : '')
       if (!said || thinking) return
+      const { today, locale, space } = live.current
+      const now: ChatContext = { today, locale, space: { id: space.id, name: space.name } }
+      const was = lastTold.current
+      if (!was) opening.current = now
+      else {
+        // the first message's guide stays as it was, so the cache holds; what changed since goes in a note
+        if (was.space.id !== space.id) notes.current.push(`[app] The person is now in the space "${space.name}" (id ${space.id}).`)
+        if (was.today !== today) notes.current.push(`[app] Today is now ${today}.`)
+        if (was.locale !== locale) notes.current.push(`[app] Reply in ${locale === 'ja' ? 'Japanese' : 'English'} from now on.`)
+      }
+      lastTold.current = now
       const ask = asking.current
       asking.current = null
       const user = (words: string): ApiMsg => ({
@@ -246,9 +269,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       setMsgs((x) => (x.at(-1)?.role === 'error' ? x.slice(0, -1) : x))
       void run()
     },
-    applied(changes, added, leftOut) {
+    applied(changes, added, undos, leftOut) {
       setTray([])
-      add({ role: 'receipt', changes, added })
+      add({ role: 'receipt', changes, added, undos })
       notes.current.push(`[app] The person applied ${changes.length} proposed change(s)${leftOut ? ` and left out ${leftOut}` : ''}.`)
     },
     discarded() {
@@ -263,6 +286,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       turn.current++
       abort.current?.abort()
       history.current = []
+      opening.current = null
+      lastTold.current = null
       asking.current = null
       notes.current = []
       seen.current.clear()
@@ -459,27 +484,50 @@ function Tray() {
   const count = a.tray.length
   useEffect(() => setOpen(true), [count])
   const live = a.tray.filter((c) => !c.skip)
+  const entryChanges = live.filter((c): c is Change & { skip?: boolean } => c.op !== 'setup')
 
+  // an entry change can be adjusted in the entry sheet, unless it uses something the tray has yet to create
+  const editable = (c: Pending) => c.op !== 'setup' && c.op !== 'delete' && !Object.values(c.after).some((v) => typeof v === 'string' && v.startsWith('new:'))
   const edit = (c: Pending) => {
-    if (c.op === 'delete') return
+    if (!editable(c) || c.op === 'setup' || c.op === 'delete') return
     ui.push(<EntrySheet prefill={c.after} onDraft={(after) => a.setTray((tr) => tr.map((x) => (x.key === c.key ? { ...x, after } as Pending : x)))} />, toneVar(space))
   }
 
   const apply = async () => {
     const known = new Set(snap.entries.map((e) => e.id))
+    // setup first, so entries can use what it creates; the new:… ids become real ones as things are created
+    const setups = live.filter((c): c is SetupChange & { skip?: boolean } => c.op === 'setup')
     const r = await submit('apply', async (repo) => {
-      for (const c of live) {
-        if (c.op === 'add') await repo.addEntries([c.after])
-        else if (c.op === 'edit') await repo.updateEntry(c.before.id, c.after)
+      const ids = new Map<string, string>()
+      const id = (x: string) => {
+        if (!x.startsWith('new:')) return x
+        const real = ids.get(x)
+        if (!real) throw new Error(t('aiNeedsLeftOut'))
+        return real
+      }
+      const real = (e: NewEntry): NewEntry => ({
+        ...e, spaceId: id(e.spaceId), categoryId: e.categoryId && id(e.categoryId), methodId: e.methodId && id(e.methodId),
+        sourceId: e.sourceId && id(e.sourceId), toSourceId: e.toSourceId && id(e.toSourceId),
+      })
+      const undos: Undo[] = []
+      for (const c of setups) {
+        const done = await c.run(repo, id)
+        if (c.draft && done.created) ids.set(c.draft.id, done.created)
+        undos.push(done.undo)
+      }
+      const adds: NewEntry[] = []
+      for (const c of entryChanges) {
+        if (c.op === 'add') adds.push(real(c.after))
+        if (c.op === 'add') await repo.addEntries([adds.at(-1)!])
+        else if (c.op === 'edit') await repo.updateEntry(c.before.id, real(c.after))
         else await repo.deleteEntry(c.before.id)
       }
       // what Undo needs: the ids the new entries got
-      const adds = live.flatMap((c) => (c.op === 'add' ? [c.after] : []))
-      if (!adds.length) return []
+      if (!adds.length) return { added: [], undos }
       const fresh = (await repo.load()).entries.filter((e) => !known.has(e.id))
-      return adds.flatMap((n) => fresh.filter((e) => sameEntry(e, n)).slice(0, 1).map((e) => e.id))
+      return { added: adds.flatMap((n) => fresh.filter((e) => sameEntry(e, n)).slice(0, 1).map((e) => e.id)), undos }
     }, t('appliedN', { n: live.length }))
-    if (r?.ok) a.applied(live.map(({ skip: _s, ...c }) => c as Change), r.value, a.tray.length - live.length)
+    if (r?.ok) a.applied([...setups, ...entryChanges].map(({ skip: _s, ...c }) => c as Proposal), r.value.added, r.value.undos, a.tray.length - live.length)
   }
 
   const n = live.length
@@ -493,13 +541,15 @@ function Tray() {
       {open && (
         <div className="tray-b">
           <div className="ch-list">
-            {a.tray.map((c) => (
-              <ChangeRow key={c.key} c={c} onEdit={() => edit(c)}
-                onSkip={() => a.setTray((tr) => tr.map((x) => (x.key === c.key ? { ...x, skip: !x.skip } : x)))} />
-            ))}
+            {a.tray.map((c) => {
+              const skip = () => a.setTray((tr) => tr.map((x) => (x.key === c.key ? { ...x, skip: !x.skip } : x)))
+              return c.op === 'setup'
+                ? <SetupRow key={c.key} c={c} onSkip={skip} />
+                : <ChangeRow key={c.key} c={c} editable={editable(c)} onEdit={() => edit(c)} onSkip={skip} />
+            })}
           </div>
-          {a.tray.some((c) => c.op !== 'delete') && <p className="chat-note">{t('tapToEdit')}</p>}
-          <Impact changes={live} />
+          {a.tray.some(editable) && <p className="chat-note">{t('tapToEdit')}</p>}
+          <Impact changes={entryChanges} />
         </div>
       )}
       {open && (
@@ -512,23 +562,48 @@ function Tray() {
   )
 }
 
-function ChangeRow({ c, onEdit, onSkip }: { c: Pending; onEdit(): void; onSkip(): void }) {
+/** A change to the setup (a category, source, method, space, the profile or a schedule), as one row. */
+function SetupRow({ c, onSkip }: { c: SetupChange & { skip?: boolean }; onSkip(): void }) {
+  const { t } = useI18n()
+  const [op, tone] = c.tone === 'add' ? [t('opAdd'), 'pos'] : c.tone === 'edit' ? [t('opEdit'), 'warn'] : c.tone === 'restore' ? [t('opRestore'), 'pos'] : [t('opDel'), 'neg']
+  const glyph = { category: '#', source: '¥', method: '▭', space: '◎', profile: '☺', schedule: '↻' }[c.what]
+  return (
+    <div className={`ch setup ${c.tone}` + (c.skip ? ' skip' : '')}>
+      <div className="ch-main">
+        <Glyph category={{ name: glyph, color: 'var(--card-2)' }} />
+        <div className="main">
+          <div className="t"><span className={`pill ${tone}`}>{c.skip ? t('leftOut') : op}</span> <span className="ch-t">{c.title}</span></div>
+          <div className="s ch-detail">{c.detail}</div>
+        </div>
+      </div>
+      <button className="ch-x" aria-label={c.skip ? t('putBack') : t('leaveOut')} onClick={onSkip}>{c.skip ? <IconUndo /> : <IconX />}</button>
+    </div>
+  )
+}
+
+function ChangeRow({ c, editable, onEdit, onSkip }: { c: Change & { skip?: boolean }; editable: boolean; onEdit(): void; onSkip(): void }) {
+  const a = useAssistant()
   const { snap, today } = useStore()
-  const { cat } = useLookups()
+  const { cat, method, source } = useLookups()
   const { t, dateShort } = useI18n()
   const paidWith = usePaidWith()
   const now: Entry = c.op === 'delete' ? c.before : { ...c.after, id: '', createdBy: c.op === 'edit' ? c.before.createdBy : snap.me.id }
   const was = c.op === 'edit' ? c.before : undefined
-  const k = now.categoryId ? cat.get(now.categoryId) : undefined
+  // something the tray will create goes by the name it is proposed with
+  const draft = (id: string | null) => (id?.startsWith('new:') ? a.tray.find((p) => p.op === 'setup' && p.draft?.id === id) as SetupChange | undefined : undefined)?.draft
+  const k = now.categoryId ? (cat.get(now.categoryId) ?? (draft(now.categoryId) as Category | undefined)) : undefined
   const title = now.name || now.note || (now.kind === 'transfer' ? t('transfer') : k?.name) || '—'
   const when = (d: string) => (d === today ? t('today') : dateShort(d))
-  const via = paidWith(now).label
+  const named = [now.methodId ?? now.sourceId, now.toSourceId].map(draft)
+  const via = named.some(Boolean)
+    ? [now.methodId ?? now.sourceId, ...(now.kind === 'transfer' ? [now.toSourceId] : [])].map((id, i) => named[i]?.name ?? method.get(id ?? '')?.name ?? source.get(id ?? '')?.name ?? '—').join(' → ')
+    : paidWith(now).label
   const viaWas = was && paidWith(was).label
   const sign = now.kind === 'expense' ? '-' : now.kind === 'income' ? '+' : ''
   const [op, tone] = c.op === 'add' ? [t('opAdd'), 'pos'] : c.op === 'edit' ? [t('opEdit'), 'warn'] : [t('opDel'), 'neg']
   return (
     <div className={`ch ${c.op}` + (c.skip ? ' skip' : '')}>
-      <button className="ch-main" disabled={c.op === 'delete' || c.skip} onClick={onEdit}>
+      <button className="ch-main" disabled={!editable || c.skip} onClick={onEdit}>
         <Glyph category={now.kind === 'transfer' ? { name: '⇄', color: 'var(--card-2)' } : k} />
         <div className="main">
           <div className="t"><span className={`pill ${tone}`}>{c.skip ? t('leftOut') : op}</span> <span className="ch-t">{title}</span></div>
@@ -632,6 +707,9 @@ function Receipt({ msg }: { msg: Extract<Msg, { role: 'receipt' }> }) {
   const { cat } = useLookups()
   const { t } = useI18n()
   const n = msg.changes.length
+  const setups = msg.changes.filter((c): c is SetupChange => c.op === 'setup')
+  // some setup changes cannot be taken back (leaving a space, a new invite code, deleting a category, a schedule)
+  const partly = msg.undos.some((u) => !u)
   const undo = async () => {
     const r = await submit('undo', async (repo) => {
       for (const c of [...msg.changes].reverse()) {
@@ -639,6 +717,7 @@ function Receipt({ msg }: { msg: Extract<Msg, { role: 'receipt' }> }) {
         else if (c.op === 'delete') await repo.addEntries([asNew(c.before)])
       }
       for (const id of msg.added) await repo.deleteEntry(id)
+      for (const u of [...msg.undos].reverse()) if (u) await u(repo)
     }, t('undone'))
     if (r?.ok) a.undone(msg.id)
   }
@@ -650,7 +729,14 @@ function Receipt({ msg }: { msg: Extract<Msg, { role: 'receipt' }> }) {
           <button className="link" disabled={busy} aria-busy={pending === 'undo'} onClick={undo}><IconUndo className="ico" /> {t('undo')}</button>
         )}
       </div>
+      {setups.map((c, i) => (
+        <div key={c.key} className="receipt-r">
+          <span className={c.tone === 'delete' ? 'struck' : ''}>{c.title}</span>
+          <span>{msg.undos[i] ? c.detail.split(' · ')[0] : t('cannotUndo')}</span>
+        </div>
+      ))}
       {msg.changes.map((c) => {
+        if (c.op === 'setup') return null
         const e = c.op === 'delete' ? c.before : c.after
         const k = e.categoryId ? cat.get(e.categoryId) : undefined
         return (
@@ -660,6 +746,7 @@ function Receipt({ msg }: { msg: Extract<Msg, { role: 'receipt' }> }) {
           </div>
         )
       })}
+      {partly && !msg.undone && <p className="chat-note">{t('partlyUndo')}</p>}
     </div>
   )
 }
