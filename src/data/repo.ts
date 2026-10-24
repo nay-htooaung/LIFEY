@@ -1,9 +1,11 @@
 import { asNew, type ScheduleChange } from '../domain/recurring'
-import type { Category, Entry, NewEntry, PaymentMethod, Profile, Snapshot, Source, Tone } from '../domain/types'
+import type { Category, Entry, NewEntry, PaymentMethod, Pot, PotMove, Profile, Snapshot, Source, Tone } from '../domain/types'
 
 export type NewSource = Omit<Source, 'id' | 'createdOn' | 'archived' | 'fixed'>
 export type NewMethod = Omit<PaymentMethod, 'id' | 'archived'>
 export type CategoryInput = Omit<Category, 'id'> & { id?: string }
+export type PotInput = Omit<Pot, 'id' | 'archived'> & { id?: string }
+export type NewPotMove = Omit<PotMove, 'id' | 'createdBy'>
 
 /** Everything the UI needs from storage. Demo mode and Supabase mode both implement it. */
 export interface Repo {
@@ -27,6 +29,13 @@ export interface Repo {
   updateMethod(id: string, method: NewMethod): Promise<void>
   saveCategory(category: CategoryInput): Promise<string>
   archiveCategory(id: string): Promise<void>
+  /** Creates (no id) or changes a pot; returns its id. */
+  savePot(pot: PotInput): Promise<string>
+  /** Deletes (true) or restores (false). Its moves stay. */
+  setPotArchived(id: string, archived: boolean): Promise<void>
+  /** Puts money into a pot or takes it out; returns the move's id. */
+  addPotMove(move: NewPotMove): Promise<string>
+  deletePotMove(id: string): Promise<void>
   createHousehold(name: string, tone: Tone): Promise<string>
   joinHousehold(code: string): Promise<string>
   leaveHousehold(spaceId: string): Promise<void>

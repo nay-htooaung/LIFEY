@@ -566,7 +566,7 @@ function Tray() {
 function SetupRow({ c, onSkip }: { c: SetupChange & { skip?: boolean }; onSkip(): void }) {
   const { t } = useI18n()
   const [op, tone] = c.tone === 'add' ? [t('opAdd'), 'pos'] : c.tone === 'edit' ? [t('opEdit'), 'warn'] : c.tone === 'restore' ? [t('opRestore'), 'pos'] : [t('opDel'), 'neg']
-  const glyph = { category: '#', source: '¥', method: '▭', space: '◎', profile: '☺', schedule: '↻' }[c.what]
+  const glyph = { category: '#', source: '¥', method: '▭', space: '◎', profile: '☺', schedule: '↻', pot: '貯', pot_move: '貯' }[c.what]
   return (
     <div className={`ch setup ${c.tone}` + (c.skip ? ' skip' : '')}>
       <div className="ch-main">

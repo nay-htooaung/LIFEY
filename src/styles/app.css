@@ -223,6 +223,11 @@ button { cursor: pointer; }
 .bud .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .bud .use { flex: none; font-size: 13px; }
 .bud .of { color: var(--muted); }
+.pot-s { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); }
+.pot-sum { display: flex; flex-direction: column; gap: 2px; }
+.pot-sum .big { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -0.03em; line-height: 1.05; }
+.pot-move .ch-x { align-self: center; height: 38px; }
+.nw-split { margin-top: 4px; color: var(--acc); font-weight: 600; }
 .bar { height: 8px; border-radius: 4px; background: var(--card-2); border: 1px solid var(--line); overflow: hidden; position: relative; }
 .bar i { display: block; height: 100%; border-radius: 4px; }
 .bar .pace { position: absolute; top: -2px; bottom: -2px; width: 2px; background: var(--ink); opacity: 0.6; }

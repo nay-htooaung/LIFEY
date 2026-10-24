@@ -1,6 +1,6 @@
 import { addDays, dayInMonth, daysBetween, daysInMonth, monthKey, parts } from './dates'
 import { isTemplate, nextOccurrence, occurrence } from './recurring'
-import type { Category, Day, Entry, Flow, MoneyKind, PaymentMethod, Snapshot, Source } from './types'
+import type { Category, Day, Entry, Flow, MoneyKind, PaymentMethod, Pot, PotMove, Snapshot, Source } from './types'
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0)
 
@@ -240,14 +240,51 @@ export interface SafeToSpend {
   budget: number
   spent: number
   committed: number
+  /** Set aside for 貯金 this month (each pot's monthly amount, or more if more went in). */
+  saving: number
+  /** Of that, what is still to be put into the pots. */
+  savingDue: number
   left: number
   today: number
   daysLeft: number
 }
 
+// ------------------------------------------------------------ 貯金
+
+/** All that is in a pot: everything put in, less everything taken out. */
+export const potTotal = (pot: Pick<Pot, 'id'>, moves: PotMove[]) => sum(moves.filter((m) => m.potId === pot.id).map((m) => m.amount))
+
+/** What went into a pot this month, less what came out. */
+export const potThisMonth = (pot: Pick<Pot, 'id'>, moves: PotMove[], on: Day) =>
+  sum(moves.filter((m) => m.potId === pot.id && monthKey(m.occurredOn) === monthKey(on)).map((m) => m.amount))
+
 /**
- * What can be spent today without breaking this month's budgets: remaining budget minus bills already
- * scheduled for the rest of the month, spread evenly over the days left (today included).
+ * 貯金 this month in a space: each pot sets aside its monthly amount, or what went in if that is more.
+ * `due` is what is still to be put in to reach the monthly amounts.
+ */
+export function setAside(spaceId: string, s: Pick<Snapshot, 'pots' | 'potMoves'>, on: Day) {
+  const pots = s.pots.filter((p) => p.spaceId === spaceId && !p.archived)
+  const month = pots.map((p) => Math.max(0, potThisMonth(p, s.potMoves, on)))
+  return {
+    reserve: sum(pots.map((p, i) => Math.max(p.monthly, month[i]))),
+    due: sum(pots.map((p, i) => Math.max(0, p.monthly - month[i]))),
+  }
+}
+
+/** Everything in a space's pots, deleted ones included (the money is still set aside until taken out). */
+export const savedTotal = (spaceId: string, s: Pick<Snapshot, 'pots' | 'potMoves'>) =>
+  sum(s.pots.filter((p) => p.spaceId === spaceId).map((p) => potTotal(p, s.potMoves)))
+
+/** Who put how much into a pot, all time, largest first. */
+export function potShares(pot: Pick<Pot, 'id'>, moves: PotMove[]) {
+  const by = new Map<string, number>()
+  for (const m of moves.filter((x) => x.potId === pot.id)) by.set(m.createdBy, (by.get(m.createdBy) ?? 0) + m.amount)
+  return [...by].map(([id, amount]) => ({ id, amount })).sort((a, b) => b.amount - a.amount)
+}
+
+/**
+ * What can be spent without breaking this month's budgets: the budgets, less what was spent, the bills still
+ * scheduled this month and what this month sets aside for 貯金; spread evenly over the days left (today included).
  */
 export function safeToSpend(spaceId: string, s: Snapshot, on: Day): SafeToSpend {
   const budgeted = s.categories.filter((c) => c.spaceId === spaceId && c.kind === 'expense' && c.monthlyBudget > 0)
@@ -263,9 +300,10 @@ export function safeToSpend(spaceId: string, s: Snapshot, on: Day): SafeToSpend 
   )
   const [y, m, d] = parts(on)
   const daysLeft = daysInMonth(y, m) - d + 1
-  const left = budget - spent - committed
+  const { reserve: saving, due: savingDue } = setAside(spaceId, s, on)
+  const left = budget - spent - committed - saving
   const today = Math.floor((left + spentToday) / daysLeft - spentToday)
-  return { budget, spent, committed, left, today, daysLeft }
+  return { budget, spent, committed, saving, savingDue, left, today, daysLeft }
 }
 
 export function categorySpent(entries: Entry[], category: Category, on: Day): number {

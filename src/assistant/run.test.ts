@@ -16,6 +16,7 @@ const snap = {
   sources: [src('chk', 'bank'), src('cash', 'cash'), src('pp', 'emoney')], methods: [visa],
   categories: [{ id: 'food', spaceId: 'me', name: 'Food', color: '', kind: 'expense', monthlyBudget: 0, sort: 0 }, { id: 'pay', spaceId: 'me', name: 'Pay', color: '', kind: 'income', monthlyBudget: 0, sort: 1 }],
   entries: [lunch, { ...lunch, id: 'rent', repeat: 'monthly' }], flows: [], profiles: {}, deletedSpaces: [],
+  pots: [{ id: 'trip', spaceId: 'me', name: 'Trip', color: '#000', goal: 150000, monthly: 10000, sort: 1, archived: false }], potMoves: [],
 } as unknown as Snapshot
 const c = { snap, space: snap.spaces[0], today: '2026-10-23' }
 
@@ -172,6 +173,26 @@ describe('assistant setup proposals', () => {
     expect(r.change).toMatchObject({ op: 'setup', what: 'category', tone: 'edit', title: 'Food', detail: 'カテゴリ · 月の予算: ¥0 → ¥40,000' })
     const p = await runTool('propose_profile', '{"theme":"light","display_name":"Nay"}', ctx())
     expect((p.change as SetupChange).detail).toBe('プロフィール · 表示名: You → Nay · テーマ: midnight → light')
+  })
+  it('makes a pot and saves into it in one tray, and can take money out', async () => {
+    const tray: ToolCtx['tray'] = []
+    const made = await runTool('propose_pot', '{"action":"create","name":"Sofa","monthly":20000,"goal":120000}', ctx(tray))
+    expect((made.change as SetupChange).detail).toBe('貯金 · 毎月の貯金 ¥20,000 · 目標額 ¥120,000')
+    tray.push(made.change!)
+    const { id } = JSON.parse(made.content)
+    const put = await runTool('propose_pot_move', JSON.stringify({ pot_id: id, amount: 20000 }), ctx(tray))
+    expect(put.change).toMatchObject({ what: 'pot_move', tone: 'add', title: 'Sofa' })
+    const { calls, repo } = recorder()
+    const ids = new Map<string, string>()
+    const made2 = await (made.change as SetupChange).run(repo, (x) => x)
+    ids.set(id, made2.created!)
+    const put2 = await (put.change as SetupChange).run(repo, (x) => ids.get(x) ?? x)
+    expect(calls[1]).toBe(`addPotMove [{"potId":"id-1","spaceId":"me","amount":20000,"occurredOn":"2026-10-23","note":""}]`)
+    await put2.undo!(repo)
+    expect(calls[2]).toBe('deletePotMove ["id-2"]')
+    const out = await runTool('propose_pot_move', '{"pot_id":"trip","amount":-4000,"note":"Flight"}', ctx())
+    expect((out.change as SetupChange).detail).toBe('¥4,000を取り崩す · 2026-10-23 · Flight')
+    expect((await runTool('propose_pot_move', '{"pot_id":"trip","amount":0}', ctx())).content).toMatch(/positive to save/)
   })
   it('changes or stops a schedule from its next date', async () => {
     const stop = await runTool('propose_schedule', '{"entry_id":"rent","stop":true}', ctx())

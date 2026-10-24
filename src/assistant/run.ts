@@ -2,12 +2,12 @@
 // /api/chat (worker/index.ts). The model only ever sees what these return.
 import type { Change } from '../domain/changes'
 import { monthKey } from '../domain/dates'
-import { categorySpent, creditOutstanding, nextCardPayment, sourceBalance, upcoming } from '../domain/money'
+import { categorySpent, creditOutstanding, nextCardPayment, potThisMonth, potTotal, sourceBalance, upcoming } from '../domain/money'
 import { asNew, isTemplate } from '../domain/recurring'
 import type { Entry, NewEntry, Repeat, Snapshot, Space } from '../domain/types'
 import type { Repo } from '../data/repo'
 import type { I18n } from '../i18n'
-import { proposeCategory, proposeMethod, proposeProfile, proposeSchedule, proposeSource, proposeSpace, world, type Proposal } from './setup'
+import { proposeCategory, proposeMethod, proposePot, proposePotMove, proposeProfile, proposeSchedule, proposeSource, proposeSpace, world, type Proposal } from './setup'
 
 /** `extra_content` carries Gemini's thought signature, which must be sent back with the call. */
 export interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string }; extra_content?: unknown }
@@ -83,6 +83,8 @@ export async function runTool(name: string, rawArgs: string, c: ToolCtx): Promis
       case 'propose_method': return setup(proposeMethod(a, c))
       case 'propose_space': return setup(proposeSpace(a, c))
       case 'propose_profile': return setup(proposeProfile(a, c))
+      case 'propose_pot': return setup(proposePot(a, c))
+      case 'propose_pot_move': return setup(proposePotMove(a, c))
       default: return err(`unknown tool ${name}`)
     }
   } catch (e) {
@@ -121,7 +123,12 @@ function overview({ snap, space, today, person }: ToolCtx) {
       id: k.id, name: k.name, kind: k.kind, space: spaceName(k.spaceId), color: k.color,
       ...(k.kind === 'expense' ? { budget: k.monthlyBudget, spent_this_month: categorySpent(snap.entries, k, today) } : {}),
     })),
+    savings_pots: snap.pots.filter((p) => !p.archived).map((p) => ({
+      id: p.id, name: p.name, space: spaceName(p.spaceId), total: potTotal(p, snap.potMoves), goal: p.goal, monthly: p.monthly,
+      saved_this_month: potThisMonth(p, snap.potMoves, today),
+    })),
     deleted: {
+      savings_pots: snap.pots.filter((p) => p.archived).map((p) => ({ id: p.id, name: p.name })),
       spaces: snap.deletedSpaces.map((s) => ({ id: s.id, name: s.name })),
       sources: snap.sources.filter((s) => s.archived).map((s) => ({ id: s.id, name: s.name })),
       payment_methods: snap.methods.filter((m) => m.archived).map((m) => ({ id: m.id, name: m.name })),

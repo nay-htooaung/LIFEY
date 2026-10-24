@@ -1,8 +1,8 @@
 import { addDays, dayInMonth, parts, today } from '../domain/dates'
 import { flowsOf } from '../domain/money'
 import { dueOccurrences, monthEnd } from '../domain/recurring'
-import type { Category, Entry, Locale, PaymentMethod, Profile, Snapshot, Source, Space, Tone } from '../domain/types'
-import { RepoError, uid, type CategoryInput, type NewMethod, type NewSource, type Repo } from './repo'
+import type { Category, Entry, Locale, PaymentMethod, Pot, PotMove, Profile, Snapshot, Source, Space, Tone } from '../domain/types'
+import { RepoError, uid, type CategoryInput, type NewMethod, type NewPotMove, type NewSource, type PotInput, type Repo } from './repo'
 
 const KEY = 'lifey-demo-v1'
 const ME = 'demo-you'
@@ -110,8 +110,22 @@ export function seedDemo(locale: Locale): Snapshot {
   ]
   for (const [n, amt, cat, via, en, ja, by] of trip) e('trip', ago(n), 'expense', amt, cat, via, en, ja, { createdBy: by })
 
+  // 貯金: an emergency fund and a trip in my space, a shared one for a new sofa at home
+  const pots: Pot[] = [
+    { id: 'p-safe', spaceId: 'me', name: L('Emergency fund', '生活防衛資金'), color: '#2F8F7F', goal: 600000, monthly: 30000, sort: 1, archived: false },
+    { id: 'p-trip', spaceId: 'me', name: L('Trip to Okinawa', '沖縄旅行'), color: '#4A7FC4', goal: 150000, monthly: 10000, sort: 2, archived: false },
+    { id: 'p-sofa', spaceId: 'home', name: L('New sofa', '新しいソファ'), color: '#D3A42A', goal: 120000, monthly: 20000, sort: 1, archived: false },
+  ]
+  const move = (potId: string, spaceId: string, amount: number, occurredOn: string, by = ME, note = ''): PotMove =>
+    ({ id: uid(), potId, spaceId, amount, occurredOn, note, createdBy: by })
+  const potMoves: PotMove[] = [
+    move('p-safe', 'me', 200000, longAgo, ME, L('Starting amount', '開始時の残高')), move('p-safe', 'me', 30000, lastMonth(25)), move('p-safe', 'me', 30000, ago(1)),
+    move('p-trip', 'me', 10000, lastMonth(25)), move('p-trip', 'me', -4000, ago(3), ME, L('Flight deposit', '航空券の予約金')),
+    move('p-sofa', 'home', 20000, lastMonth(26)), move('p-sofa', 'home', 15000, lastMonth(27), 'demo-sam'), move('p-sofa', 'home', 10000, ago(2), 'demo-sam'),
+  ]
+
   const snap: Snapshot = {
-    me: profiles[ME], profiles, spaces, deletedSpaces: [], sources, methods, categories, entries, flows: [],
+    me: profiles[ME], profiles, spaces, deletedSpaces: [], sources, methods, categories, entries, flows: [], pots, potMoves,
   }
   return withFlows(snap)
 }
@@ -121,6 +135,8 @@ function withFlows(s: Snapshot): Snapshot {
     ...s,
     // demo data saved by older versions lacks these fields
     deletedSpaces: s.deletedSpaces ?? [],
+    pots: s.pots ?? [],
+    potMoves: s.potMoves ?? [],
     me: { ...s.me, avatar: s.me.avatar ?? null, theme: s.me.theme ?? 'midnight' },
     sources: s.sources.map((x) => ({ ...x, archived: x.archived ?? false })),
     methods: s.methods.map((x) => ({ ...x, archived: x.archived ?? false })),
@@ -204,6 +220,23 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
     },
     async archiveCategory(id) {
       commit({ ...snap, categories: snap.categories.filter((c) => c.id !== id) })
+    },
+    async savePot(p: PotInput) {
+      const id = p.id ?? uid()
+      const pots = p.id ? snap.pots.map((x) => (x.id === p.id ? { ...x, ...p, id } : x)) : [...snap.pots, { ...p, id, archived: false }]
+      commit({ ...snap, pots })
+      return id
+    },
+    async setPotArchived(id: string, archived: boolean) {
+      commit({ ...snap, pots: snap.pots.map((x) => (x.id === id ? { ...x, archived } : x)) })
+    },
+    async addPotMove(m: NewPotMove) {
+      const id = uid()
+      commit({ ...snap, potMoves: [{ ...m, id, createdBy: ME }, ...snap.potMoves] })
+      return id
+    },
+    async deletePotMove(id: string) {
+      commit({ ...snap, potMoves: snap.potMoves.filter((x) => x.id !== id) })
     },
     async createHousehold(name, tone) {
       const id = uid()

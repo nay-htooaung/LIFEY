@@ -76,6 +76,7 @@ export const ja: Record<MessageKey, string> = {
   photo: '写真', attachPhoto: '写真を追加', removePhoto: '写真を外す', photoReady: '送信する写真', photoPh: 'メモを添えるか、そのまま送信', receiptPrompt: 'このレシートを記録して。', photoError: '写真を読み込めませんでした。別の写真をお試しください。', aiUsedModel: '{m}が答えました', aiErrNoPhotoModel: '今は写真を読めるモデルがありません。',
   takePhoto: 'カメラで撮る', choosePhoto: '写真を選ぶ',
   opRestore: '復元', aiNeedsLeftOut: '外した変更を使う変更があります。戻すか、両方とも外してください。', cannotUndo: '元に戻せません', partlyUndo: '元に戻すと、印のあるもの以外が元に戻ります。',
+  savings: '貯金', newPot: '+ 新しい貯金', potTitle: '新しい貯金', potEdit: '貯金を編集', potPh: '例: 沖縄旅行', potGoal: '目標額', potMonthly: '毎月の貯金', potMonthlyHint: '毎月の貯金は、今月使えるお金から先に引かれます。', saveIn: '貯金する', takeOut: '取り崩す', saveInX: '{a}を貯金', takeOutX: '{a}を取り崩す', potSaved: '{p}に{a}を貯金しました', potTaken: '{p}から{a}を取り崩しました', thisMonthOf: '今月 {a} / {b}', ofGoal: '目標 {a}', savedSoFar: '貯金 {a}', savedSplit: 'うち貯金 {a} · 自由に使えるお金 {b}', savingDue: '貯金分 {a} を引いています · あと{b}', savingDone: '貯金分 {a} を引いています', deletePot: '貯金を削除', potHistory: '貯金と取り崩し', potDetails: 'メモ・日付', needPot: '先に貯金を作ってください。',
   leaveOut: '外す', putBack: '戻す', leftOut: '外しました', afterApply: '適用後', owed: '未払い', ofBudgetX: '予算{a}',
   holdApply: '長押しで適用', holdHint: 'そのまま長押しで適用', discard: '破棄', appliedN: '{n}件を適用しました', undo: '元に戻す', undone: '元に戻しました',
   receiptN: '{n}件の変更を適用', receipt1: '1件の変更を適用', tapToEdit: '変更をタップすると調整できます。', useDraft: '変更を更新',

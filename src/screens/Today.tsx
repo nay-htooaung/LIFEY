@@ -38,6 +38,9 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
               <>
                 <div className="big"><sup>¥</sup>{Math.max(0, sts.left).toLocaleString('ja-JP')}</div>
                 <div className="sub">{t('perDayFor', { a: yen(Math.max(0, Math.floor(sts.left / sts.daysLeft))), d: sts.daysLeft })}</div>
+                {sts.saving > 0 && (
+                  <div className="sub">{sts.savingDue > 0 ? t('savingDue', { a: yen(sts.saving), b: yen(sts.savingDue) }) : t('savingDone', { a: yen(sts.saving) })}</div>
+                )}
               </>
             ) : (
               <div className="sub" style={{ maxWidth: 230 }}>{t('noBudgetsYet')}</div>

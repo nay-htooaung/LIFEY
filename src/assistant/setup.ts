@@ -3,14 +3,14 @@
 // and, where the app allows, how to undo it. Nothing runs until the person applies the tray.
 import type { Change } from '../domain/changes'
 import { isTemplate, nextOccurrence, scheduleChange } from '../domain/recurring'
-import type { Category, Entry, MethodKind, NewEntry, PaymentMethod, Profile, Snapshot, Source, SourceKind, Space, Theme, Tone } from '../domain/types'
+import type { Category, Entry, MethodKind, NewEntry, PaymentMethod, Pot, Profile, Snapshot, Source, SourceKind, Space, Theme, Tone } from '../domain/types'
 import { runSchedule, type Repo } from '../data/repo'
 import type { I18n } from '../i18n'
 import { yen } from '../i18n'
 import { CHARACTERS } from '../ui/characters'
 import { SWATCHES } from '../ui/bits'
 
-export type SetupWhat = 'category' | 'source' | 'method' | 'space' | 'profile' | 'schedule'
+export type SetupWhat = 'category' | 'source' | 'method' | 'space' | 'profile' | 'schedule' | 'pot' | 'pot_move'
 /** How the tray shows it: a new thing, a change, a removal, or a restored one. */
 export type SetupTone = 'add' | 'edit' | 'delete' | 'restore'
 export type Undo = ((r: Repo) => Promise<void>) | null
@@ -23,7 +23,7 @@ export interface SetupChange {
   title: string
   detail: string
   /** A thing this creates, with the placeholder id (new:…) that later proposals may use until it exists. */
-  draft?: Category | Source | PaymentMethod | Space
+  draft?: Category | Source | PaymentMethod | Space | Pot
   /** Applies it; `id` turns a placeholder into the real id. Returns the real id of what it created and how to undo it. */
   run(r: Repo, id: (x: string) => string): Promise<{ created?: string; undo: Undo }>
 }
@@ -53,6 +53,7 @@ export function world(c: Pick<SetupCtx, 'snap' | 'tray'>) {
     sources: [...c.snap.sources, ...of<Source>('source')],
     methods: [...c.snap.methods, ...of<PaymentMethod>('method')],
     categories: [...c.snap.categories, ...of<Category>('category')],
+    pots: [...c.snap.pots, ...of<Pot>('pot')],
   }
 }
 
@@ -431,6 +432,90 @@ export function proposeSchedule(a: Args, c: SetupCtx & { entries: Entry[] }, bui
     async run(r) {
       await runSchedule(r, template, plan)
       return { undo: null }
+    },
+  }
+}
+
+export function proposePot(a: Args, c: SetupCtx): SetupChange | string {
+  const { t, snap } = c
+  const w = world(c)
+  const action = str(a, 'action')
+  const name = str(a, 'name')
+  const color = str(a, 'color')
+  if (color && !/^#[0-9a-f]{6}$/i.test(color)) return 'color must be #RRGGBB'
+  if (name !== undefined && (!name || name.length > 40)) return 'name must be 1-40 characters'
+  if (has(a, 'monthly') && !whole(a.monthly)) return 'monthly must be a whole number of yen, 0 or more'
+  if (has(a, 'goal') && !(a.goal === 0 || (Number.isInteger(a.goal) && (a.goal as number) > 0))) return 'goal must be a whole number of yen; 0 for none'
+  const key = newKey()
+  const money = (p: Pick<Pot, 'goal' | 'monthly'>) => [p.monthly ? `${t('potMonthly')} ${yen(p.monthly)}` : '', p.goal ? `${t('potGoal')} ${yen(p.goal)}` : ''].filter(Boolean).join(' · ')
+  if (action === 'create') {
+    const spaceId = str(a, 'space_id') ?? c.space.id
+    if (!w.spaces.some((s) => s.id === spaceId)) return 'unknown space_id'
+    if (!name) return 'name is required'
+    const mine = w.pots.filter((p) => p.spaceId === spaceId)
+    const draft: Pot = {
+      id: `new:${key}`, spaceId, name, color: color ?? SWATCHES[mine.length % SWATCHES.length], goal: (a.goal as number) || null,
+      monthly: (a.monthly as number) ?? 0, sort: Math.max(0, ...mine.map((p) => p.sort)) + 1, archived: false,
+    }
+    return {
+      key, op: 'setup', what: 'pot', tone: 'add', title: name, draft, detail: [t('savings'), money(draft)].filter(Boolean).join(' · '),
+      async run(r, id) {
+        const created = await r.savePot({ ...draft, id: undefined, spaceId: id(spaceId) })
+        return { created, undo: (r2) => r2.setPotArchived(created, true) }
+      },
+    }
+  }
+  if (!has(a, 'pot_id')) return missing('pot_id')
+  const before = snap.pots.find((p) => p.id === a.pot_id)
+  if (!before) return 'unknown pot_id'
+  if (action === 'update') {
+    const after: Pot = {
+      ...before, name: name ?? before.name, color: color ?? before.color,
+      goal: has(a, 'goal') ? (a.goal as number) || null : before.goal, monthly: has(a, 'monthly') ? (a.monthly as number) : before.monthly,
+    }
+    const detail = diff([[t('name'), before.name, after.name], [t('potMonthly'), yen(before.monthly), yen(after.monthly)],
+      [t('potGoal'), before.goal === null ? null : yen(before.goal), after.goal === null ? null : yen(after.goal)], [t('colour'), before.color, after.color]])
+    if (!detail) return 'nothing changes'
+    return {
+      key, op: 'setup', what: 'pot', tone: 'edit', title: before.name, detail: `${t('savings')} · ${detail}`,
+      async run(r) {
+        await r.savePot(after)
+        return { undo: async (r2) => void (await r2.savePot(before)) }
+      },
+    }
+  }
+  if (action === 'delete' || action === 'restore') {
+    const del = action === 'delete'
+    if (before.archived === del) return del ? 'already deleted' : 'it is not deleted'
+    return {
+      key, op: 'setup', what: 'pot', tone: del ? 'delete' : 'restore', title: before.name, detail: t('savings'),
+      async run(r) {
+        await r.setPotArchived(before.id, del)
+        return { undo: (r2) => r2.setPotArchived(before.id, !del) }
+      },
+    }
+  }
+  return 'action must be create, update, delete or restore'
+}
+
+/** Money put into a pot (a positive amount) or taken out (negative). No account changes. */
+export function proposePotMove(a: Args, c: SetupCtx): SetupChange | string {
+  const { t } = c
+  if (!has(a, 'pot_id')) return missing('pot_id')
+  const pot = world(c).pots.find((p) => p.id === a.pot_id && !p.archived)
+  if (!pot) return 'unknown pot_id'
+  const amount = a.amount
+  if (!Number.isInteger(amount) || amount === 0) return 'amount must be a whole number of yen: positive to save, negative to take out'
+  const date = str(a, 'date') ?? c.today
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return 'date must be YYYY-MM-DD'
+  const note = (str(a, 'note') ?? '').slice(0, 200)
+  const n = amount as number
+  return {
+    key: newKey(), op: 'setup', what: 'pot_move', tone: n > 0 ? 'add' : 'delete', title: pot.name,
+    detail: [n > 0 ? t('saveInX', { a: yen(n) }) : t('takeOutX', { a: yen(-n) }), date, note].filter(Boolean).join(' · '),
+    async run(r, id) {
+      const moved = await r.addPotMove({ potId: id(pot.id), spaceId: id(pot.spaceId), amount: n, occurredOn: date, note })
+      return { undo: (r2) => r2.deletePotMove(moved) }
     },
   }
 }

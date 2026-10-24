@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { dayInMonth, monthKey, today } from '../domain/dates'
-import type { Category, Entry, Flow, PaymentMethod, Profile, Snapshot, Source, Space } from '../domain/types'
+import type { Category, Entry, Flow, PaymentMethod, Pot, PotMove, Profile, Snapshot, Source, Space } from '../domain/types'
 import { RepoError, type Repo } from './repo'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -19,6 +19,12 @@ const toMethod = (r: Row): PaymentMethod => ({
 })
 const toCategory = (r: Row): Category => ({
   id: r.id, spaceId: r.space_id, name: r.name, color: r.color, kind: r.kind, monthlyBudget: Number(r.monthly_budget), sort: r.sort,
+})
+const toPot = (r: Row): Pot => ({
+  id: r.id, spaceId: r.space_id, name: r.name, color: r.color, goal: r.goal == null ? null : Number(r.goal), monthly: Number(r.monthly), sort: r.sort, archived: !!r.archived,
+})
+const toPotMove = (r: Row): PotMove => ({
+  id: r.id, potId: r.pot_id, spaceId: r.space_id, amount: Number(r.amount), occurredOn: r.occurred_on, note: r.note, createdBy: r.created_by,
 })
 const toEntry = (r: Row): Entry => ({
   id: r.id, spaceId: r.space_id, kind: r.kind, amount: Number(r.amount), categoryId: r.category_id, methodId: r.method_id,
@@ -48,7 +54,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     mode: 'cloud',
     async load(): Promise<Snapshot> {
       const monthStart = `${monthKey(today())}-01`
-      const [profiles, spaces, members, sources, methods, cats, entries, flows] = await Promise.all([
+      const [profiles, spaces, members, sources, methods, cats, entries, flows, pots, potMoves] = await Promise.all([
         sb.from('profiles').select('*'),
         sb.from('spaces').select('*').order('created_at'),
         sb.from('space_members').select('space_id,user_id,joined_at').is('left_at', null).order('joined_at'),
@@ -57,6 +63,8 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         sb.from('categories').select('*').eq('archived', false).order('sort').order('created_at'),
         sb.from('entries').select('*').or(`occurred_on.gte.${monthStart},repeat.neq.none,repeat_of.not.is.null`).order('occurred_on', { ascending: false }).limit(10000),
         sb.rpc('money_flows'),
+        sb.from('pots').select('*').order('sort').order('created_at'),
+        sb.from('pot_moves').select('*').order('occurred_on', { ascending: false }).limit(10000),
       ])
       const profs = Object.fromEntries((check(profiles) as Row[]).map((r) => [r.id, toProfile(r)]))
       const memberRows = check(members) as Row[]
@@ -79,6 +87,8 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         flows: (check(flows) as Row[]).map((r): Flow => ({
           methodId: r.method_id, sourceId: r.source_id, kind: r.kind, amount: Number(r.amount), occurredOn: r.occurred_on,
         })),
+        pots: (check(pots) as Row[]).map(toPot),
+        potMoves: (check(potMoves) as Row[]).map(toPotMove),
       }
     },
     async loadMonth(month) {
@@ -129,6 +139,24 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     async archiveCategory(id) {
       check(await sb.from('categories').update({ archived: true }).eq('id', id))
     },
+    async savePot(p) {
+      const row = { space_id: p.spaceId, name: p.name, color: p.color, goal: p.goal, monthly: p.monthly, sort: p.sort }
+      if (p.id) {
+        check(await sb.from('pots').update(row).eq('id', p.id))
+        return p.id
+      }
+      return (check(await sb.from('pots').insert(row).select('id').single()) as Row).id
+    },
+    async setPotArchived(id, archived) {
+      check(await sb.from('pots').update({ archived }).eq('id', id))
+    },
+    async addPotMove(m) {
+      const row = { pot_id: m.potId, space_id: m.spaceId, amount: m.amount, occurred_on: m.occurredOn, note: m.note }
+      return (check(await sb.from('pot_moves').insert(row).select('id').single()) as Row).id
+    },
+    async deletePotMove(id) {
+      check(await sb.from('pot_moves').delete().eq('id', id))
+    },
     async createHousehold(name, tone) {
       return check(await sb.rpc('create_household', { p_name: name, p_tone: tone })) as string
     },
@@ -171,7 +199,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         timer = setTimeout(onChange, 400)
       }
       const channel = sb.channel('lifey-money')
-      for (const table of ['entries', 'sources', 'payment_methods', 'categories', 'spaces', 'space_members']) {
+      for (const table of ['entries', 'sources', 'payment_methods', 'categories', 'spaces', 'space_members', 'pots', 'pot_moves']) {
         channel.on('postgres_changes', { event: '*', schema: 'public', table }, ping)
       }
       channel.subscribe()

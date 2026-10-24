@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { creditLimitUse, nextMonthEnd, projection, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
-import type { Category, Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
+import type { Category, Entry, Flow, PaymentMethod, Pot, PotMove, Snapshot, Source } from './types'
 
 const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10, archived: false }
 const eom: PaymentMethod = { ...visa, id: 'eom', closingDay: 31, paymentDay: 27 }
@@ -78,7 +78,7 @@ describe('safe to spend', () => {
   it('spreads what is left after scheduled bills over the remaining days', () => {
     const s: Snapshot = {
       me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en', avatar: null, theme: 'midnight' },
-      profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [],
+      profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], pots: [], potMoves: [],
       categories: [
         { id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense', monthlyBudget: 30000, sort: 0 },
         { id: 'gym', spaceId: 'me', name: 'Gym', color: '#000', kind: 'expense', monthlyBudget: 8000, sort: 0 },
@@ -96,6 +96,42 @@ describe('safe to spend', () => {
     // (38000 - 11000 - 7700 + 1000) / 9 - 1000
     expect(r.today).toBe(Math.floor(20300 / 9 - 1000))
     expect(upcoming('me', s, '2026-10-23')[0]).toMatchObject({ kind: 'bill', on: '2026-10-30', amount: 7700 })
+  })
+  it('sets 貯金 aside before spreading the rest', () => {
+    const base = safeToSpend('me', { ...s0(), pots: [], potMoves: [] }, '2026-10-23')
+    const r = safeToSpend('me', { ...s0(), pots: [trip, sofa], potMoves: moves }, '2026-10-23')
+    // trip: 10,000 a month, 4,000 in so far (6,000 due); the shared sofa is another space's
+    expect([r.saving, r.savingDue, base.left - r.left]).toEqual([10000, 6000, 10000])
+  })
+})
+
+const s0 = () => ({
+  me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en' as const, avatar: null, theme: 'midnight' as const },
+  profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [],
+  categories: [{ id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense' as const, monthlyBudget: 30000, sort: 0 }],
+  entries: [entry({ amount: 10000, occurredOn: '2026-10-05' })],
+})
+const trip: Pot = { id: 'trip', spaceId: 'me', name: 'Trip', color: '#000', goal: 150000, monthly: 10000, sort: 0, archived: false }
+const sofa: Pot = { ...trip, id: 'sofa', spaceId: 'home', monthly: 20000 }
+const move = (potId: string, amount: number, occurredOn: string, createdBy = 'u1'): PotMove =>
+  ({ id: `${potId}${amount}${occurredOn}`, potId, spaceId: potId === 'sofa' ? 'home' : 'me', amount, occurredOn, note: '', createdBy })
+const moves = [move('trip', 50000, '2026-08-25'), move('trip', 6000, '2026-10-02'), move('trip', -2000, '2026-10-10'), move('sofa', 20000, '2026-10-01'), move('sofa', 15000, '2026-10-03', 'u2')]
+
+describe('貯金', () => {
+  it('totals what went in and came out', () => {
+    expect(potTotal(trip, moves)).toBe(54000)
+    expect(potThisMonth(trip, moves, '2026-10-23')).toBe(4000)
+    expect(savedTotal('me', { pots: [trip, sofa], potMoves: moves })).toBe(54000)
+  })
+  it('sets aside the monthly amount, or more when more went in', () => {
+    expect(setAside('me', { pots: [trip], potMoves: moves }, '2026-10-23')).toEqual({ reserve: 10000, due: 6000 })
+    expect(setAside('home', { pots: [sofa], potMoves: moves }, '2026-10-23')).toEqual({ reserve: 35000, due: 0 })
+    // a deleted pot sets nothing aside, but its money still counts as saved
+    expect(setAside('me', { pots: [{ ...trip, archived: true }], potMoves: moves }, '2026-10-23')).toEqual({ reserve: 0, due: 0 })
+    expect(savedTotal('me', { pots: [{ ...trip, archived: true }], potMoves: moves })).toBe(54000)
+  })
+  it('shows who put in how much', () => {
+    expect(potShares(sofa, moves)).toEqual([{ id: 'u1', amount: 20000 }, { id: 'u2', amount: 15000 }])
   })
 })
 
