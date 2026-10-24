@@ -163,6 +163,9 @@ describe('assistant setup proposals', () => {
     expect(await say('propose_space', { action: 'restore', space_id: 'old' })).toMatch(/proposed/)
     expect(await say('propose_category', { action: 'update', category_id: 'food' })).toMatch(/nothing changes/)
     expect(await say('propose_profile', { theme: 'neon' })).toMatch(/theme must be/)
+    // a cut-short call is told what is missing
+    expect(await say('propose_category', { action: 'update' })).toMatch(/category_id is missing/)
+    expect(await say('propose_edit', { amount: 5 })).toMatch(/entry_id is missing/)
   })
   it('describes each change for the tray, in the app language', async () => {
     const r = await runTool('propose_category', '{"action":"update","category_id":"food","monthly_budget":40000}', ctx())

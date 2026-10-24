@@ -17,7 +17,7 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    "AI_PREFERRED": "go:kimi-k3,go:glm-5.3,gemini:gemini-3.6-flash",
+    "AI_PREFERRED": "go:deepseek-v4.1-flash,go:glm-5.3,gemini:gemini-3.6-flash",
     "GEMINI_MODELS": "gemini-3.6-flash",
     "SUPABASE_URL": "https://klxhdsravxkprqxdgebv.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_sACpYnhosiXr03kQQtwlfQ_5N36ziLp"
@@ -26,7 +26,7 @@
     "dev": {
       "name": "lifey-dev",
       "vars": {
-        "AI_PREFERRED": "go:kimi-k3,go:glm-5.3,gemini:gemini-3.6-flash",
+        "AI_PREFERRED": "go:deepseek-v4.1-flash,go:glm-5.3,gemini:gemini-3.6-flash",
         "GEMINI_MODELS": "gemini-3.6-flash",
         "SUPABASE_URL": "https://uezezkydnlbksrqvaipr.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_ljBGmafJjhU7TtycIccS9g_t5_FInRI"
