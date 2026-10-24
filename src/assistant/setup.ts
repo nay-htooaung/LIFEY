@@ -58,6 +58,8 @@ export function world(c: Pick<SetupCtx, 'snap' | 'tray'>) {
 
 const str = (a: Args, k: string) => (typeof a[k] === 'string' ? (a[k] as string).trim() : undefined)
 const has = (a: Args, k: string) => a[k] !== undefined && a[k] !== null
+/** A call that came without its id: say so plainly, so the model sends the whole call again. */
+const missing = (field: string) => `${field} is missing. Call again with every argument: action, ${field} and the fields that change.`
 const whole = (v: unknown) => Number.isInteger(v) && (v as number) >= 0
 /** Field changes, "Name: A → B", for the tray. */
 const diff = (pairs: [string, unknown, unknown][]) =>
@@ -95,6 +97,7 @@ export function proposeCategory(a: Args, c: SetupCtx): SetupChange | string {
       },
     }
   }
+  if (!has(a, 'category_id')) return missing('category_id')
   const before = c.snap.categories.find((k) => k.id === a.category_id)
   if (!before) return 'unknown category_id'
   if (action === 'update') {
@@ -152,6 +155,7 @@ export function proposeSource(a: Args, c: SetupCtx): SetupChange | string {
       },
     }
   }
+  if (!has(a, 'source_id')) return missing('source_id')
   const before = snap.sources.find((s) => s.id === a.source_id)
   if (!before) return 'unknown source_id'
   const plain = { spaceId: before.spaceId, name: before.name, kind: before.kind, openingBalance: before.openingBalance }
@@ -200,6 +204,7 @@ export function proposeMethod(a: Args, c: SetupCtx): SetupChange | string {
   const action = str(a, 'action')
   const key = newKey()
   const kindName = (k: MethodKind) => t(k === 'credit' ? 'credit' : k === 'debit' ? 'debit' : 'cash')
+  if (action !== 'create' && !has(a, 'method_id')) return missing('method_id')
   const before = action === 'create' ? undefined : snap.methods.find((m) => m.id === a.method_id)
   if (action !== 'create' && !before) return 'unknown method_id'
 
@@ -304,6 +309,7 @@ export function proposeSpace(a: Args, c: SetupCtx): SetupChange | string {
       return { undo: (r2) => r2.leaveHousehold(joined) }
     })
   }
+  if (!has(a, 'space_id')) return missing('space_id')
   const deleted = snap.deletedSpaces.find((s) => s.id === a.space_id)
   if (action === 'restore') {
     if (!deleted) return 'not one of your deleted spaces'

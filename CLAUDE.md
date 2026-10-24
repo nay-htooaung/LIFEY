@@ -62,7 +62,8 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     (3.6 Flash; newer ones were overloaded), through the native streaming API. `worker/gemini.ts` translates to and
     from the app's OpenAI chat format; Gemini 3 needs each tool call's thought signature (`extra_content`) back, and a
     call another model made gets the documented stand-in signature.
-  `AI_PREFERRED` orders the recommendation. The reply streams at once with a keep-alive every 5 s (phones drop silent
+  `AI_PREFERRED` orders the recommendation: DeepSeek V4.1 Flash (fast, reads photos, reliable tool calls; Kimi K3
+  sent cut-short calls in 3 of 10 tries). The reply streams at once with a keep-alive every 5 s (phones drop silent
   connections). A model that is busy (429/503), refused (404, then hidden for an hour) or silent for 20 s hands over to
   the next, up to three. Secrets must be type Secret (a Text variable is wiped by the next deploy). OpenCode's free
   Zen models refuse requests from outside OpenCode. This sandbox reaches neither provider; test on dev with the

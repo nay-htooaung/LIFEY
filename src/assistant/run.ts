@@ -157,6 +157,7 @@ function comingUp(a: Args, c: ToolCtx) {
 }
 
 function findEntry(id: unknown, c: ToolCtx): Entry | string {
+  if (id === undefined || id === null || id === '') return 'entry_id is missing. Call again with every argument: entry_id and the fields that change.'
   const e = c.snap.entries.find((x) => x.id === id) ?? c.seen.get(String(id))
   if (!e) return 'entry not found; call list_entries for its month first'
   if (isTemplate(e)) return 'this is the first record of a repeating schedule; use propose_schedule'

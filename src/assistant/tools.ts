@@ -118,6 +118,7 @@ export function appGuide(c: ChatContext): string {
       'Spaces: the space button at the top (New space, Join with an invite code; each space\'s settings have the Invite code, New code, Members, Leave space, Delete space). The personal space is "Me".',
       'Profile (avatar at the top right): Your name, Language, Theme, Character, Deleted (restore deleted spaces, sources and methods).',
     ].join('\n'),
+    'E-money (PayPay, Suica, …) is a source in 口座・現金 / Sources, charged by a 振替 / Transfer and paid from directly; it is never a payment method. Postpaid services (PayPay あと払い) are set up as credit cards.',
     'Rules: nothing is erased for good except entries and categories; deleted sources, methods and spaces can be restored. Every personal space has one fixed cash source whose name and kind cannot change and which cannot be deleted. Only the owner can delete a space or remove members; the owner cannot leave. Members may only rename and recolor a shared space. There is no single reset: starting over means proposing the deletions one by one.',
   ].join('\n')
 }
