@@ -72,6 +72,7 @@ describe('Gemini replies', () => {
     // calls keep counting across chunks
     expect(b[0].choices[0].delta.tool_calls[0]).toMatchObject({ index: 1, id: 'call_1', function: { arguments: '{"month":"2026-10"}' } })
     expect(parse(t({ error: { code: 429 } }))).toEqual([{ error: { code: 'model_busy' } }])
+    expect(parse(t({ error: { code: 503 } }))).toEqual([{ error: { code: 'model_busy' } }])
     expect(t({ candidates: [{ finishReason: 'STOP' }] })).toBe('')
   })
   it('reads the SSE stream across chunk boundaries', async () => {

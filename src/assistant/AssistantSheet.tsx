@@ -133,6 +133,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     abort.current = ctl
     setThinking(true)
     const L = () => live.current
+    const told = new Set<string>()
     try {
       for (let step = 0; step < MAX_STEPS; step++) {
         // the Worker checks who is asking; without a session (demo mode) it answers signed_out
@@ -152,8 +153,9 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           if (aiId === null) aiId = add({ role: 'ai', text })
           else setMsgs((x) => x.map((m) => (m.id === aiId ? { ...m, text } : m)))
         }, undefined, (summary) => turn.current === n && setThought(thoughtTitle(summary)), (by) => {
-          // another model stepped in: the picked one cannot read photos, or was busy
-          if (turn.current !== n) return
+          // another model stepped in: the picked one cannot read photos, or was busy; said once per message
+          if (turn.current !== n || told.has(by)) return
+          told.add(by)
           const name = modelsRef.current?.models.find((x) => x.id === by)?.name ?? by
           add({ role: 'tool', text: L().t('aiUsedModel', { m: name }) })
         })
