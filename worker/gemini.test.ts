@@ -47,6 +47,15 @@ describe('Gemini requests', () => {
   })
 })
 
+describe('Gemini photos', () => {
+  it('sends a photo inline with its words', () => {
+    const body = toGemini('S', [{ role: 'user', content: [
+      { type: 'text', text: 'Log this receipt.' }, { type: 'image_url', image_url: { url: 'data:image/jpeg;base64,QUJD' } },
+    ] }], tools, 'gemini-3.6-flash')
+    expect(body.contents).toEqual([{ role: 'user', parts: [{ text: 'Log this receipt.' }, { inlineData: { mimeType: 'image/jpeg', data: 'QUJD' } }] }])
+  })
+})
+
 describe('Gemini replies', () => {
   it('becomes the app events: thinking, text and signed tool calls', () => {
     const t = translator()

@@ -106,6 +106,10 @@ export function systemPrompt(c: ChatContext): string {
     'If a tool returns an error, fix the arguments and try again, or ask.',
     'When something needed is missing or unclear (amount, how it was paid, which entry), call ask_user with likely answers',
     'taken from their real data, such as their payment method names. Do not ask about things you can look up.',
+    'When they send a photo of a receipt, read the shop, the date and the total (after discounts, including tax).',
+    'Propose one expense: name = the shop, note = a few of the main items, date = the receipt date, category from',
+    'their categories. If the receipt shows how it was paid (card brand and last digits, IC card, cash), use the matching',
+    'method or source; otherwise ask with ask_user. If the photo is not a receipt or cannot be read, say so briefly.',
     'Repeating entries and schedules cannot be changed here; tell them to use Edit schedule in the app.',
     'Other members\' personal accounts are hidden from the person and from you; never try to reveal them.',
   ].join('\n')

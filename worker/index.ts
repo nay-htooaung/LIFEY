@@ -4,7 +4,7 @@
 // the person's Supabase token, which checks who they are and counts it against their daily allowance.
 // The tools themselves run in the app (src/assistant/run.ts), on the data the person can already see.
 import { systemPrompt, TOOLS, type ChatContext } from '../src/assistant/tools'
-import { sseChunks, sseLines, toGemini, translator, type OpenAiMsg } from './gemini'
+import { sseChunks, sseLines, toGemini, translator, type OpenAiMsg, type UserPart } from './gemini'
 import { allModels, bareId, GO_URL, markBroken, providerOf, type Keys } from './models'
 
 interface Env {
@@ -21,12 +21,13 @@ interface Env {
   SUPABASE_ANON_KEY: string
 }
 
-interface Msg { role: 'user' | 'assistant' | 'tool'; content: string | null; tool_calls?: unknown[]; tool_call_id?: string }
+interface Msg { role: 'user' | 'assistant' | 'tool'; content: string | null | UserPart[]; tool_calls?: unknown[]; tool_call_id?: string }
 
 const GEMINI = 'https://generativelanguage.googleapis.com/v1beta'
 const FIRST_WORDS_MS = 20_000
 const REPLY_MS = 120_000
-const MAX_BODY = 400_000
+/** Room for a photo or two (the app sends them at most 1600 px as JPEG). */
+const MAX_BODY = 3_000_000
 const MAX_MESSAGES = 120
 
 const list = (s?: string) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean)
@@ -64,6 +65,11 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
   }
   const { messages, context } = body
   if (!Array.isArray(messages) || !messages.length || messages.length > MAX_MESSAGES || !context?.space?.id) return fail(400, 'bad_request')
+  // parts are text, or a photo as a data URL; nothing that makes the provider fetch a link
+  const goodPart = (p: UserPart) => p?.type === 'text' ? typeof p.text === 'string'
+    : p?.type === 'image_url' && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(p.image_url?.url ?? '')
+  if (messages.some((m) => Array.isArray(m?.content) && (m.role !== 'user' || !m.content.every(goodPart)))) return fail(400, 'bad_request')
+  const hasPhoto = messages.some((m) => Array.isArray(m.content) && m.content.some((p) => p.type === 'image_url'))
   // only the conversation itself; the system prompt and tools are set here
   const convo = messages
     .filter((m) => m && ['user', 'assistant', 'tool'].includes(m.role))
@@ -108,7 +114,10 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
   const ping = setInterval(() => void send(': ping\n\n'), 5000)
   // the picked model first, then the others in the list's order; a model that is busy, refused or silent
   // before its first words hands over to the next one
-  const order = [model, ...models.map((m) => m.id).filter((id) => id !== model)].slice(0, 3)
+  // with a photo, only models that can read photos
+  const able = models.filter((m) => !hasPhoto || m.vision).map((m) => m.id)
+  if (!able.length) return fail(422, 'no_photo_model')
+  const order = [...(able.includes(model) ? [model] : []), ...able.filter((id) => id !== model)].slice(0, 3)
   const stream = async () => {
     let failed = 'model_unreachable'
     try {
@@ -157,6 +166,8 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
         clearTimeout(timer)
         timer = setTimeout(() => ctl.abort(), REPLY_MS)
       }
+      // tell the app when another model than the picked one answers
+      if (!spoke && m !== model) await send(`data: ${JSON.stringify({ answered_by: m })}\n\n`)
       spoke = true
       await send(events)
     }

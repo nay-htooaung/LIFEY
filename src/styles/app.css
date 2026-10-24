@@ -324,6 +324,17 @@ details[open] summary { margin-bottom: 10px; }
 .chat-foot { flex: none; display: flex; flex-direction: column; gap: 10px; }
 .composer { display: flex; gap: 8px; align-items: center; }
 .composer .input { border-radius: 999px; padding: 11px 16px; }
+.attach { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 1px solid var(--line); background: var(--card-2); color: var(--ink); display: grid; place-items: center; padding: 0; }
+.attach:disabled { opacity: 0.5; cursor: default; }
+.attach[aria-busy='true']::before { margin: 0; }
+.attach svg { width: 20px; height: 20px; }
+.photo-chip { display: flex; align-items: center; gap: 10px; padding: 6px; border: 1px solid var(--acc-line); background: var(--acc-soft); border-radius: 14px; font-size: 13px; font-weight: 600; }
+.photo-chip img { width: 44px; height: 44px; object-fit: cover; border-radius: 10px; flex: none; }
+.photo-chip span { flex: 1; min-width: 0; }
+.photo-chip .ch-x { align-self: center; height: 38px; }
+.bub.with-photo { display: flex; flex-direction: column; gap: 6px; padding: 6px 6px 9px; }
+.bub.with-photo .bub-text { padding: 0 7px; }
+.bub-photo { display: block; width: 180px; max-width: 100%; max-height: 240px; object-fit: cover; border-radius: 14px; }
 .send { width: 44px; height: 44px; flex: none; border-radius: 50%; border: 0; background: var(--acc); color: var(--on-acc); display: grid; place-items: center; }
 .send:disabled { opacity: 0.4; cursor: default; }
 .send svg { width: 20px; height: 20px; }

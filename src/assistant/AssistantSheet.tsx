@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ChangeEvent, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import { changeImpact, type Change } from '../domain/changes'
 import { asNew } from '../domain/recurring'
 import type { Entry, NewEntry } from '../domain/types'
@@ -8,15 +8,16 @@ import { supabase } from '../data/supabase'
 import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
 import { usePaidWith } from '../ui/entry'
-import { IconChevron, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
+import { IconCamera, IconChevron, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
-import { ChatError, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
+import { shrinkPhoto } from './photo'
+import { ChatError, dropOldPhotos, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 import type { ChatContext } from './tools'
 
 /** What the chat shows. The conversation sent to the model is kept separately (ApiMsg). */
 type Msg =
-  | { id: number; role: 'user'; text: string }
+  | { id: number; role: 'user'; text: string; photo?: string }
   | { id: number; role: 'ai'; text: string }
   /** What the assistant looked at, as a quiet line. */
   | { id: number; role: 'tool'; text: string }
@@ -44,8 +45,8 @@ interface Assistant {
   thinking: boolean
   /** What the model says it is thinking about, while it thinks. */
   thought: string | null
-  /** A typed message, or the answer to the open question. */
-  send(text: string): void
+  /** A typed message (with a photo, if attached), or the answer to the open question. */
+  send(text: string, photo?: string): void
   retry(): void
   setTray(fn: (tray: Pending[]) => Pending[]): void
   /** Moves the applied changes from the tray into a receipt in the chat. */
@@ -92,6 +93,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const model = models?.models.some((m) => m.id === picked) ? picked : (models?.recommended ?? picked)
   const modelRef = useRef(model)
   modelRef.current = model
+  const modelsRef = useRef(models)
+  modelsRef.current = models
   const history = useRef<ApiMsg[]>([])
   // the open ask_user call, answered by the next message
   const asking = useRef<{ callId: string; msgId: number } | null>(null)
@@ -139,7 +142,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const res = await within(fetch('/api/chat', {
           method: 'POST', signal: ctl.signal,
           headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ messages: trimHistory(history.current), context, model: modelRef.current ?? undefined, session: session.current }),
+          body: JSON.stringify({ messages: trimHistory(dropOldPhotos(history.current)), context, model: modelRef.current ?? undefined, session: session.current }),
         }), 90_000, 'request_timeout')
         if (!res.ok || !res.body) throw new ChatError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'model')
         let aiId: number | null = null
@@ -148,7 +151,12 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
           setThought(null)
           if (aiId === null) aiId = add({ role: 'ai', text })
           else setMsgs((x) => x.map((m) => (m.id === aiId ? { ...m, text } : m)))
-        }, undefined, (summary) => turn.current === n && setThought(thoughtTitle(summary)))
+        }, undefined, (summary) => turn.current === n && setThought(thoughtTitle(summary)), (by) => {
+          // another model stepped in: the picked one cannot read photos, or was busy
+          if (turn.current !== n) return
+          const name = modelsRef.current?.models.find((x) => x.id === by)?.name ?? by
+          add({ role: 'tool', text: L().t('aiUsedModel', { m: name }) })
+        })
         setThought(null)
         if (turn.current !== n) return
         history.current.push({ role: 'assistant', content: out.text || null, ...(out.toolCalls.length ? { tool_calls: out.toolCalls } : {}) })
@@ -189,7 +197,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       add({
         role: 'error',
         text: code === 'signed_out' ? t('aiErrSignedOut') : code === 'daily_limit' ? t('aiErrLimit') : code === 'model_busy' ? t('aiErrBusy')
-          : code === 'not_configured' ? t('aiErrSetup') : code === 'offline' ? t('offline')
+          : code === 'not_configured' ? t('aiErrSetup') : code === 'offline' ? t('offline') : code === 'no_photo_model' ? t('aiErrNoPhotoModel')
           // the code says where it went wrong, for fixing it
           : `${t('aiErr')} (${code})`,
       })
@@ -211,20 +219,24 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         /* ignore */
       }
     },
-    send(text) {
-      const said = text.trim()
+    send(text, photo) {
+      // a photo on its own asks to log it
+      const said = text.trim() || (photo ? live.current.t('receiptPrompt') : '')
       if (!said || thinking) return
       const ask = asking.current
       asking.current = null
+      const user = (words: string): ApiMsg => ({
+        role: 'user', content: photo ? [{ type: 'text', text: words }, { type: 'image_url', image_url: { url: photo } }] : words,
+      })
       if (ask) {
         setMsgs((x) => x.map((m) => (m.id === ask.msgId && m.role === 'ask' ? { ...m, answer: said } : m)))
-        history.current.push({ role: 'tool', tool_call_id: ask.callId, content: JSON.stringify({ answer: said }) })
-        if (notes.current.length) history.current.push({ role: 'user', content: notes.current.join('\n') })
+        history.current.push({ role: 'tool', tool_call_id: ask.callId, content: JSON.stringify({ answer: photo ? '(sent a photo, below)' : said }) })
+        if (photo || notes.current.length) history.current.push(user([...notes.current, ...(photo ? [said] : [])].join('\n')))
       } else {
-        history.current.push({ role: 'user', content: [...notes.current, said].join('\n') })
+        history.current.push(user([...notes.current, said].join('\n')))
       }
       notes.current = []
-      add({ role: 'user', text: said })
+      add({ role: 'user', text: said, ...(photo ? { photo } : {}) })
       void run()
     },
     retry() {
@@ -284,6 +296,7 @@ function toolLabel(name: string, args: string, result: string, t: ReturnType<typ
 
 export function AssistantSheet() {
   const a = useAssistant()
+  const ui = useUI()
   const { t } = useI18n()
   const [text, setText] = useState('')
   const log = useRef<HTMLDivElement>(null)
@@ -295,11 +308,29 @@ export function AssistantSheet() {
     log.current?.scrollTo({ top: log.current.scrollHeight, behavior: 'smooth' })
   }, [a.msgs.length, last?.role === 'ai' ? last.text.length : 0, a.thinking, a.tray.length])
 
+  const [photo, setPhoto] = useState<string | null>(null)
+  const [reading, setReading] = useState(false)
+  const picker = useRef<HTMLInputElement>(null)
+  const pick = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setReading(true)
+    try {
+      setPhoto(await shrinkPhoto(file))
+    } catch {
+      ui.toast(t('photoError'), { error: true })
+    } finally {
+      setReading(false)
+    }
+  }
+
   const submit = (e: FormEvent) => {
     e.preventDefault()
-    if (!text.trim() || a.thinking) return
-    a.send(text)
+    if ((!text.trim() && !photo) || a.thinking) return
+    a.send(text, photo ?? undefined)
     setText('')
+    setPhoto(null)
   }
 
   return (
@@ -325,7 +356,12 @@ export function AssistantSheet() {
         <AiBubble>{t('aiHello')}</AiBubble>
         {a.models?.models.find((m) => m.id === a.model)?.provider === 'gemini' && <p className="chat-note">{t('aiFreeNote')}</p>}
         {a.msgs.map((m) =>
-          m.role === 'user' ? <div key={m.id} className="bub me">{m.text}</div>
+          m.role === 'user' ? (
+            <div key={m.id} className={'bub me' + (m.photo ? ' with-photo' : '')}>
+              {m.photo && <img className="bub-photo" src={m.photo} alt={t('photo')} />}
+              {m.photo ? <span className="bub-text">{m.text}</span> : m.text}
+            </div>
+          )
           : m.role === 'ai' ? <AiBubble key={m.id}>{m.text}</AiBubble>
           : m.role === 'tool' ? <div key={m.id} className="chat-tool">✓ {m.text}</div>
           : m.role === 'error' ? (
@@ -357,10 +393,21 @@ export function AssistantSheet() {
 
       <div className="chat-foot">
         {a.tray.length > 0 && <Tray />}
+        {photo && (
+          <div className="photo-chip">
+            <img src={photo} alt={t('photo')} />
+            <span>{t('photoReady')}</span>
+            <button type="button" className="ch-x" aria-label={t('removePhoto')} onClick={() => setPhoto(null)}><IconX /></button>
+          </div>
+        )}
         <form className="composer" onSubmit={submit}>
-          <input className="input" value={text} maxLength={500} placeholder={t('askPh')} aria-label={t('askPh')}
+          {/* camera or gallery, as the phone offers */}
+          <input ref={picker} type="file" accept="image/*" hidden onChange={pick} />
+          <button type="button" className="attach" aria-label={t('attachPhoto')} aria-busy={reading} disabled={a.thinking || reading}
+            onClick={() => picker.current?.click()}>{!reading && <IconCamera />}</button>
+          <input className="input" value={text} maxLength={500} placeholder={photo ? t('photoPh') : t('askPh')} aria-label={t('askPh')}
             enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
-          <button className="send" aria-label={t('send')} disabled={!text.trim() || a.thinking}><IconSend /></button>
+          <button className="send" aria-label={t('send')} disabled={(!text.trim() && !photo) || a.thinking}><IconSend /></button>
         </form>
       </div>
     </div>
