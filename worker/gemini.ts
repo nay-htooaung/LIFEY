@@ -84,7 +84,7 @@ export function toGemini(system: string, messages: OpenAiMsg[], tools: readonly 
   }
 }
 
-interface Chunk {
+export interface Chunk {
   candidates?: { content?: { parts?: Part[] }; finishReason?: string }[]
   error?: { code?: number; message?: string; status?: string }
 }
@@ -94,7 +94,7 @@ export function translator() {
   let calls = 0
   const ev = (delta: unknown) => `data: ${JSON.stringify({ choices: [{ delta }] })}\n\n`
   return (chunk: Chunk): string => {
-    if (chunk.error) return `data: ${JSON.stringify({ error: { code: chunk.error.code === 429 ? 'model_busy' : `model_${chunk.error.code ?? 'error'}` } })}\n\n`
+    if (chunk.error) return `data: ${JSON.stringify({ error: { code: chunk.error.code === 429 || chunk.error.code === 503 ? 'model_busy' : `model_${chunk.error.code ?? 'error'}` } })}\n\n`
     let out = ''
     for (const p of chunk.candidates?.[0]?.content?.parts ?? []) {
       if ('functionCall' in p) {

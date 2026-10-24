@@ -193,6 +193,11 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
       } else {
         const translate = translator()
         for await (const chunk of sseChunks(res.body)) {
+          // an error before any words (Gemini sends "overloaded" this way too) hands over like a refused request
+          if (chunk.error && !spoke) {
+            console.error('model failed in stream', m, JSON.stringify(chunk.error).slice(0, 400))
+            return chunk.error.code === 429 || chunk.error.code === 503 ? 'model_busy' : `model_${chunk.error.code ?? 'error'}`
+          }
           const events = translate(chunk)
           if (events) await spoken(events)
         }
