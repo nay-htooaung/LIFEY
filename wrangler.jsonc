@@ -16,7 +16,6 @@
     "run_worker_first": ["/api/*"]
   },
   "vars": {
-    "AI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
     "AI_PREFERRED": "",
     "SUPABASE_URL": "https://klxhdsravxkprqxdgebv.supabase.co",
     "SUPABASE_ANON_KEY": "sb_publishable_sACpYnhosiXr03kQQtwlfQ_5N36ziLp"
@@ -25,8 +24,7 @@
     "dev": {
       "name": "lifey-dev",
       "vars": {
-        "AI_BASE_URL": "https://generativelanguage.googleapis.com/v1beta/openai",
-        "AI_PREFERRED": "",
+            "AI_PREFERRED": "",
         "SUPABASE_URL": "https://uezezkydnlbksrqvaipr.supabase.co",
         "SUPABASE_ANON_KEY": "sb_publishable_ljBGmafJjhU7TtycIccS9g_t5_FInRI"
       }

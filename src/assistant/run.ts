@@ -195,9 +195,9 @@ export class ChatError extends Error {
 
 /** Reads an OpenAI-style event stream: text as it arrives, and the tool calls once complete. */
 /** Reads an OpenAI-style event stream: text as it arrives, and the tool calls once complete. Fails when nothing arrives for `stallMs`. */
-export async function readStream(body: ReadableStream<Uint8Array>, onText: (text: string) => void, stallMs = 60_000): Promise<{ text: string; toolCalls: ToolCall[] }> {
+export async function readStream(body: ReadableStream<Uint8Array>, onText: (text: string) => void, stallMs = 60_000, onThinking?: (thought: string) => void): Promise<{ text: string; toolCalls: ToolCall[] }> {
   const reader = body.pipeThrough(new TextDecoderStream()).getReader()
-  const acc = streamAccumulator(onText)
+  const acc = streamAccumulator(onText, onThinking)
   for (;;) {
     let timer: ReturnType<typeof setTimeout> | undefined
     const stalled = new Promise<never>((_, reject) => {
@@ -225,8 +225,8 @@ export function within<T>(p: Promise<T>, ms: number, code: string): Promise<T> {
   })]).finally(() => clearTimeout(timer))
 }
 
-/** The stream parser on its own, fed chunks of text. */
-export function streamAccumulator(onText: (text: string) => void) {
+/** The stream parser on its own, fed chunks of text. `onThinking` gets each summary of what the model is thinking about. */
+export function streamAccumulator(onText: (text: string) => void, onThinking?: (thought: string) => void) {
   let buf = ''
   let text = ''
   const calls: ToolCall[] = []
@@ -234,14 +234,15 @@ export function streamAccumulator(onText: (text: string) => void) {
     if (!l.startsWith('data:')) return
     const data = l.slice(5).trim()
     if (!data || data === '[DONE]') return
-    let ev: { choices?: { delta?: { content?: string | null; tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }[] } }[]; error?: { message?: string } }
+    let ev: { choices?: { delta?: { content?: string | null; thinking?: string; tool_calls?: { index?: number; id?: string; function?: { name?: string; arguments?: string }; extra_content?: unknown }[] } }[]; error?: { code?: string } }
     try {
       ev = JSON.parse(data)
     } catch {
       return
     }
-    if (ev.error) throw new ChatError('model')
+    if (ev.error) throw new ChatError(ev.error.code ?? 'model')
     const delta = ev.choices?.[0]?.delta
+    if (delta?.thinking) onThinking?.(delta.thinking)
     if (delta?.content) {
       text += delta.content
       onText(text)
