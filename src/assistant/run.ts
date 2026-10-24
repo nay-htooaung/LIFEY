@@ -326,6 +326,19 @@ export function dropOldAttachments(msgs: ApiMsg[]): ApiMsg[] {
   })
 }
 
+/** Gives each tool call left without a result (the reply was stopped) one saying so, as the next request needs. */
+export function closeOpenCalls(msgs: ApiMsg[]): ApiMsg[] {
+  const at = msgs.findLastIndex((m) => m.role === 'assistant' && !!m.tool_calls?.length)
+  if (at < 0) return msgs
+  const calls = (msgs[at] as Extract<ApiMsg, { role: 'assistant' }>).tool_calls!
+  const answered = new Set(msgs.slice(at + 1).flatMap((m) => (m.role === 'tool' ? [m.tool_call_id] : [])))
+  const open = calls.filter((c) => !answered.has(c.id))
+  // results go straight after their calls, before any later message
+  const end = at + 1 + msgs.slice(at + 1).findIndex((m) => m.role !== 'tool')
+  const cut = end > at ? end : msgs.length
+  return [...msgs.slice(0, cut), ...open.map((c): ApiMsg => ({ role: 'tool', tool_call_id: c.id, content: '{"error":"stopped by the person"}' })), ...msgs.slice(cut)]
+}
+
 /** Keeps the conversation short enough to send: whole turns from the end, never splitting a tool call from its results. */
 export function trimHistory(msgs: ApiMsg[], max = 60): ApiMsg[] {
   if (msgs.length <= max) return msgs

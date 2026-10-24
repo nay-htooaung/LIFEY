@@ -8,13 +8,13 @@ import { supabase } from '../data/supabase'
 import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
 import { usePaidWith } from '../ui/entry'
-import { IconCamera, IconChevron, IconClip, IconFile, IconImage, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
+import { IconCamera, IconChevron, IconClip, IconFile, IconImage, IconSend, IconSpark, IconStop, IconUndo, IconX } from '../ui/icons'
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
 import { FILE_ACCEPT, FileError, fileText, isPhotoFile, readFile, type ReadFile } from './file'
 import { shrinkPhoto } from './photo'
 import type { Proposal, SetupChange, Undo } from './setup'
-import { ChatError, dropOldAttachments, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
+import { ChatError, closeOpenCalls, dropOldAttachments, readStream, runTool, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 import type { ChatContext } from './tools'
 
 /** What the chat shows. The conversation sent to the model is kept separately (ApiMsg). */
@@ -28,7 +28,10 @@ type Msg =
   /** Applied changes, with what Undo needs: the ids the new entries got. */
   /** `undos` follows the setup changes in order; null where the app cannot undo one (leaving a space, …). */
   | { id: number; role: 'receipt'; changes: Proposal[]; added: string[]; undos: Undo[]; undone?: boolean }
-  | { id: number; role: 'error'; text: string }
+  /** `more`: it ran out of steps, and Continue picks up where it stopped. */
+  | { id: number; role: 'error'; text: string; more?: boolean }
+  /** The person stopped the reply. */
+  | { id: number; role: 'stopped' }
 
 type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, 'id'> : never) : never
 
@@ -54,6 +57,8 @@ interface Assistant {
   /** A typed message (with a photo or a file, if attached), or the answer to the open question. */
   send(text: string, attached?: Attached): void
   retry(): void
+  /** Stops the reply on its way; what was done so far stays. */
+  stop(): void
   setTray(fn: (tray: Pending[]) => Pending[]): void
   /** Moves the applied changes from the tray into a receipt in the chat. */
   applied(changes: Proposal[], added: string[], undos: Undo[], leftOut: number): void
@@ -79,8 +84,8 @@ const readModel = () => {
 }
 
 let nextId = 1
-/** Model calls per message, so a confused loop stops. */
-const MAX_STEPS = 8
+/** Model calls per message, so a confused loop stops; Continue allows as many again. Logging a statement takes many. */
+const MAX_STEPS = 20
 
 /** Keeps the conversation while the sheet is closed, and runs the model's tool calls on the person's own data. */
 export function AssistantProvider({ children }: { children: ReactNode }) {
@@ -173,6 +178,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         })
         setThought(null)
         if (turn.current !== n) return
+        if (!out.text && !out.toolCalls.length) throw new ChatError('empty')
         history.current.push({ role: 'assistant', content: out.text || null, ...(out.toolCalls.length ? { tool_calls: out.toolCalls } : {}) })
         if (!out.toolCalls.length) return
 
@@ -207,6 +213,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         // the answer to the question goes back as the tool's result, with the next message
         if (asked) return
       }
+      // still working when the steps ran out: say so, and Continue goes on
+      add({ role: 'error', text: L().t('aiStepLimit'), more: true })
     } catch (e) {
       if (turn.current !== n || ctl.signal.aborted) return
       if (e instanceof ChatError) ctl.abort()
@@ -216,6 +224,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         role: 'error',
         text: code === 'signed_out' ? t('aiErrSignedOut') : code === 'daily_limit' ? t('aiErrLimit') : code === 'model_busy' ? t('aiErrBusy')
           : code === 'not_configured' ? t('aiErrSetup') : code === 'offline' ? t('offline') : code === 'no_photo_model' ? t('aiErrNoPhotoModel')
+          : code === 'empty' ? t('aiErrEmpty')
           // the code says where it went wrong, for fixing it
           : `${t('aiErr')} (${code})`,
       })
@@ -282,6 +291,18 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       if (thinking) return
       setMsgs((x) => (x.at(-1)?.role === 'error' ? x.slice(0, -1) : x))
       void run()
+    },
+    stop() {
+      if (!thinking) return
+      turn.current++
+      abort.current?.abort()
+      // every tool call needs its result before the next message
+      history.current = closeOpenCalls(history.current)
+      asking.current = null
+      notes.current.push('[app] The person stopped your last reply.')
+      setThinking(false)
+      setThought(null)
+      add({ role: 'stopped' })
     },
     applied(changes, added, undos, leftOut) {
       setTray([])
@@ -417,10 +438,11 @@ export function AssistantSheet() {
           )
           : m.role === 'ai' ? <AiBubble key={m.id}>{m.text}</AiBubble>
           : m.role === 'tool' ? <div key={m.id} className="chat-tool">✓ {m.text}</div>
+          : m.role === 'stopped' ? <div key={m.id} className="chat-tool">{t('aiStopped')}</div>
           : m.role === 'error' ? (
             <div key={m.id} className="chat-err" role="alert">
               <span>{m.text}</span>
-              {m === last && <button className="link" onClick={a.retry}>{t('tryAgain')}</button>}
+              {m === last && <button className="link" onClick={a.retry}>{m.more ? t('aiContinue') : t('tryAgain')}</button>}
             </div>
           )
           : m.role === 'ask' ? (
@@ -484,7 +506,9 @@ export function AssistantSheet() {
           </div>
           <input className="input" value={text} maxLength={500} placeholder={attached ? t('photoPh') : t('askPh')} aria-label={t('askPh')}
             enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
-          <button className="send" aria-label={t('send')} disabled={(!text.trim() && !attached) || a.thinking}><IconSend /></button>
+          {a.thinking
+            ? <button type="button" className="send" aria-label={t('aiStop')} onClick={a.stop}><IconStop /></button>
+            : <button className="send" aria-label={t('send')} disabled={!text.trim() && !attached}><IconSend /></button>}
         </form>
       </div>
     </div>

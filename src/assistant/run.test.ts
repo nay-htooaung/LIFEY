@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Entry, PaymentMethod, Snapshot, Source } from '../domain/types'
 import { makeI18n } from '../i18n'
 import type { SetupChange } from './setup'
-import { buildEntry, dropOldAttachments, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
+import { buildEntry, closeOpenCalls, dropOldAttachments, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 
 const src = (id: string, kind: Source['kind'], spaceId = 'me'): Source =>
   ({ id, spaceId, name: id, kind, openingBalance: 1000, createdOn: '2026-01-01', archived: false, fixed: false })
@@ -97,6 +97,18 @@ describe('assistant waits', () => {
     const enc = new TextEncoder()
     const body = new ReadableStream<Uint8Array>({ start(c) { c.enqueue(enc.encode('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n')) } })
     await expect(readStream(body, () => {}, 20)).rejects.toMatchObject({ code: 'stalled' })
+  })
+})
+
+describe('stopping a reply', () => {
+  const call = (id: string) => ({ id, type: 'function' as const, function: { name: 'get_overview', arguments: '{}' } })
+  it('answers the calls left open', () => {
+    const msgs: ApiMsg[] = [{ role: 'user', content: 'hi' }, { role: 'assistant', content: null, tool_calls: [call('a'), call('b')] }, { role: 'tool', tool_call_id: 'a', content: '{}' }]
+    expect(closeOpenCalls(msgs).slice(2)).toEqual([{ role: 'tool', tool_call_id: 'a', content: '{}' }, { role: 'tool', tool_call_id: 'b', content: '{"error":"stopped by the person"}' }])
+  })
+  it('leaves a finished conversation as it is', () => {
+    const msgs: ApiMsg[] = [{ role: 'user', content: 'hi' }, { role: 'assistant', content: null, tool_calls: [call('a')] }, { role: 'tool', tool_call_id: 'a', content: '{}' }, { role: 'assistant', content: 'ok' }]
+    expect(closeOpenCalls(msgs)).toEqual(msgs)
   })
 })
 

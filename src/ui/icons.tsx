@@ -15,6 +15,7 @@ export const IconChevron = (p: P) => (<svg width={16} height={16} {...base} stro
 export const IconEdit = (p: P) => (<svg width={18} height={18} {...base} {...p}><path d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" /></svg>)
 export const IconSpark = (p: P) => (<svg {...base} {...p}><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z" /></svg>)
 export const IconSend = (p: P) => (<svg {...base} strokeWidth={2.4} {...p}><path d="M12 19V5M5 12l7-7 7 7" /></svg>)
+export const IconStop = (p: P) => (<svg {...base} {...p}><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor" /></svg>)
 export const IconX = (p: P) => (<svg {...base} strokeWidth={2.4} {...p}><path d="M6 6l12 12M18 6L6 18" /></svg>)
 export const IconUndo = (p: P) => (<svg {...base} {...p}><path d="M9 14L4 9l5-5M4 9h10a6 6 0 0 1 0 12h-3" /></svg>)
 export const IconCamera = (p: P) => (<svg {...base} {...p}><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" /><circle cx="12" cy="13" r="3.5" /></svg>)

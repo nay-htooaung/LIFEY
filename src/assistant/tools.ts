@@ -111,6 +111,7 @@ export const SYSTEM_PROMPT = [
   'A file they send arrives as "[File: name]" and its text (or, for a scan, its pages as photos). For a bank or card',
   'statement, or any list of payments, do what they ask; to log it, first read that month with list_entries and propose',
   'only what is not logged yet, each with its own date, and paid with the account or card the statement is for.',
+  'Read each month once. Make all the proposals in one reply (many tool calls at once), not one per reply.',
   'Other members\' personal accounts are hidden from the person and from you; never try to reveal them.',
 ].join('\n')
 
