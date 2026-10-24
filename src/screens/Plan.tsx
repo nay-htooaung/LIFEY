@@ -22,7 +22,7 @@ export function Plan() {
   return (
     <>
       <div className="sec-h"><h3>{t('budgets')}</h3></div>
-      <div className="card" style={{ paddingBlock: 6 }}>
+      {cats.some((c) => c.kind === 'expense') && <div className="card" style={{ paddingBlock: 6 }}>
         {cats.filter((c) => c.kind === 'expense').map((c) => {
           const spent = categorySpent(snap.entries, c, today)
           const b = c.monthlyBudget
@@ -41,7 +41,7 @@ export function Plan() {
             </button>
           )
         })}
-      </div>
+      </div>}
       <button className="btn" onClick={() => edit()}>{t('newCat')}</button>
 
       {cats.some((c) => c.kind === 'income') && (

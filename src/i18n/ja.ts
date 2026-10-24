@@ -2,7 +2,7 @@ import type { MessageKey } from './en'
 
 export const ja: Record<MessageKey, string> = {
   today: '今日', activity: '履歴', wallet: 'お財布', plan: '計画', money: '家計',
-  safeToday: '今日使えるお金', leftFor: '残り{d}日で{a}', ofBudget: '予算',
+  leftThisMonth: '今月使えるお金', perDayFor: '残り{d}日 · 1日あたり{a}', ofBudget: '予算',
   noBudgetsYet: '予算はまだありません。', setBudgets: '予算を設定',
   logSpend: '支出を記録',
   comingUp: '今後の予定', allBills: 'すべて',
@@ -53,7 +53,7 @@ export const ja: Record<MessageKey, string> = {
   theme: 'テーマ', theme_midnight: 'ミッドナイト', theme_light: 'ライト', theme_milky: 'ミルキーピンク', character: 'キャラクター', initialOnly: '頭文字だけ',
   editSource: '口座を編集', openingBalance: '登録時の残高', deleteSource: '口座を削除', deleteMethod: '支払い方法を削除',
   sourceInUse: '{x}が使っています。先にそちらを削除するか変更してください。', limitInUse: '{x}がこの利用枠を共有しています。先にそちらを変更してください。',
-  deletedItems: '削除済み', inDaysBal: '{n}日後の残高', nowBal: '現在 {a}',
+  deletedItems: '削除済み', monthEndBal: '{m}末の残高', nowBal: '現在 {a}',
   spaceSettings: '{x}の設定', membersTitle: 'メンバー', owner: 'オーナー', remove: '外す', confirmRemove: 'もう一度押すと外します',
   removed: '{x}を外しました', newCode: '新しいコード', codeReset: '新しい招待コードを作りました',
   deleteSpace: 'スペースを削除', 

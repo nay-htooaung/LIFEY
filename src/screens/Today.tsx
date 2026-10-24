@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { parts } from '../domain/dates'
-import { spaceForecast, UPCOMING_DAYS, dailyTotals, safeToSpend, spentByMember, upcoming } from '../domain/money'
+import { dailyTotals, nextMonthEnd, projection, safeToSpend, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
 import { usePersonName, useStore } from '../data/store'
 import { UpcomingRow } from '../ui/entry'
@@ -33,11 +33,11 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
       <div className="hero">
         <div className="hero-top">
           <div>
-            <div className="label">{t('safeToday')}</div>
+            <div className="label">{t('leftThisMonth')}</div>
             {sts.budget > 0 ? (
               <>
-                <div className="big"><sup>¥</sup>{Math.max(0, sts.today).toLocaleString('ja-JP')}</div>
-                <div className="sub">{t('leftFor', { a: yen(Math.max(0, sts.left)), d: sts.daysLeft })}</div>
+                <div className="big"><sup>¥</sup>{Math.max(0, sts.left).toLocaleString('ja-JP')}</div>
+                <div className="sub">{t('perDayFor', { a: yen(Math.max(0, Math.floor(sts.left / sts.daysLeft))), d: sts.daysLeft })}</div>
               </>
             ) : (
               <div className="sub" style={{ maxWidth: 230 }}>{t('noBudgetsYet')}</div>
@@ -93,15 +93,16 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   )
 }
 
-/** Each account once: today's balance, what comes in and goes out over the coming days, and what is left. */
+/** Each account once: today's balance, what comes in and goes out by the end of next month, and what is left then. */
 function Forecast() {
   const { snap, space, personal, today } = useStore()
-  const { t } = useI18n()
-  const rows = spaceForecast(space.id, snap, today)
+  const { t, month } = useI18n()
+  const until = nextMonthEnd(today)
+  const rows = projection(space.id, snap, today, until)
   if (!rows.length) return null
   return (
     <div className="card forecast">
-      <div className="label">{t('inDaysBal', { n: UPCOMING_DAYS })}</div>
+      <div className="label">{t('monthEndBal', { m: month(parts(until)[1]) })}</div>
       {rows.map((f) => (
         <div key={f.source.id} className="fc-row">
           <div className="fc-top">

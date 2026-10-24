@@ -116,7 +116,8 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     creator posts copies, for the whole month when it starts (`monthEnd`).
   - **Editing a schedule** goes through `scheduleChange`: it never edits records dated today or earlier, replaces
     later copies, and splits the schedule into a new template. "Edit this entry" on a running template splits too.
-  - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`); `accountForecast` sums it per source.
+  - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`). The balance card under it projects each account to the end
+    of next month (`projection`): every repeating occurrence still to come, and the card payments they lead to.
 - Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token and the daily
   allowance (`ai_use()`, 150 requests per person per day) before each call. Its tools (`tools.ts`) run in the app
   (`run.ts`, `setup.ts`) on the signed-in person's data, so it sees only what they see. It can propose anything the

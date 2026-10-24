@@ -47,6 +47,8 @@ button { cursor: pointer; }
 }
 .scroll::-webkit-scrollbar { display: none; }
 .scroll > * { flex-shrink: 0; }
+/* a button on its own in a screen keeps its height (.btn grows inside a .btn-row) */
+.scroll > .btn { flex: none; }
 .nav {
   position: absolute; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center;
   padding: 8px 14px calc(8px + var(--safe-b));

@@ -1,6 +1,6 @@
 export const en = {
   today: 'Today', activity: 'History', wallet: 'Wallet', plan: 'Plan', money: 'Money',
-  safeToday: 'Safe to spend today', leftFor: '{a} left for {d} days', ofBudget: 'of budget',
+  leftThisMonth: 'Left to spend this month', perDayFor: '{a} a day for {d} days', ofBudget: 'of budget',
   noBudgetsYet: 'No budgets yet.', setBudgets: 'Set budgets',
   logSpend: 'Log a spend',
   comingUp: 'Coming up', allBills: 'All bills',
@@ -51,7 +51,7 @@ export const en = {
   theme: 'Theme', theme_midnight: 'Midnight', theme_light: 'Light', theme_milky: 'Milky pink', character: 'Character', initialOnly: 'Initial only',
   editSource: 'Edit source', openingBalance: 'Balance when added', deleteSource: 'Delete source', deleteMethod: 'Delete payment method',
   sourceInUse: 'Used by {x}. Delete or move those first.', limitInUse: '{x} share this limit. Change those first.',
-  deletedItems: 'Deleted', inDaysBal: 'Balance in {n} days', nowBal: 'Now {a}',
+  deletedItems: 'Deleted', monthEndBal: 'Balance at the end of {m}', nowBal: 'Now {a}',
   spaceSettings: '{x} settings', membersTitle: 'Members', owner: 'Owner', remove: 'Remove', confirmRemove: 'Tap again to remove',
   removed: 'Removed {x}', newCode: 'New code', codeReset: 'New invite code ready',
   deleteSpace: 'Delete space', 

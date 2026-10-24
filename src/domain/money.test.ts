@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { accountForecast, creditLimitUse, spaceForecast, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { creditLimitUse, nextMonthEnd, projection, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
 import type { Category, Entry, Flow, PaymentMethod, Snapshot, Source } from './types'
@@ -125,19 +125,6 @@ describe('bank transfers', () => {
   })
 })
 
-describe('account forecast', () => {
-  const up = (kind: 'bill' | 'income' | 'card', amount: number, on: string, sourceId: string | null) =>
-    ({ key: `${kind}${on}${amount}`, kind, name: kind, amount, on, categoryId: null, sourceId })
-  const snap = { sources: [chk], methods: [], flows: [] } as unknown as Snapshot
-  it('sums every item on one account into one line', () => {
-    const items = [up('card', 30000, '2026-10-10', 'chk'), up('card', 12000, '2026-10-27', 'chk'), up('income', 250000, '2026-10-25', 'chk')]
-    expect(accountForecast(items, snap, '2026-10-01')).toMatchObject([{ now: 100000, in: 250000, out: 42000, after: 308000 }])
-  })
-  it('leaves out bills charged to a card', () => {
-    expect(accountForecast([up('bill', 1000, '2026-10-10', null)], snap, '2026-10-01')).toEqual([])
-  })
-})
-
 describe('transfers', () => {
   const sav: Source = { ...chk, id: 'sav', openingBalance: 0 }
   const move = entry({ kind: 'transfer', methodId: null, categoryId: 'food', sourceId: 'chk', toSourceId: 'sav', amount: 30000, fee: 220, occurredOn: '2026-10-05' })
@@ -191,21 +178,20 @@ describe('editing a schedule', () => {
   })
 })
 
-describe('forecast in a shared space', () => {
+describe('projection in a shared space', () => {
   // a personal bank pays a shared rent bill and a personal gym bill
   const rent = entry({ id: 'rent', spaceId: 'home', amount: 70000, methodId: null, sourceId: 'chk', repeat: 'monthly', occurredOn: '2026-09-27' })
   const gym = entry({ id: 'gym', spaceId: 'me', amount: 8000, methodId: null, sourceId: 'chk', repeat: 'monthly', occurredOn: '2026-09-28' })
   const joint: Source = { ...chk, id: 'joint', spaceId: 'home', openingBalance: 5000 }
   const snap = {
-    spaces: [{ id: 'me' }, { id: 'home' }], sources: [chk, joint], methods: [], flows: [], entries: [rent, gym], categories: [],
+    spaces: [{ id: 'me' }, { id: 'home' }], sources: [chk, joint], methods: [], flows: flowsOf([rent, gym]), entries: [rent, gym], categories: [],
   } as unknown as Snapshot
-  it('counts every space on the account but lists only what matters here', () => {
-    const rows = spaceForecast('home', snap, '2026-10-01')
-    // the shared account has nothing coming, so it has no line
-    expect(rows.map((f) => [f.source.id, f.out, f.after])).toEqual([['chk', 78000, 22000]])
+  it('counts every space on an account, listing the space\'s own accounts and the ones its bills use', () => {
+    // rent and the gym in October and November
+    expect(projection('home', snap, '2026-10-01').map((f) => [f.source.id, f.now, f.out, f.after])).toEqual([['chk', 22000, 156000, -134000], ['joint', 5000, 0, 5000]])
   })
-  it('lists the personal bank in its own space too', () => {
-    expect(spaceForecast('me', snap, '2026-10-01').map((f) => f.source.id)).toEqual(['chk'])
+  it('lists the personal bank in its own space too, without the shared account', () => {
+    expect(projection('me', snap, '2026-10-01').map((f) => f.source.id)).toEqual(['chk'])
   })
 })
 
@@ -246,5 +232,28 @@ describe('assistant changes', () => {
   it('leaves out what does not move', () => {
     const rename: Change = { key: 'd', op: 'edit', before: lunch, after: { ...lunchNew, name: 'Lunch' } }
     expect(changeImpact(snap, [rename], '2026-10-23')).toEqual([])
+  })
+})
+
+describe('projection to the end of next month', () => {
+  // salary on the 25th into the bank; the gym on the 28th on a card that closes on the 15th and is paid on the 10th
+  const salary = entry({ id: 'sal', kind: 'income', amount: 300000, methodId: null, sourceId: 'chk', repeat: 'monthly', occurredOn: '2026-09-25' })
+  const salaryOct = entry({ id: 'sal-10', kind: 'income', amount: 300000, methodId: null, sourceId: 'chk', repeatOf: 'sal', occurredOn: '2026-10-25' })
+  const gym = entry({ id: 'gym', amount: 8000, methodId: 'visa', repeat: 'monthly', occurredOn: '2026-09-28' })
+  const gymOct = entry({ id: 'gym-10', amount: 8000, methodId: 'visa', repeatOf: 'gym', occurredOn: '2026-10-28' })
+  const entries = [salary, salaryOct, gym, gymOct]
+  const snap = {
+    spaces: [{ id: 'me' }], sources: [chk], methods: [visa], entries, flows: flowsOf(entries), categories: [],
+  } as unknown as Snapshot
+  it('looks to the last day of next month', () => {
+    expect(nextMonthEnd('2026-10-24')).toBe('2026-11-30')
+    expect(nextMonthEnd('2026-12-05')).toBe('2027-01-31')
+  })
+  it('counts every occurrence still to come and the card payments they lead to', () => {
+    const [f] = projection('me', snap, '2026-10-24')
+    // today: 100,000 + September's salary; the September gym charge is paid on Nov 10
+    expect(f.now).toBe(400000)
+    // October's posted salary and November's (not posted yet) come in; the card pays September's gym
+    expect([f.in, f.out, f.after]).toEqual([600000, 8000, 992000])
   })
 })
