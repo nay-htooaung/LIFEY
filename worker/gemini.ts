@@ -29,6 +29,7 @@ const parse = (s: string): unknown => {
 
 /** The request body for streamGenerateContent. */
 export function toGemini(system: string, messages: OpenAiMsg[], tools: readonly OpenAiTool[], model: string, thinking = true) {
+  const gen3 = /^gemini-([3-9]|\d\d)/.test(model)
   const names = new Map<string, string>()
   const contents: Content[] = []
   const push = (role: Content['role'], parts: Part[]) => {
@@ -42,9 +43,10 @@ export function toGemini(system: string, messages: OpenAiMsg[], tools: readonly 
     if (m.role === 'user') push('user', [{ text: m.content ?? '' }])
     else if (m.role === 'assistant') {
       const parts: Part[] = m.content ? [{ text: m.content }] : []
-      for (const tc of m.tool_calls ?? []) {
+      for (const [i, tc] of (m.tool_calls ?? []).entries()) {
         names.set(tc.id, tc.function.name)
-        const sig = tc.extra_content?.google?.thought_signature
+        // Gemini 3 wants the first call of a step signed; a call another model made gets the documented stand-in
+        const sig = tc.extra_content?.google?.thought_signature ?? (i === 0 && gen3 ? 'skip_thought_signature_validator' : undefined)
         parts.push({ functionCall: { name: tc.function.name, args: parse(tc.function.arguments || '{}') }, ...(sig ? { thoughtSignature: sig } : {}) })
       }
       push('model', parts)
@@ -54,7 +56,6 @@ export function toGemini(system: string, messages: OpenAiMsg[], tools: readonly 
       push('user', [{ functionResponse: { name: names.get(m.tool_call_id ?? '') ?? 'unknown', response } }])
     }
   }
-  const gen3 = /^gemini-([3-9]|\d\d)/.test(model)
   return {
     systemInstruction: { parts: [{ text: system }] },
     contents,
@@ -101,8 +102,8 @@ export function translator() {
   }
 }
 
-/** Reads Gemini's `alt=sse` stream: one JSON chunk per `data:` line. */
-export async function* sseChunks(body: ReadableStream<Uint8Array>): AsyncGenerator<Chunk> {
+/** The `data:` payloads of an SSE stream, as text. */
+export async function* sseLines(body: ReadableStream<Uint8Array>): AsyncGenerator<string> {
   const reader = body.pipeThrough(new TextDecoderStream()).getReader()
   let buf = ''
   for (;;) {
@@ -110,14 +111,18 @@ export async function* sseChunks(body: ReadableStream<Uint8Array>): AsyncGenerat
     if (value) buf += value
     const lines = buf.split(/\r?\n/)
     buf = done ? '' : (lines.pop() ?? '')
-    for (const l of lines) {
-      if (!l.startsWith('data:')) continue
-      try {
-        yield JSON.parse(l.slice(5))
-      } catch {
-        /* a partial or odd line */
-      }
-    }
+    for (const l of lines) if (l.startsWith('data:')) yield l.slice(5).trim()
     if (done) return
+  }
+}
+
+/** Reads Gemini's `alt=sse` stream: one JSON chunk per `data:` line. */
+export async function* sseChunks(body: ReadableStream<Uint8Array>): AsyncGenerator<Chunk> {
+  for await (const data of sseLines(body)) {
+    try {
+      yield JSON.parse(data)
+    } catch {
+      /* a partial or odd line */
+    }
   }
 }

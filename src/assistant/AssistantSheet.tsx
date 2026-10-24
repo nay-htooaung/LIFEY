@@ -31,7 +31,7 @@ type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, 'id'> : never) : ne
 /** A proposed change in the tray; `skip` leaves it out when applying. */
 type Pending = Change & { skip?: boolean }
 
-interface ModelList { models: { id: string; name: string }[]; recommended: string | null }
+interface ModelList { models: { id: string; name: string; provider: 'go' | 'gemini' }[]; recommended: string | null }
 
 interface Assistant {
   msgs: Msg[]
@@ -98,6 +98,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   // what happened in the app since the last message (applied, discarded), told to the model with the next one
   const notes = useRef<string[]>([])
   const seen = useRef(new Map<string, Entry>())
+  // one id per conversation; OpenCode Go uses it to route and cache
+  const session = useRef(crypto.randomUUID())
   const live = useRef({ snap, repo, space, today, person, paidWith, t, locale })
   live.current = { snap, repo, space, today, person, paidWith, t, locale }
   // a new chat drops replies still on their way
@@ -137,7 +139,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
         const res = await within(fetch('/api/chat', {
           method: 'POST', signal: ctl.signal,
           headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) },
-          body: JSON.stringify({ messages: trimHistory(history.current), context, model: modelRef.current ?? undefined }),
+          body: JSON.stringify({ messages: trimHistory(history.current), context, model: modelRef.current ?? undefined, session: session.current }),
         }), 90_000, 'request_timeout')
         if (!res.ok || !res.body) throw new ChatError(((await res.json().catch(() => ({}))) as { error?: string }).error ?? 'model')
         let aiId: number | null = null
@@ -250,6 +252,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       asking.current = null
       notes.current = []
       seen.current.clear()
+      session.current = crypto.randomUUID()
       setMsgs([])
       setTray([])
       setThinking(false)
@@ -283,14 +286,13 @@ export function AssistantSheet() {
   const a = useAssistant()
   const { t } = useI18n()
   const [text, setText] = useState('')
-  const end = useRef<HTMLDivElement>(null)
+  const log = useRef<HTMLDivElement>(null)
   const lastAsk = [...a.msgs].reverse().find((m) => m.role === 'ask')
   const last = a.msgs.at(-1)
 
-  // the newest message stays in view; the footer is last in the sheet, so scrolling to the end shows both
+  // only the messages scroll, between the header and the footer; the newest stays in view
   useEffect(() => {
-    const body = end.current?.closest('.sheet-body')
-    body?.scrollTo({ top: body.scrollHeight, behavior: 'smooth' })
+    log.current?.scrollTo({ top: log.current.scrollHeight, behavior: 'smooth' })
   }, [a.msgs.length, last?.role === 'ai' ? last.text.length : 0, a.thinking, a.tray.length])
 
   const submit = (e: FormEvent) => {
@@ -302,21 +304,26 @@ export function AssistantSheet() {
 
   return (
     <div className="chat">
-      <div className="chat-h">
-        <h2>{t('assistant')}</h2>
-        {a.msgs.length > 0 && <button className="link" onClick={a.reset}>{t('newChat')}</button>}
-      </div>
-      {a.models && a.model && (
-        <div className="chat-model">
-          <label className="pick-l" htmlFor="ai-model">{t('aiModel')}</label>
-          <Select id="ai-model" value={a.model} onChange={a.setModel}
-            options={a.models.models.map((m) => ({ value: m.id, label: m.name, hint: m.id === a.models!.recommended ? t('recommended') : undefined }))} />
+      <div className="chat-top">
+        <div className="chat-h">
+          <h2>{t('assistant')}</h2>
+          {a.msgs.length > 0 && <button className="link" onClick={a.reset}>{t('newChat')}</button>}
         </div>
-      )}
+        {a.models && a.model && (
+          <div className="chat-model">
+            <label className="pick-l" htmlFor="ai-model">{t('aiModel')}</label>
+            <Select id="ai-model" value={a.model} onChange={a.setModel}
+              options={a.models.models.map((m) => ({
+                value: m.id, label: m.name,
+                hint: [m.provider === 'go' ? 'Go' : 'Gemini', m.id === a.models!.recommended && t('recommended')].filter(Boolean).join(' · '),
+              }))} />
+          </div>
+        )}
+      </div>
 
-      <div className="chat-log">
+      <div className="chat-log" ref={log}>
         <AiBubble>{t('aiHello')}</AiBubble>
-        <p className="chat-note">{t('aiFreeNote')}</p>
+        {a.models?.models.find((m) => m.id === a.model)?.provider === 'gemini' && <p className="chat-note">{t('aiFreeNote')}</p>}
         {a.msgs.map((m) =>
           m.role === 'user' ? <div key={m.id} className="bub me">{m.text}</div>
           : m.role === 'ai' ? <AiBubble key={m.id}>{m.text}</AiBubble>
@@ -346,7 +353,6 @@ export function AssistantSheet() {
             {a.thought && <span className="thought">{a.thought}</span>}
           </div>
         )}
-        <div ref={end} />
       </div>
 
       <div className="chat-foot">
