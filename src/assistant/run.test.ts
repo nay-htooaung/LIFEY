@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Entry, PaymentMethod, Snapshot, Source } from '../domain/types'
+import { makeI18n } from '../i18n'
+import type { SetupChange } from './setup'
 import { buildEntry, dropOldPhotos, readStream, runTool, streamAccumulator, trimHistory, within, type ApiMsg, type ToolCtx } from './run'
 
 const src = (id: string, kind: Source['kind'], spaceId = 'me'): Source =>
@@ -44,13 +46,13 @@ describe('assistant proposals', () => {
     expect(buildEntry({ amount: 1500 }, lunch, c)).toMatchObject({ amount: 1500, methodId: 'visa' })
   })
   it('puts proposals in the tray and leaves repeating entries alone', async () => {
-    const ctx: ToolCtx = { ...c, repo: {} as ToolCtx['repo'], person: () => 'You', paidWith: () => 'Visa', seen: new Map() }
+    const ctx: ToolCtx = { ...c, repo: {} as ToolCtx['repo'], person: () => 'You', paidWith: () => 'Visa', seen: new Map(), t: makeI18n('en').t, tray: [] }
     const add = await runTool('propose_entry', '{"kind":"expense","amount":500,"source_id":"cash"}', ctx)
     expect(add.change).toMatchObject({ op: 'add', after: { amount: 500, sourceId: 'cash' } })
     expect((await runTool('propose_delete', '{"entry_id":"lunch"}', ctx)).change).toMatchObject({ op: 'delete', before: { id: 'lunch' } })
     const rent = await runTool('propose_edit', '{"entry_id":"rent","amount":1}', ctx)
     expect(rent.change).toBeUndefined()
-    expect(rent.content).toMatch(/Edit schedule/)
+    expect(rent.content).toMatch(/propose_schedule/)
     expect((await runTool('propose_entry', '{bad', ctx)).content).toMatch(/not valid JSON/)
   })
 })
@@ -111,5 +113,71 @@ describe('assistant photos', () => {
     acc.push('data: {"answered_by":"gemini:gemini-3.6-flash"}\n\n')
     acc.finish()
     expect(by).toEqual(['gemini:gemini-3.6-flash'])
+  })
+})
+
+describe('assistant setup proposals', () => {
+  const t = makeI18n('ja').t
+  const cash: Source = { ...src('cash0', 'cash'), fixed: true }
+  const s2 = {
+    ...snap, me: { id: 'u1', displayName: 'You', locale: 'ja', theme: 'midnight', avatar: null }, profiles: {},
+    sources: [...snap.sources, cash], deletedSpaces: [{ id: 'old', name: 'Old', kind: 'household', ownerId: 'u1', memberIds: [] }],
+    spaces: [...snap.spaces.map((x) => ({ ...x, ownerId: 'u1' })), { id: 'theirs', name: 'Theirs', kind: 'household', ownerId: 'u2', memberIds: ['u1', 'u2'] }],
+  } as unknown as Snapshot
+  const ctx = (tray: ToolCtx['tray'] = []): ToolCtx =>
+    ({ snap: s2, space: s2.spaces[0], today: '2026-10-23', repo: {} as ToolCtx['repo'], person: (id) => id, paidWith: () => '', seen: new Map(), t, tray })
+  /** A repo that records what is called. */
+  const recorder = () => {
+    const calls: string[] = []
+    const repo = new Proxy({}, { get: (_, k: string) => async (...args: unknown[]) => { calls.push(`${k} ${JSON.stringify(args)}`); return `id-${calls.length}` } })
+    return { calls, repo: repo as ToolCtx['repo'] }
+  }
+
+  it('creates a source, then an entry paid from it before it exists', async () => {
+    const tray: ToolCtx['tray'] = []
+    const made = await runTool('propose_source', '{"action":"create","name":"PayPay","kind":"emoney","opening_balance":3000}', ctx(tray))
+    const { id } = JSON.parse(made.content)
+    expect(id).toMatch(/^new:/)
+    tray.push(made.change!)
+    const entry = await runTool('propose_entry', JSON.stringify({ kind: 'expense', amount: 1088, source_id: id }), ctx(tray))
+    expect(entry.change).toMatchObject({ op: 'add', after: { sourceId: id } })
+    // without the tray the id means nothing
+    expect((await runTool('propose_entry', JSON.stringify({ kind: 'expense', amount: 1, source_id: id }), ctx())).content).toMatch(/unknown source_id/)
+    const { calls, repo } = recorder()
+    const run = await (made.change as SetupChange).run(repo, (x) => x)
+    expect(calls).toEqual(['addSource [{"spaceId":"me","name":"PayPay","kind":"emoney","openingBalance":3000}]'])
+    expect(run.created).toBe('id-1')
+    await run.undo!(repo)
+    expect(calls[1]).toBe('setSourceArchived ["id-1",true]')
+  })
+  it('keeps the rules the app keeps', async () => {
+    const say = async (tool: string, args: object) => (await runTool(tool, JSON.stringify(args), ctx())).content
+    expect(await say('propose_source', { action: 'delete', source_id: 'cash0' })).toMatch(/cannot be deleted/)
+    expect(await say('propose_source', { action: 'update', source_id: 'cash0', name: 'Wallet' })).toMatch(/keeps its name/)
+    expect(await say('propose_source', { action: 'delete', source_id: 'chk' })).toMatch(/Visa/)
+    expect(await say('propose_method', { action: 'create', name: 'Card', kind: 'credit', source_id: 'chk' })).toMatch(/closing_day/)
+    expect(await say('propose_method', { action: 'delete', method_id: 'visa' })).toMatch(/proposed/)
+    expect(await say('propose_space', { action: 'leave', space_id: 'home' })).toMatch(/owner cannot leave/)
+    expect(await say('propose_space', { action: 'delete', space_id: 'theirs' })).toMatch(/only the owner/)
+    expect(await say('propose_space', { action: 'delete', space_id: 'me' })).toMatch(/personal space/)
+    expect(await say('propose_space', { action: 'restore', space_id: 'old' })).toMatch(/proposed/)
+    expect(await say('propose_category', { action: 'update', category_id: 'food' })).toMatch(/nothing changes/)
+    expect(await say('propose_profile', { theme: 'neon' })).toMatch(/theme must be/)
+  })
+  it('describes each change for the tray, in the app language', async () => {
+    const r = await runTool('propose_category', '{"action":"update","category_id":"food","monthly_budget":40000}', ctx())
+    expect(r.change).toMatchObject({ op: 'setup', what: 'category', tone: 'edit', title: 'Food', detail: 'カテゴリ · 月の予算: ¥0 → ¥40,000' })
+    const p = await runTool('propose_profile', '{"theme":"light","display_name":"Nay"}', ctx())
+    expect((p.change as SetupChange).detail).toBe('プロフィール · 表示名: You → Nay · テーマ: midnight → light')
+  })
+  it('changes or stops a schedule from its next date', async () => {
+    const stop = await runTool('propose_schedule', '{"entry_id":"rent","stop":true}', ctx())
+    expect(stop.change).toMatchObject({ what: 'schedule', tone: 'delete' })
+    const { calls, repo } = recorder()
+    await (stop.change as SetupChange).run(repo, (x) => x)
+    // rent started on 2026-10-20 and has happened: it ends, nothing new is added
+    expect(calls.map((c) => c.split(' ')[0])).toEqual(['updateEntry'])
+    const raise = await runTool('propose_schedule', '{"entry_id":"rent","amount":1300}', ctx())
+    expect((raise.change as SetupChange).detail).toMatch(/2026-11-20 · ¥1,300/)
   })
 })

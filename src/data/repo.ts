@@ -1,3 +1,4 @@
+import { asNew, type ScheduleChange } from '../domain/recurring'
 import type { Category, Entry, NewEntry, PaymentMethod, Profile, Snapshot, Source, Tone } from '../domain/types'
 
 export type NewSource = Omit<Source, 'id' | 'createdOn' | 'archived' | 'fixed'>
@@ -51,3 +52,11 @@ export const uid = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36)
+
+/** Carries out a schedule change: drop replaced copies, end or rewrite the old template, add the new one. */
+export async function runSchedule(r: Repo, template: Entry, plan: ScheduleChange) {
+  for (const id of plan.remove) await r.deleteEntry(id)
+  if (plan.end) await r.updateEntry(template.id, { ...asNew(template), repeat: 'none' })
+  if (plan.update) await r.updateEntry(template.id, plan.update)
+  if (plan.add) await r.addEntries([plan.add])
+}

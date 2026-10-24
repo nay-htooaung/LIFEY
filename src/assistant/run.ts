@@ -3,9 +3,11 @@
 import type { Change } from '../domain/changes'
 import { monthKey } from '../domain/dates'
 import { categorySpent, creditOutstanding, nextCardPayment, sourceBalance, upcoming } from '../domain/money'
-import { asNew } from '../domain/recurring'
-import type { Entry, NewEntry, Snapshot, Space } from '../domain/types'
+import { asNew, isTemplate } from '../domain/recurring'
+import type { Entry, NewEntry, Repeat, Snapshot, Space } from '../domain/types'
 import type { Repo } from '../data/repo'
+import type { I18n } from '../i18n'
+import { proposeCategory, proposeMethod, proposeProfile, proposeSchedule, proposeSource, proposeSpace, world, type Proposal } from './setup'
 
 /** `extra_content` carries Gemini's thought signature, which must be sent back with the call. */
 export interface ToolCall { id: string; type: 'function'; function: { name: string; arguments: string }; extra_content?: unknown }
@@ -27,10 +29,13 @@ export interface ToolCtx {
   paidWith(e: Entry): string
   /** Entries seen through list_entries, so proposals can refer to older months. */
   seen: Map<string, Entry>
+  t: I18n['t']
+  /** The tray so far: later proposals may use what earlier ones create. */
+  tray: Proposal[]
 }
 
 /** What a tool call did: a result for the model, and a change for the tray when it proposed one. */
-export interface ToolResult { content: string; change?: Change }
+export interface ToolResult { content: string; change?: Proposal }
 
 type Args = Record<string, unknown>
 const MAX_RESULT = 14_000
@@ -57,20 +62,27 @@ export async function runTool(name: string, rawArgs: string, c: ToolCtx): Promis
       case 'propose_entry': {
         const r = buildEntry(a, undefined, c)
         if (typeof r === 'string') return err(r)
-        return { content: json({ proposed: true }), change: { key: `p${nextKey++}`, op: 'add', after: r } }
+        return { content: json({ proposed: true }), change: { key: `p${nextKey++}`, op: 'add', after: r } satisfies Change }
       }
       case 'propose_edit': {
         const before = findEntry(a.entry_id, c)
         if (typeof before === 'string') return err(before)
         const r = buildEntry(a, before, c)
         if (typeof r === 'string') return err(r)
-        return { content: json({ proposed: true }), change: { key: `p${nextKey++}`, op: 'edit', before, after: r } }
+        return { content: json({ proposed: true }), change: { key: `p${nextKey++}`, op: 'edit', before, after: r } satisfies Change }
       }
       case 'propose_delete': {
         const before = findEntry(a.entry_id, c)
         if (typeof before === 'string') return err(before)
-        return { content: json({ proposed: true }), change: { key: `p${nextKey++}`, op: 'delete', before } }
+        return { content: json({ proposed: true }), change: { key: `p${nextKey++}`, op: 'delete', before } satisfies Change }
       }
+      case 'propose_schedule':
+        return setup(proposeSchedule(a, { ...c, entries: [...c.snap.entries, ...c.seen.values()] }, (args, before) => buildEntry(args, before, c)))
+      case 'propose_category': return setup(proposeCategory(a, c))
+      case 'propose_source': return setup(proposeSource(a, c))
+      case 'propose_method': return setup(proposeMethod(a, c))
+      case 'propose_space': return setup(proposeSpace(a, c))
+      case 'propose_profile': return setup(proposeProfile(a, c))
       default: return err(`unknown tool ${name}`)
     }
   } catch (e) {
@@ -78,26 +90,42 @@ export async function runTool(name: string, rawArgs: string, c: ToolCtx): Promis
   }
 }
 
-function overview({ snap, space, today }: ToolCtx) {
+/** A setup proposal for the tray, and the placeholder id of what it creates for the model to use. */
+const setup = (r: ReturnType<typeof proposeCategory>): ToolResult =>
+  typeof r === 'string' ? err(r) : { content: json({ proposed: true, ...(r.draft ? { id: r.draft.id } : {}) }), change: r }
+
+function overview({ snap, space, today, person }: ToolCtx) {
   const spaceName = (id: string) => snap.spaces.find((s) => s.id === id)?.name
+  const sourceRow = (s: (typeof snap.sources)[number]) => ({
+    id: s.id, name: s.name, kind: s.kind, space: spaceName(s.spaceId), balance: sourceBalance(s, snap.methods, snap.flows, today), ...(s.fixed ? { fixed: true } : {}),
+  })
+  const methodRow = (m: (typeof snap.methods)[number]) => ({
+    id: m.id, name: m.name, kind: m.kind, space: spaceName(m.spaceId), paid_from: snap.sources.find((s) => s.id === m.sourceId)?.name,
+    ...(m.kind === 'credit' ? {
+      credit_limit: m.creditLimit, limit_shared_with: m.limitSharedWith, closing_day: m.closingDay, payment_day: m.paymentDay,
+      owed: creditOutstanding(m, snap.flows, today), next_payment: nextCardPayment(m, snap.flows, today),
+    } : {}),
+  })
   return {
     today,
     current_space: space.id,
-    spaces: snap.spaces.map((s) => ({ id: s.id, name: s.name, kind: s.kind === 'personal' ? 'personal' : 'shared', members: s.memberIds.length })),
-    sources: snap.sources.filter((s) => !s.archived).map((s) => ({
-      id: s.id, name: s.name, kind: s.kind, space: spaceName(s.spaceId), balance: sourceBalance(s, snap.methods, snap.flows, today),
+    me: { id: snap.me.id, display_name: snap.me.displayName, locale: snap.me.locale, theme: snap.me.theme, avatar: snap.me.avatar },
+    spaces: snap.spaces.map((s) => ({
+      id: s.id, name: s.name, kind: s.kind === 'personal' ? 'personal' : 'shared', tone: s.tone, owner: person(s.ownerId),
+      i_own: s.ownerId === snap.me.id, ...(s.inviteCode ? { invite_code: s.inviteCode } : {}),
+      members: s.memberIds.map((id) => ({ id, name: person(id) })),
     })),
-    payment_methods: snap.methods.filter((m) => !m.archived).map((m) => {
-      const next = m.kind === 'credit' ? nextCardPayment(m, snap.flows, today) : null
-      return {
-        id: m.id, name: m.name, kind: m.kind, space: spaceName(m.spaceId), paid_from: snap.sources.find((s) => s.id === m.sourceId)?.name,
-        ...(m.kind === 'credit' ? { owed: creditOutstanding(m, snap.flows, today), next_payment: next } : {}),
-      }
-    }),
+    sources: snap.sources.filter((s) => !s.archived).map(sourceRow),
+    payment_methods: snap.methods.filter((m) => !m.archived).map(methodRow),
     categories: snap.categories.map((k) => ({
-      id: k.id, name: k.name, kind: k.kind, space: spaceName(k.spaceId),
+      id: k.id, name: k.name, kind: k.kind, space: spaceName(k.spaceId), color: k.color,
       ...(k.kind === 'expense' ? { budget: k.monthlyBudget, spent_this_month: categorySpent(snap.entries, k, today) } : {}),
     })),
+    deleted: {
+      spaces: snap.deletedSpaces.map((s) => ({ id: s.id, name: s.name })),
+      sources: snap.sources.filter((s) => s.archived).map((s) => ({ id: s.id, name: s.name })),
+      payment_methods: snap.methods.filter((m) => m.archived).map((m) => ({ id: m.id, name: m.name })),
+    },
   }
 }
 
@@ -118,7 +146,7 @@ async function listEntries(a: Args, c: ToolCtx) {
       id: e.id, date: e.occurredOn, kind: e.kind, amount: e.amount, ...(e.fee ? { fee: e.fee } : {}),
       name: e.name || undefined, note: e.note || undefined, category: cat.get(e.categoryId ?? ''), paid_with: c.paidWith(e),
       space: c.snap.spaces.find((s) => s.id === e.spaceId)?.name, by: c.person(e.createdBy),
-      ...(e.repeat !== 'none' || e.repeatOf ? { repeating: true } : {}),
+      ...(isTemplate(e) ? { schedule: e.repeat } : e.repeatOf ? { copy_of_schedule: e.repeatOf } : {}),
     })),
   }
 }
@@ -131,15 +159,18 @@ function comingUp(a: Args, c: ToolCtx) {
 function findEntry(id: unknown, c: ToolCtx): Entry | string {
   const e = c.snap.entries.find((x) => x.id === id) ?? c.seen.get(String(id))
   if (!e) return 'entry not found; call list_entries for its month first'
-  if (e.repeat !== 'none' || e.repeatOf) return 'this is a repeating entry; the person must change it with Edit schedule in the app'
+  if (isTemplate(e)) return 'this is the first record of a repeating schedule; use propose_schedule'
   return e
 }
+
+const repeatOf = (v: unknown): Repeat => (['weekly', 'biweekly', 'monthly', 'yearly'].includes(v as string) ? (v as Repeat) : 'none')
 
 const pick = <T,>(a: Args, k: string, fallback: T): T => (k in a && a[k] !== undefined ? (a[k] as T) : fallback)
 
 /** A new or edited entry from the model's arguments, checked like the entry sheet does. A string is the error. */
-export function buildEntry(a: Args, before: Entry | undefined, c: Pick<ToolCtx, 'snap' | 'space' | 'today'>): NewEntry | string {
-  const { snap } = c
+export function buildEntry(a: Args, before: Entry | undefined, c: Pick<ToolCtx, 'snap' | 'space' | 'today'> & { tray?: Proposal[] }): NewEntry | string {
+  // what the tray creates counts too, by its new:… id
+  const snap = world({ snap: c.snap, tray: c.tray ?? [] })
   const base: Partial<NewEntry> = before ? asNew(before) : { spaceId: c.space.id, occurredOn: c.today, fee: 0, name: '', note: '', tags: [], repeat: 'none', repeatOf: null }
   const kind = pick(a, 'kind', base.kind)
   const spaceId = pick(a, 'space_id', base.spaceId)
@@ -183,7 +214,7 @@ export function buildEntry(a: Args, before: Entry | undefined, c: Pick<ToolCtx, 
     spaceId: spaceId as string, kind, amount: amount as number, categoryId, methodId: kind === 'income' ? null : methodId, sourceId: method && kind !== 'income' ? null : sourceId,
     toSourceId, fee: fee as number, occurredOn: date,
     name: String(pick(a, 'name', base.name ?? '')).slice(0, 60), note: String(pick(a, 'note', base.note ?? '')).slice(0, 200),
-    tags: base.tags ?? [], repeat: before?.repeat ?? 'none', repeatOf: before?.repeatOf ?? null,
+    tags: base.tags ?? [], repeat: before ? before.repeat : repeatOf(a.repeat), repeatOf: before?.repeatOf ?? null,
   }
 }
 

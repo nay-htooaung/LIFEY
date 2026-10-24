@@ -3,7 +3,7 @@
 // The model's API key lives here as a secret and never reaches the app. Each request first calls ai_use() with
 // the person's Supabase token, which checks who they are and counts it against their daily allowance.
 // The tools themselves run in the app (src/assistant/run.ts), on the data the person can already see.
-import { systemPrompt, TOOLS, type ChatContext } from '../src/assistant/tools'
+import { appGuide, SYSTEM_PROMPT, TOOLS, type ChatContext } from '../src/assistant/tools'
 import { sseChunks, sseLines, toGemini, translator, type OpenAiMsg, type UserPart } from './gemini'
 import { allModels, bareId, GO_URL, markBroken, providerOf, type Keys } from './models'
 
@@ -79,6 +79,13 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
     locale: context.locale === 'ja' ? 'ja' : 'en',
     space: { id: String(context.space.id).slice(0, 64), name: String(context.space.name ?? '').slice(0, 60) },
   }
+  // the guide goes with the first message only: every request of a conversation then starts the same way
+  const first = convo.findIndex((m) => m.role === 'user')
+  if (first >= 0) {
+    const m = convo[first]
+    const guide = appGuide(ctx)
+    convo[first] = { ...m, content: Array.isArray(m.content) ? [{ type: 'text', text: guide }, ...m.content] : `${guide}\n\n${m.content ?? ''}` }
+  }
 
   const t0 = Date.now()
   console.log('chat start', convo.length, 'messages')
@@ -150,14 +157,14 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
         body: JSON.stringify({
           model: id, stream: true, max_tokens: 4000, tools: TOOLS, tool_choice: 'auto',
           // Gemini's signatures mean nothing to other models
-          messages: [{ role: 'system', content: systemPrompt(ctx) }, ...(convo as OpenAiMsg[]).map(({ tool_calls, ...msg }) =>
+          messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...(convo as OpenAiMsg[]).map(({ tool_calls, ...msg }) =>
             tool_calls ? { ...msg, tool_calls: tool_calls.map(({ extra_content: _x, ...tc }) => ({ ...tc, type: 'function' })) } : msg)],
         }),
       })
       : fetch(`${GEMINI}/models/${encodeURIComponent(id)}:streamGenerateContent?alt=sse`, {
         method: 'POST', signal: ctl.signal,
         headers: { 'x-goog-api-key': env.GEMINI_API_KEY!, 'content-type': 'application/json' },
-        body: JSON.stringify(toGemini(systemPrompt(ctx), convo as OpenAiMsg[], TOOLS, id, thinking)),
+        body: JSON.stringify(toGemini(SYSTEM_PROMPT, convo as OpenAiMsg[], TOOLS, id, thinking)),
       })
     let spoke = false
     const spoken = async (events: string) => {

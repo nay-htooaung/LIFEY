@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { addDays } from '../domain/dates'
-import { asNew, isTemplate, nextOccurrence, scheduleChange, type ScheduleChange } from '../domain/recurring'
-import type { Entry, EntryKind, MoneyKind, NewEntry, Repeat } from '../domain/types'
-import type { Repo } from '../data/repo'
+import { asNew, isTemplate, nextOccurrence, scheduleChange } from '../domain/recurring'
+import type { EntryKind, MoneyKind, NewEntry, Repeat } from '../domain/types'
+import { runSchedule } from '../data/repo'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useStore, useSubmit } from '../data/store'
 import { CategorySheet } from './CategorySheet'
@@ -29,14 +29,6 @@ interface Props {
   prefill?: Partial<NewEntry>
   /** Returns the entry instead of saving it (adjusting a change the assistant proposed). */
   onDraft?: (entry: NewEntry) => void
-}
-
-/** Carries out a schedule change: drop replaced copies, end or rewrite the old template, add the new one. */
-async function runSchedule(r: Repo, template: Entry, plan: ScheduleChange) {
-  for (const id of plan.remove) await r.deleteEntry(id)
-  if (plan.end) await r.updateEntry(template.id, { ...asNew(template), repeat: 'none' })
-  if (plan.update) await r.updateEntry(template.id, plan.update)
-  if (plan.add) await r.addEntries([plan.add])
 }
 
 export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
