@@ -17,6 +17,8 @@ describe('Gemini requests', () => {
       { role: 'tool', tool_call_id: 'call_0', content: '{"today":"2026-10-24"}' },
       { role: 'tool', tool_call_id: 'call_1', content: '[1,2]' },
       { role: 'user', content: '[app] applied' },
+      // a call made by another model has no signature
+      { role: 'assistant', content: null, tool_calls: [{ id: 'call_9', function: { name: 'get_overview', arguments: '' } }] },
     ]
     const body = toGemini('System', msgs, tools, 'gemini-3.8-flash')
     expect(body.systemInstruction).toEqual({ parts: [{ text: 'System' }] })
@@ -32,12 +34,14 @@ describe('Gemini requests', () => {
         { functionResponse: { name: 'propose_entry', response: { result: [1, 2] } } },
         { text: '[app] applied' },
       ] },
+      { role: 'model', parts: [{ functionCall: { name: 'get_overview', args: {} }, thoughtSignature: 'skip_thought_signature_validator' }] },
     ])
     expect(body.tools[0].functionDeclarations).toEqual([
       { name: 'get_overview', description: 'Overview' },
       { name: 'propose_entry', description: 'Propose', parametersJsonSchema: tools[1].function.parameters },
     ])
     expect(body.generationConfig.thinkingConfig).toEqual({ includeThoughts: true, thinkingLevel: 'low' })
+    expect(toGemini('S', msgs, tools, 'gemini-2.5-flash').contents.at(-1)).toEqual({ role: 'model', parts: [{ functionCall: { name: 'get_overview', args: {} } }] })
     expect(toGemini('S', msgs, tools, 'gemini-2.5-flash').generationConfig.thinkingConfig).toEqual({ includeThoughts: true, thinkingBudget: 1024 })
     expect(toGemini('S', msgs, tools, 'gemini-3.8-flash', false).generationConfig).toEqual({ maxOutputTokens: 4000 })
   })

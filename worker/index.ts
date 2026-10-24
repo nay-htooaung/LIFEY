@@ -1,17 +1,21 @@
-// Serves the app's static build, plus /api/chat (the assistant's model calls, streamed from Gemini through
-// worker/gemini.ts) and /api/models (which free models it may use).
+// Serves the app's static build, plus /api/chat (the assistant's model calls, streamed from OpenCode Go or from
+// Gemini through worker/gemini.ts) and /api/models (which models it may use, worker/models.ts).
 // The model's API key lives here as a secret and never reaches the app. Each request first calls ai_use() with
 // the person's Supabase token, which checks who they are and counts it against their daily allowance.
 // The tools themselves run in the app (src/assistant/run.ts), on the data the person can already see.
 import { systemPrompt, TOOLS, type ChatContext } from '../src/assistant/tools'
-import { sseChunks, toGemini, translator, type OpenAiMsg } from './gemini'
-import { freeModels, markBroken } from './models'
+import { sseChunks, sseLines, toGemini, translator, type OpenAiMsg } from './gemini'
+import { allModels, bareId, GO_URL, markBroken, providerOf, type Keys } from './models'
 
 interface Env {
   ASSETS: { fetch(req: Request): Promise<Response> }
+  /** Secret: an OpenCode Go API key (the user's subscription). */
+  OPENCODE_API_KEY?: string
   /** Secret: a Gemini API key from a Google AI Studio project without billing, so only the free tier is used. */
   GEMINI_API_KEY?: string
-  /** Comma-separated model ids to recommend first; empty recommends the newest Flash. */
+  /** Comma-separated Gemini models to offer. */
+  GEMINI_MODELS?: string
+  /** Comma-separated model ids (`go:…`, `gemini:…`) to recommend first, in order. */
   AI_PREFERRED?: string
   SUPABASE_URL: string
   SUPABASE_ANON_KEY: string
@@ -25,7 +29,9 @@ const REPLY_MS = 120_000
 const MAX_BODY = 400_000
 const MAX_MESSAGES = 120
 
-const preferred = (env: Env) => (env.AI_PREFERRED ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+const list = (s?: string) => (s ?? '').split(',').map((x) => x.trim()).filter(Boolean)
+const keys = (env: Env): Keys => ({ go: env.OPENCODE_API_KEY, gemini: env.GEMINI_API_KEY, geminiModels: list(env.GEMINI_MODELS), preferred: list(env.AI_PREFERRED) })
+const configured = (env: Env) => !!(env.OPENCODE_API_KEY || env.GEMINI_API_KEY)
 
 const fail = (status: number, error: string) =>
   new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } })
@@ -35,8 +41,8 @@ export default {
     const url = new URL(req.url)
     if (url.pathname === '/api/chat') return req.method === 'POST' ? chat(req, env, ctx) : fail(405, 'method')
     if (url.pathname === '/api/models') {
-      if (!env.GEMINI_API_KEY) return fail(503, 'not_configured')
-      return Response.json(await freeModels(env.GEMINI_API_KEY, preferred(env)), { headers: { 'cache-control': 'no-store' } })
+      if (!configured(env)) return fail(503, 'not_configured')
+      return Response.json(await allModels(keys(env)), { headers: { 'cache-control': 'no-store' } })
     }
     if (url.pathname.startsWith('/api/')) return fail(404, 'not_found')
     return env.ASSETS.fetch(req)
@@ -44,13 +50,13 @@ export default {
 }
 
 async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unknown>): void }): Promise<Response> {
-  if (!env.GEMINI_API_KEY) return fail(503, 'not_configured')
+  if (!configured(env)) return fail(503, 'not_configured')
   const token = req.headers.get('authorization')?.match(/^Bearer (.+)$/)?.[1]
   if (!token) return fail(401, 'signed_out')
 
   const raw = await req.text()
   if (raw.length > MAX_BODY) return fail(413, 'too_long')
-  let body: { messages?: Msg[]; context?: ChatContext; model?: string }
+  let body: { messages?: Msg[]; context?: ChatContext; model?: string; session?: string }
   try {
     body = JSON.parse(raw)
   } catch {
@@ -85,10 +91,12 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
   }
 
   console.log('signed in', Date.now() - t0, 'ms')
-  // the model picked in the app, if it is still a free one; otherwise the recommended one
-  const { models, recommended } = await freeModels(env.GEMINI_API_KEY, preferred(env))
-  // when the list cannot be had, Gemini's own alias for its newest Flash
-  const model = models.some((m) => m.id === body.model) ? body.model! : (recommended ?? 'gemini-flash-latest')
+  // the model picked in the app, if it is still offered; otherwise the recommended one
+  const { models, recommended } = await allModels(keys(env))
+  const model = models.some((m) => m.id === body.model) ? body.model! : recommended
+  if (!model) return fail(503, 'no_model')
+  // OpenCode Go routes and caches by a stable id per conversation, which it requires
+  const session = typeof body.session === 'string' && /^[\w-]{8,64}$/.test(body.session) ? body.session : crypto.randomUUID()
 
   // The reply streams back at once: a keep-alive every few seconds while Gemini thinks, so a phone never drops a
   // quiet connection, then Gemini's chunks as the app's events. Errors from here on arrive as an error event.
@@ -118,19 +126,44 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
   /** One model's try: 'done' once it has answered (or failed after starting), else the error code to try the next with. */
   const attempt = async (m: string): Promise<'done' | string> => {
     const started = Date.now()
+    const provider = providerOf(m)
+    const id = bareId(m)
     // until the first words arrive this is short, then the whole reply gets two minutes
     const ctl = new AbortController()
     let timer = setTimeout(() => ctl.abort(), FIRST_WORDS_MS)
-    const call = (thinking: boolean) => fetch(`${GEMINI}/models/${encodeURIComponent(m)}:streamGenerateContent?alt=sse`, {
-      method: 'POST', signal: ctl.signal,
-      headers: { 'x-goog-api-key': env.GEMINI_API_KEY!, 'content-type': 'application/json' },
-      body: JSON.stringify(toGemini(systemPrompt(ctx), convo as OpenAiMsg[], TOOLS, m, thinking)),
-    })
+    const call = (thinking: boolean) => provider === 'go'
+      ? fetch(`${GO_URL}/chat/completions`, {
+        method: 'POST', signal: ctl.signal,
+        headers: {
+          authorization: `Bearer ${env.OPENCODE_API_KEY}`, 'content-type': 'application/json',
+          'x-opencode-session': session, 'user-agent': 'lifey-assistant/0.1',
+        },
+        body: JSON.stringify({
+          model: id, stream: true, max_tokens: 4000, tools: TOOLS, tool_choice: 'auto',
+          // Gemini's signatures mean nothing to other models
+          messages: [{ role: 'system', content: systemPrompt(ctx) }, ...(convo as OpenAiMsg[]).map(({ tool_calls, ...msg }) =>
+            tool_calls ? { ...msg, tool_calls: tool_calls.map(({ extra_content: _x, ...tc }) => ({ ...tc, type: 'function' })) } : msg)],
+        }),
+      })
+      : fetch(`${GEMINI}/models/${encodeURIComponent(id)}:streamGenerateContent?alt=sse`, {
+        method: 'POST', signal: ctl.signal,
+        headers: { 'x-goog-api-key': env.GEMINI_API_KEY!, 'content-type': 'application/json' },
+        body: JSON.stringify(toGemini(systemPrompt(ctx), convo as OpenAiMsg[], TOOLS, id, thinking)),
+      })
     let spoke = false
+    const spoken = async (events: string) => {
+      if (!spoke) {
+        console.log('first words', m, Date.now() - started, 'ms')
+        clearTimeout(timer)
+        timer = setTimeout(() => ctl.abort(), REPLY_MS)
+      }
+      spoke = true
+      await send(events)
+    }
     try {
       let res = await call(true)
-      // a model that does not take the thinking settings gets the request without them
-      if (res.status === 400) {
+      // a Gemini model that does not take the thinking settings gets the request without them
+      if (res.status === 400 && provider === 'gemini') {
         console.error('model refused thinking settings', m, (await res.text()).slice(0, 400))
         res = await call(false)
       }
@@ -139,21 +172,19 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
         console.error('model failed', m, res.status, (await res.text()).slice(0, 600))
         if (res.status === 404) markBroken(m)
         const code = res.status === 429 || res.status === 503 ? 'model_busy' : `model_${res.status}`
-        if ([404, 429, 500, 503].includes(res.status)) return code
+        if ([404, 429, 500, 502, 503].includes(res.status)) return code
         await send(`data: ${JSON.stringify({ error: { code } })}\n\n`)
         return 'done'
       }
-      const translate = translator()
-      for await (const chunk of sseChunks(res.body)) {
-        const events = translate(chunk)
-        if (!events) continue
-        if (!spoke) {
-          console.log('first words', m, Date.now() - started, 'ms')
-          clearTimeout(timer)
-          timer = setTimeout(() => ctl.abort(), REPLY_MS)
+      if (provider === 'go') {
+        // already the app's format: pass each event on, ending with our own [DONE]
+        for await (const data of sseLines(res.body)) if (data !== '[DONE]') await spoken(`data: ${data}\n\n`)
+      } else {
+        const translate = translator()
+        for await (const chunk of sseChunks(res.body)) {
+          const events = translate(chunk)
+          if (events) await spoken(events)
         }
-        spoke = true
-        await send(events)
       }
       await send('data: [DONE]\n\n')
       console.log('model done', m, Date.now() - started, 'ms')

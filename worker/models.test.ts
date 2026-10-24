@@ -1,37 +1,40 @@
 import { describe, expect, it } from 'vitest'
-import { pickModels } from './models'
-
-const m = (id: string, x: Partial<{ displayName: string; supportedGenerationMethods: string[]; inputTokenLimit: number }> = {}) =>
-  ({ name: `models/${id}`, supportedGenerationMethods: ['generateContent'], ...x })
+import { bareId, goModels, pickModels, providerOf } from './models'
 
 describe('assistant models', () => {
-  const list = [
-    m('gemini-3.6-flash', { displayName: 'Gemini 3.6 Flash', inputTokenLimit: 1048576 }),
-    m('gemini-3.8-flash-lite', { displayName: 'Gemini 3.8 Flash-Lite' }),
-    m('gemini-3.8-flash-preview-11-2026'),
-    m('gemini-3.8-flash', { displayName: 'Gemini 3.8 Flash' }),
-    m('gemini-3.1-pro-preview'),
-    m('gemini-3.8-flash-image'),
-    m('gemini-3.8-flash-tts'),
-    m('gemini-flash-latest'),
-    m('gemma-4-27b-it'),
-    m('gemini-embedding-002', { supportedGenerationMethods: ['embedContent'] }),
-    m('gemini-3.5-flash-live', { supportedGenerationMethods: ['bidiGenerateContent'] }),
-  ]
-  it('offers free Flash chat models, newest full Flash first', () => {
-    expect(pickModels(list)).toEqual({
-      models: [
-        { id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash' },
-        { id: 'gemini-3.8-flash-preview-11-2026', name: 'gemini-3.8-flash-preview-11-2026' },
-        { id: 'gemini-3.8-flash-lite', name: 'Gemini 3.8 Flash-Lite' },
-        { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', context: 1048576 },
-      ],
-      recommended: 'gemini-3.8-flash',
-    })
+  const catalogue = {
+    'kimi-k3': { name: 'Kimi K3', tool_call: true },
+    'glm-5.3': { name: 'GLM-5.3', tool_call: true, provider: { npm: '@ai-sdk/openai-compatible' } },
+    'claude-haiku-5.5': { name: 'Claude Haiku 5.5', provider: { npm: '@ai-sdk/anthropic' } },
+    'gpt-6-luna': { name: 'GPT 6 Luna', provider: { npm: '@ai-sdk/openai' } },
+    'no-tools': { tool_call: false },
+    'old': { status: 'deprecated' },
+  }
+  it('offers Go models that speak chat/completions and call tools', () => {
+    const live = ['kimi-k3', 'glm-5.3', 'claude-haiku-5.5', 'gpt-6-luna', 'no-tools', 'old', 'new-one', 'grok-4.7']
+    expect(goModels(live, catalogue)).toEqual([
+      { id: 'go:kimi-k3', name: 'Kimi K3', provider: 'go' },
+      { id: 'go:glm-5.3', name: 'GLM-5.3', provider: 'go' },
+      // not in the catalogue yet: kept unless its name says another format
+      { id: 'go:new-one', name: 'new-one', provider: 'go' },
+    ])
   })
-  it('recommends a preferred model when it is offered', () => {
-    expect(pickModels(list, ['gemini-3.6-flash']).recommended).toBe('gemini-3.6-flash')
-    expect(pickModels(list, ['gemini-3.1-pro-preview']).recommended).toBe('gemini-3.8-flash')
-    expect(pickModels([])).toEqual({ models: [], recommended: null })
+  it('lists both providers, preferred first', () => {
+    const go = goModels(['glm-5.3', 'kimi-k3'], catalogue)
+    expect(pickModels(go, ['gemini-3.6-flash'], ['go:kimi-k3', 'gemini:gemini-3.6-flash'])).toEqual({
+      models: [
+        { id: 'go:kimi-k3', name: 'Kimi K3', provider: 'go' },
+        { id: 'gemini:gemini-3.6-flash', name: 'Gemini 3.6 Flash', provider: 'gemini' },
+        { id: 'go:glm-5.3', name: 'GLM-5.3', provider: 'go' },
+      ],
+      recommended: 'go:kimi-k3',
+    })
+    // without Go, Gemini alone
+    expect(pickModels([], ['gemini-3.6-flash'], ['go:kimi-k3']).recommended).toBe('gemini:gemini-3.6-flash')
+    expect(pickModels([], [])).toEqual({ models: [], recommended: null })
+  })
+  it('reads the provider from the id', () => {
+    expect([providerOf('go:kimi-k3'), providerOf('gemini:gemini-3.6-flash'), providerOf('kimi-k3')]).toEqual(['go', 'gemini', null])
+    expect(bareId('gemini:gemini-3.6-flash')).toBe('gemini-3.6-flash')
   })
 })
