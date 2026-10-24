@@ -8,7 +8,7 @@ import { supabase } from '../data/supabase'
 import { EntrySheet } from '../sheets/EntrySheet'
 import { Glyph } from '../ui/bits'
 import { usePaidWith } from '../ui/entry'
-import { IconCamera, IconChevron, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
+import { IconCamera, IconChevron, IconImage, IconSend, IconSpark, IconUndo, IconX } from '../ui/icons'
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
 import { shrinkPhoto } from './photo'
@@ -312,7 +312,14 @@ export function AssistantSheet() {
 
   const [photo, setPhoto] = useState<string | null>(null)
   const [reading, setReading] = useState(false)
-  const picker = useRef<HTMLInputElement>(null)
+  // the camera straight away, or the gallery; some browsers offer only the gallery to a plain file input
+  const camera = useRef<HTMLInputElement>(null)
+  const gallery = useRef<HTMLInputElement>(null)
+  const [choosing, setChoosing] = useState(false)
+  const choose = (input: HTMLInputElement | null) => {
+    setChoosing(false)
+    input?.click()
+  }
   const pick = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     e.target.value = ''
@@ -404,9 +411,21 @@ export function AssistantSheet() {
         )}
         <form className="composer" onSubmit={submit}>
           {/* camera or gallery, as the phone offers */}
-          <input ref={picker} type="file" accept="image/*" hidden onChange={pick} />
-          <button type="button" className="attach" aria-label={t('attachPhoto')} aria-busy={reading} disabled={a.thinking || reading}
-            onClick={() => picker.current?.click()}>{!reading && <IconCamera />}</button>
+          <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={pick} />
+          <input ref={gallery} type="file" accept="image/*" hidden onChange={pick} />
+          <div className="attach-wrap">
+            <button type="button" className="attach" aria-label={t('attachPhoto')} aria-haspopup="menu" aria-expanded={choosing}
+              aria-busy={reading} disabled={a.thinking || reading} onClick={() => setChoosing((c) => !c)}>{!reading && <IconCamera />}</button>
+            {choosing && (
+              <>
+                <div className="sel-scrim" onClick={() => setChoosing(false)} />
+                <div className="attach-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={() => choose(camera.current)}><IconCamera />{t('takePhoto')}</button>
+                  <button type="button" role="menuitem" onClick={() => choose(gallery.current)}><IconImage />{t('choosePhoto')}</button>
+                </div>
+              </>
+            )}
+          </div>
           <input className="input" value={text} maxLength={500} placeholder={photo ? t('photoPh') : t('askPh')} aria-label={t('askPh')}
             enterKeyHint="send" onChange={(e) => setText(e.target.value)} />
           <button className="send" aria-label={t('send')} disabled={(!text.trim() && !photo) || a.thinking}><IconSend /></button>

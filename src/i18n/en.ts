@@ -72,6 +72,7 @@ export const en = {
   thinking: 'Thinking…', changesN: '{n} changes', change1: '1 change', opAdd: 'New', opEdit: 'Edit', opDel: 'Delete',
   aiModel: 'Model', recommended: 'Recommended', aiFreeNote: "Uses Google Gemini's free tier. Google may use what you send to improve its products.",
   photo: 'Photo', attachPhoto: 'Add a photo', removePhoto: 'Remove photo', photoReady: 'Photo ready to send', photoPh: 'Add a note, or just send', receiptPrompt: 'Log this receipt.', photoError: "Couldn't read that photo. Try another one.", aiUsedModel: 'Answered by {m}', aiErrNoPhotoModel: 'None of the models can read photos right now.',
+  takePhoto: 'Take a photo', choosePhoto: 'Choose a photo',
   leaveOut: 'Leave out', putBack: 'Put back', leftOut: 'Left out', afterApply: 'After applying', owed: 'owed', ofBudgetX: 'of {a}',
   holdApply: 'Hold to apply', holdHint: 'Keep holding to apply', discard: 'Discard', appliedN: 'Applied {n}', undo: 'Undo', undone: 'Undone',
   receiptN: 'Applied {n} changes', receipt1: 'Applied 1 change', tapToEdit: 'Tap a change to adjust it.', useDraft: 'Update change',
