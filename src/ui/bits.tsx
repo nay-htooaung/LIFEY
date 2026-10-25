@@ -1,5 +1,6 @@
 import type { Category, Profile, Theme, Tone } from '../domain/types'
 import { Character, isCharacter } from './characters'
+import { isPhoto } from './photo'
 
 export function Glyph({ category }: { category?: Pick<Category, 'name' | 'color'> }) {
   const first = category ? [...category.name][0] ?? '•' : '•'
@@ -12,6 +13,9 @@ export const THEMES: Theme[] = ['midnight', 'light', 'milky']
 export function Avatar({ profile, label }: { profile?: Profile; label?: string }) {
   const name = label ?? profile?.displayName ?? '?'
   // anything that is not one of the characters (an emoji from before) shows the initial
+  if (isPhoto(profile?.avatar)) {
+    return <span className="av photo" title={name}><img src={profile.avatar} alt="" /></span>
+  }
   if (isCharacter(profile?.avatar)) {
     return <span className="av char" title={name}><Character id={profile.avatar} /></span>
   }

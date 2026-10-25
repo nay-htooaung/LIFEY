@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { monthEndPlan, accountLines, upcomingThisMonth, creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { monthEndPlan, accountLines, upcomingThisMonth, creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, sourceBalance, upcoming } from './money'
 import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
 import { addTag, nameSuggestions, tagSuggestions } from './suggest'
@@ -75,8 +75,8 @@ describe('recurring entries', () => {
   })
 })
 
-describe('safe to spend', () => {
-  it('spreads what is left after scheduled bills over the remaining days', () => {
+describe('coming up', () => {
+  it('lists the next bill, and on Today only this month', () => {
     const s: Snapshot = {
       me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en', avatar: null, theme: 'midnight' },
       profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], pots: [], potMoves: [], methodShares: [],
@@ -90,32 +90,14 @@ describe('safe to spend', () => {
         entry({ categoryId: 'gym', amount: 7700, occurredOn: '2026-09-30', repeat: 'monthly' }),
       ],
     }
-    const r = safeToSpend('me', s, '2026-10-23')
-    expect(r.budget).toBe(38000)
-    expect(r.committed).toBe(7700)
-    expect(r.daysLeft).toBe(9)
-    // (38000 - 11000 - 7700 + 1000) / 9 - 1000
-    expect(r.today).toBe(Math.floor(20300 / 9 - 1000))
     expect(upcoming('me', s, '2026-10-23')[0]).toMatchObject({ kind: 'bill', on: '2026-10-30', amount: 7700 })
     // Today lists only this month; next month's occurrence waits until November
     expect(upcoming('me', s, '2026-10-31').map((u) => u.on)).toContain('2026-11-30')
     expect(upcomingThisMonth('me', s, '2026-10-31').filter((u) => u.on > '2026-10-31')).toEqual([])
     expect(upcomingThisMonth('me', s, '2026-10-23').map((u) => u.on)).toContain('2026-10-30')
   })
-  it('sets 貯金 aside before spreading the rest', () => {
-    const base = safeToSpend('me', { ...s0(), pots: [], potMoves: [] }, '2026-10-23')
-    const r = safeToSpend('me', { ...s0(), pots: [trip, sofa], potMoves: moves }, '2026-10-23')
-    // trip: 10,000 a month, 4,000 in so far (6,000 due); the shared sofa is another space's
-    expect([r.saving, r.savingDue, base.left - r.left]).toEqual([10000, 6000, 10000])
-  })
 })
 
-const s0 = () => ({
-  me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en' as const, avatar: null, theme: 'midnight' as const },
-  profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], methodShares: [],
-  categories: [{ id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense' as const, monthlyBudget: 30000, sort: 0 }],
-  entries: [entry({ amount: 10000, occurredOn: '2026-10-05' })],
-})
 const trip: Pot = { id: 'trip', spaceId: 'me', name: 'Trip', color: '#000', goal: 150000, monthly: 10000, sort: 0, archived: false }
 const sofa: Pot = { ...trip, id: 'sofa', spaceId: 'home', monthly: 20000 }
 const move = (potId: string, amount: number, occurredOn: string, createdBy = 'u1'): PotMove =>
@@ -356,14 +338,17 @@ describe('account history', () => {
   })
 })
 
-describe('month end if the budgets are used up', () => {
+describe('money left at the end of the month if the budgets are used up', () => {
+  // closes at month end, paid on the 27th of the next month
   const card: PaymentMethod = { ...visa, id: 'card', spaceId: 'me', closingDay: 31, paymentDay: 27 }
   const joint: Source = { ...chk, id: 'joint', spaceId: 'home', openingBalance: 0 }
   const es = [
-    entry({ methodId: 'card', amount: 4000, occurredOn: '2026-10-10' }),                                  // food, on the card
-    entry({ methodId: null, sourceId: 'chk', amount: 1000, occurredOn: '2026-10-12', categoryId: 'fun' }), // outside the budgets
+    entry({ methodId: 'card', amount: 6000, occurredOn: '2026-09-20' }),                                  // September: paid Oct 27
+    entry({ methodId: 'card', amount: 4000, occurredOn: '2026-10-10' }),                                  // October: paid Nov 27
+    entry({ methodId: null, sourceId: 'chk', amount: 1000, occurredOn: '2026-10-12', categoryId: 'fun' }),
     entry({ kind: 'income', methodId: null, sourceId: 'chk', amount: 200000, occurredOn: '2026-10-25', categoryId: null }),
-    entry({ methodId: 'card', amount: 7700, occurredOn: '2026-10-30', categoryId: 'gym' }),               // a bill still to come
+    entry({ methodId: 'card', amount: 7700, occurredOn: '2026-10-30', categoryId: 'gym' }),               // on the card: November
+    entry({ methodId: null, sourceId: 'chk', amount: 3000, occurredOn: '2026-10-28', categoryId: 'phone' }), // from the bank
     entry({ kind: 'transfer', methodId: null, sourceId: 'chk', toSourceId: 'joint', amount: 50000, occurredOn: '2026-10-28', categoryId: null }),
   ]
   const s: Snapshot = {
@@ -373,15 +358,22 @@ describe('month end if the budgets are used up', () => {
       { id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense', monthlyBudget: 30000, sort: 0 },
       { id: 'gym', spaceId: 'me', name: 'Gym', color: '#000', kind: 'expense', monthlyBudget: 5000, sort: 0 },
       { id: 'fun', spaceId: 'me', name: 'Fun', color: '#000', kind: 'expense', monthlyBudget: 0, sort: 0 },
+      { id: 'phone', spaceId: 'me', name: 'Phone', color: '#000', kind: 'expense', monthlyBudget: 0, sort: 0 },
     ],
     pots: [{ id: 'trip', spaceId: 'me', name: 'Trip', color: '#000', goal: null, monthly: 10000, sort: 0, archived: false }],
     potMoves: [{ id: 'm', potId: 'trip', spaceId: 'me', amount: 20000, occurredOn: '2026-09-01', note: '', createdBy: 'u1' }],
   }
-  it('takes the balance, less card debt, the rest of each budget, other bills and 貯金, plus income to come', () => {
+  it('counts cash only: this month\'s card statement, not next month\'s', () => {
     const r = monthEndPlan('me', s, '2026-10-20')
-    // food: 30,000 - 4,000 left; gym: a 7,700 bill is scheduled over its 5,000 budget
-    expect(r).toEqual({ balance: 99000, cardOwed: 4000, incomeAhead: 200000, budgetLeft: 26000 + 7700, otherAhead: 50000, saving: 30000,
-      left: 99000 - 4000 + 200000 - 33700 - 50000 - 30000 })
+    expect(r).toEqual({
+      balance: 99000,
+      incomeAhead: 200000,
+      cardDue: 6000,         // September's charge; October's 4,000 is paid in November
+      budgetLeft: 26000,     // food 30,000 - 4,000; gym's 7,700 bill is on the card, paid in November
+      otherAhead: 3000 + 50000,
+      saving: 30000,
+      left: 99000 + 200000 - 6000 - 26000 - 53000 - 30000,
+    })
     // the joint account's space sees the move as money coming in
     expect(monthEndPlan('home', s, '2026-10-20').incomeAhead).toBe(50000)
   })

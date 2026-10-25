@@ -1,6 +1,7 @@
 // Proposals that change the setup rather than entries: categories, sources, payment methods, spaces, the profile
 // and repeating schedules. Each is checked here the way the app's own sheets check it, and carries how to apply it
 // and, where the app allows, how to undo it. Nothing runs until the person applies the tray.
+import { isPhoto } from '../ui/photo'
 import type { Change } from '../domain/changes'
 import { isTemplate, nextOccurrence, scheduleChange } from '../domain/recurring'
 import type { Category, Entry, MethodKind, NewEntry, PaymentMethod, Pot, Profile, Snapshot, Source, SourceKind, Space, Theme, Tone } from '../domain/types'
@@ -394,9 +395,11 @@ export function proposeProfile(a: Args, c: SetupCtx): SetupChange | string {
     patch.avatar = v === 'none' ? null : v!
   }
   const before = { displayName: me.displayName, locale: me.locale, theme: me.theme, avatar: me.avatar }
+  // a photo shows as the word, never its data
+  const look = (x: string | null) => (isPhoto(x) ? t('yourPhoto') : (x ?? '—'))
   const detail = diff([
     [t('yourName'), before.displayName, patch.displayName ?? before.displayName], [t('language'), before.locale, patch.locale ?? before.locale],
-    [t('theme'), before.theme, patch.theme ?? before.theme], [t('character'), before.avatar ?? '—', patch.avatar === undefined ? (before.avatar ?? '—') : (patch.avatar ?? '—')],
+    [t('theme'), before.theme, patch.theme ?? before.theme], [t('character'), look(before.avatar), look(patch.avatar === undefined ? before.avatar : patch.avatar)],
   ])
   if (!detail) return 'nothing changes'
   return {

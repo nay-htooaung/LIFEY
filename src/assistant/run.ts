@@ -7,6 +7,7 @@ import { asNew, isTemplate } from '../domain/recurring'
 import type { Entry, NewEntry, Repeat, Snapshot, Space } from '../domain/types'
 import type { Repo } from '../data/repo'
 import type { I18n } from '../i18n'
+import { isPhoto } from '../ui/photo'
 import { proposeCategory, proposeMethod, proposePot, proposePotMove, proposeProfile, proposeSchedule, proposeSource, proposeSpace, world, type Proposal } from './setup'
 
 /** `extra_content` carries Gemini's thought signature, which must be sent back with the call. */
@@ -112,7 +113,7 @@ function overview({ snap, space, today, person }: ToolCtx) {
   return {
     today,
     current_space: space.id,
-    me: { id: snap.me.id, display_name: snap.me.displayName, locale: snap.me.locale, theme: snap.me.theme, avatar: snap.me.avatar },
+    me: { id: snap.me.id, display_name: snap.me.displayName, locale: snap.me.locale, theme: snap.me.theme, avatar: isPhoto(snap.me.avatar) ? 'photo' : snap.me.avatar },
     spaces: snap.spaces.map((s) => ({
       id: s.id, name: s.name, kind: s.kind === 'personal' ? 'personal' : 'shared', tone: s.tone, owner: person(s.ownerId),
       i_own: s.ownerId === snap.me.id, ...(s.inviteCode ? { invite_code: s.inviteCode } : {}),

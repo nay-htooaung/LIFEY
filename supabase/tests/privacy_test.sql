@@ -66,6 +66,17 @@ set role authenticated;
 select t.as_user('you');
 update public.profiles set theme = 'milky', avatar = '🐱' where id = auth.uid();
 select t.ok((select theme = 'milky' and avatar = '🐱' from public.profiles where id = auth.uid()), 'you can set your theme and character');
+update public.profiles set avatar = 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ==' where id = auth.uid();
+select t.ok((select avatar like 'data:image/jpeg;base64,%' from public.profiles where id = auth.uid()), 'you can set a photo');
+do $$ begin
+  update public.profiles set avatar = 'data:text/html;base64,PHNjcmlwdD4=' where id = auth.uid();
+  raise exception 'TEST FAIL: set something that is not an image as a photo';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  update public.profiles set avatar = 'data:image/jpeg;base64,' || repeat('A', 130000) where id = auth.uid();
+  raise exception 'TEST FAIL: set a photo that is too large';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+update public.profiles set avatar = '🐱' where id = auth.uid();
 do $$ begin
   update public.profiles set theme = 'neon' where id = auth.uid();
   raise exception 'TEST FAIL: an unknown theme was saved';

@@ -65,29 +65,33 @@ export function Plan() {
   )
 }
 
-/** What is left at the end of the month once every budget is used, and how it adds up. */
+/** The money left in the space's accounts at the end of the month once every budget is used; tap for how it adds up. */
 function MonthEnd() {
   const { snap, space, today } = useStore()
   const { t, month } = useI18n()
   const r = monthEndPlan(space.id, snap, today)
   // the balance is where it starts; the rest add (+) or take away
   const steps: [string, number][] = [
-    [t('meCards'), -r.cardOwed], [t('meIncome'), r.incomeAhead], [t('meBudgets'), -r.budgetLeft],
+    [t('meIncome'), r.incomeAhead], [t('meCards'), -r.cardDue], [t('meBudgets'), -r.budgetLeft],
     [t('meOther'), -r.otherAhead], [t('meSaving'), -r.saving],
   ]
   return (
     <div className="card me-card">
       <span className="label">{t('meTitle', { m: month(parts(today)[1]) })}</span>
       <div className={'me-big num' + (r.left < 0 ? ' neg' : '')}>{yen(r.left)}</div>
-      <div className="me-rows">
-        <div className="me-row"><span>{t('meBalance')}</span><span className="num">{yen(r.balance)}</span></div>
-        {steps.filter(([, v]) => v !== 0).map(([label, v]) => (
-          <div key={label} className="me-row">
-            <span>{label}</span>
-            <span className={'num' + (v > 0 ? ' amt-in' : '')}>{v > 0 ? '+' : ''}{yen(v)}</span>
-          </div>
-        ))}
-      </div>
+      <span className="small muted">{t('meNote')}</span>
+      <details className="me-details">
+        <summary>{t('meHow')}</summary>
+        <div className="me-rows">
+          <div className="me-row"><span>{t('meBalance')}</span><span className="num">{yen(r.balance)}</span></div>
+          {steps.filter(([, v]) => v !== 0).map(([label, v]) => (
+            <div key={label} className="me-row">
+              <span>{label}</span>
+              <span className={'num' + (v > 0 ? ' amt-in' : '')}>{v > 0 ? '+' : ''}{yen(v)}</span>
+            </div>
+          ))}
+        </div>
+      </details>
     </div>
   )
 }

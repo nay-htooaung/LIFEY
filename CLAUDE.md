@@ -77,7 +77,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   The user replaces it with `develop` at the v1.0.0 release (pushing `main` deploys prod). Other branches run
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
-- Latest migration: `20261025000000_method_shares.sql`.
+- Latest migration: `20261025010000_profile_photo.sql`.
 - Version: `package.json` (0.x.x until the v1.0.0 release), shown with the commit in the menu (lifey 家計 ⌄). Bump it with each
   deploy to dev: minor for new features, patch for fixes.
 - Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
@@ -123,11 +123,13 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     creator posts copies, for the whole month when it starts (`monthEnd`).
   - **Editing a schedule** goes through `scheduleChange`: it never edits records dated today or earlier, replaces
     later copies, and splits the schedule into a new template. "Edit this entry" on a running template splits too.
-  - **What is left this month** (`safeToSpend`, Today): the space's category budgets, less what was spent in them,
-    the repeating bills in them still due this month, and what 貯金 sets aside; the daily figure spreads it over the days left.
-  - **Left at month end if budgets are used up** (`monthEndPlan`, top of 計画): the space's sources now, less card
-    debt today, plus income still to come this month, less what each budget still allows (or its scheduled bills, if
-    more), other scheduled spending, money moved to other spaces, and 貯金 (pot totals plus this month's still due).
+  - **今月 tab** (the first tab; its code is still `Today`): everything I logged this month up to today across every
+    space (支出 / 収入 / 差額), then my spending per space (they add up to the total), then 今後の予定 for the space.
+  - **月末に残るお金** (`monthEndPlan`, top of 計画, breakdown folded under 内訳): cash in the space's sources at the end
+    of the month if every budget is used up: sources now, plus income still to come, less card statements paid later
+    this month, less what the budgets still allow (assumed paid this month) and scheduled bills that leave the
+    sources this month, other such payments and moves to other spaces, and 貯金 (pot totals plus this month's still
+    due). Card charges billed next month are not counted.
   - **貯金 pots** (`pots`, `pot_moves`) belong to a space like categories: money set aside on paper, not an account.
     Moves are logged by hand (+ button, 貯金 tab; positive saves, negative takes out); totals are summed, never
     stored. Each pot's monthly amount (or more, if more went in this month) comes off what is left to spend
@@ -145,6 +147,8 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   deleting a category, a schedule change). The system prompt never changes; the app guide (`appGuide`, with the
   screens' real names, today, language and space) goes with the first message of a conversation only, and later
   moves (space, date, language) are told as `[app]` notes, so each conversation's requests share a cacheable start.
+- Profile photos: `profiles.avatar` holds a character id or a small square JPEG data URL (`src/ui/photo.ts`, 192 px,
+  under 100 KB; the DB allows images up to 120,000 characters). The assistant is told only "photo".
 - Privacy: other members never see your personal methods or sources, only "<name>'s personal funds".
   A personal payment method can be lent to shared spaces (`method_shares`, set in its edit sheet): members may pay
   expenses there with it and learn only its name, kind and owner (`shared_methods()`, shown as "<name>'s <card>").
@@ -155,15 +159,15 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
 ## Names and removed features
 
 The user uses the app in Japanese. Agreed names (en / ja): Expense 支出, Income 収入, Transfer 振替 (fee 手数料),
-History 履歴, Coming up 今後の予定, Space スペース, Duplicate 複製 (copy an entry to today),
+This month 今月 (the first tab), History 履歴, Coming up 今後の予定, Space スペース, Duplicate 複製 (copy an entry to today),
 Edit schedule 繰り返しを編集, Edit this entry この記録を編集.
 
 Removed on purpose; do not bring back without asking:
 
-- Today: the streak card and no-spend days, Recent entries. (The by-space card is wanted and shows only what I logged in
-  each space; a space's own total is the card above it. A list of spaces to switch to is not wanted.)
-- History: search and filter chips (it is a month calendar now), the month's totals (moved to Today), and the ‹ › month arrows
-  (months change by swiping the calendar or with the year/month wheels).
+- Today (now 今月): the streak card and no-spend days, Recent entries, 今月使えるお金 (the budget ring and daily
+  ribbon, `safeToSpend`), a list of spaces to switch to, a "your total" row under the by-space card.
+- History: search and filter chips (it is a month calendar now), the month's totals (moved to 今月), and the ‹ › month arrows
+  (months change by swiping the calendar or with the year/month wheels). Tapping the selected day again logs on it.
 - Sign-in: "Try with example data" (demo mode only runs when the build has no Supabase settings).
 - "Bank transfer ·" in front of source names under Paid with (sources are listed by name).
 - Native `<select>`, closing a sheet by dragging its body, and the words household / グループ in the UI.

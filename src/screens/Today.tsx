@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { monthKey, parts } from '../domain/dates'
-import { dailyTotals, nextMonthEnd, projection, safeToSpend, spendingView, spentByMember, upcomingThisMonth } from '../domain/money'
+import { nextMonthEnd, projection, spendingView, spentByMember, upcomingThisMonth } from '../domain/money'
 import { useI18n, yen } from '../i18n'
 import { toneVar, usePersonName, useStore } from '../data/store'
 import { UpcomingRow } from '../ui/entry'
@@ -10,67 +10,17 @@ import { InstallCard } from '../ui/InstallCard'
 /** Coming up shows this many until "All" is tapped. */
 const FEW = 5
 
-export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void }) {
-  const store = useStore()
-  const { snap, space, personal, today } = store
+/** 今月: what I logged this month so far, in every space and by space, then what is still due in this space. */
+export function Today() {
+  const { snap, space, personal, today } = useStore()
   const { t } = useI18n()
   const [allUp, setAllUp] = useState(false)
-
-  const sts = safeToSpend(space.id, snap, today)
   const up = upcomingThisMonth(space.id, snap, today)
-  const daily = dailyTotals(snap.entries, space.id, today)
-  const [, , dom] = parts(today)
-  const sorted = daily.filter(Boolean).sort((a, b) => b - a)
-  const cap = sorted[1] || sorted[0] || 1
-  const billDays = new Set(up.filter((u) => u.kind !== 'income').map((u) => parts(u.on)[2]))
-  const pct = sts.budget ? Math.min(1, (sts.spent + sts.committed) / sts.budget) : 0
-  const R = 2 * Math.PI * 30
   // in a shared space, my personal accounts are shown to me only; say so next to them
   const isMine = (spaceId: string) => space.kind === 'household' && spaceId === personal.id
 
   return (
     <>
-      <div className="hero">
-        <div className="hero-top">
-          <div>
-            <div className="label">{t('leftThisMonth')}</div>
-            {sts.budget > 0 ? (
-              <>
-                <div className="big"><sup>¥</sup>{Math.max(0, sts.left).toLocaleString('ja-JP')}</div>
-                <div className="sub">{t('perDayFor', { a: yen(Math.max(0, Math.floor(sts.left / sts.daysLeft))), d: sts.daysLeft })}</div>
-                {sts.saving > 0 && (
-                  <div className="sub">{sts.savingDue > 0 ? t('savingDue', { a: yen(sts.saving), b: yen(sts.savingDue) }) : t('savingDone', { a: yen(sts.saving) })}</div>
-                )}
-              </>
-            ) : (
-              <div className="sub" style={{ maxWidth: 230 }}>{t('noBudgetsYet')}</div>
-            )}
-          </div>
-          {sts.budget > 0 ? (
-            <svg width="76" height="76" viewBox="0 0 76 76" aria-label={`${Math.round(pct * 100)}% ${t('ofBudget')}`} style={{ flex: 'none' }}>
-              <circle cx="38" cy="38" r="30" fill="none" stroke="currentColor" strokeOpacity=".22" strokeWidth="8" />
-              <circle cx="38" cy="38" r="30" fill="none" stroke="currentColor" strokeWidth="8" strokeLinecap="round"
-                strokeDasharray={`${R * pct} ${R}`} transform="rotate(-90 38 38)" />
-              <line x1="38" y1="4" x2="38" y2="14" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-                transform={`rotate(${(dom / daily.length) * 360} 38 38)`} />
-              <text x="38" y="37" textAnchor="middle" fill="currentColor" fontFamily="DM Mono, monospace" fontSize="14" fontWeight="500">{Math.round(pct * 100)}%</text>
-              <text x="38" y="51" textAnchor="middle" fill="currentColor" fontSize="9" opacity=".8">{t('ofBudget')}</text>
-            </svg>
-          ) : (
-            <button className="btn" onClick={() => go('plan')}>{t('setBudgets')}</button>
-          )}
-        </div>
-        <div className="ribbon" aria-hidden="true" style={{ gridTemplateColumns: `repeat(${daily.length}, 1fr)` }}>
-          {daily.map((v, i) => {
-            const d = i + 1
-            if (d > dom) return <span key={d} className={'future' + (billDays.has(d) ? ' bill' : '')} />
-            if (v === 0 && d < dom) return <span key={d} className="zero" />
-            return <span key={d} className={d === dom ? 'today' : ''} style={{ height: `${Math.max(8, (Math.min(v, cap) / cap) * 100)}%` }} />
-          })}
-        </div>
-        <div className="ribbon-x"><span>1</span><span>{t('today')}</span><span>{daily.length}</span></div>
-      </div>
-
       <MonthMoney />
 
       <InstallCard dismissible />
@@ -151,58 +101,42 @@ function Contribution() {
   )
 }
 
-/** This month's spending, income and what is left over: this space's, then my own part of each space side by side. */
+/** Everything I logged this month up to today, in every space; then what I spent in each space, which adds up to it. */
 function MonthMoney() {
-  const { snap, space, today } = useStore()
+  const { snap, today } = useStore()
   const { t, month } = useI18n()
   const key = monthKey(today)
-  // `mine`: only what I logged, the part of a shared space's spending that is mine
-  const totals = (spaceId: string, mine = false) => {
-    const es = spendingView(snap.entries.filter((e) => e.spaceId === spaceId && e.occurredOn.startsWith(key) && e.occurredOn <= today
-      && (!mine || e.createdBy === snap.me.id)))
-    const out = es.filter((e) => e.kind === 'expense').reduce((a, e) => a + e.amount, 0)
-    const inc = es.filter((e) => e.kind === 'income').reduce((a, e) => a + e.amount, 0)
-    return { out, inc, net: inc - out }
-  }
-  const here = totals(space.id)
-  const all = snap.spaces.map((s) => ({ s, ...totals(s.id, true) }))
-  const sum = all.reduce((a, x) => ({ out: a.out + x.out, inc: a.inc + x.inc, net: a.net + x.net }), { out: 0, inc: 0, net: 0 })
-  const signed = (n: number) => (n > 0 ? '+' : '') + yen(n)
-  const ratio = here.inc + here.out ? here.out / Math.max(here.inc, here.out) : 0
+  const mine = spendingView(snap.entries.filter((e) => e.createdBy === snap.me.id && e.occurredOn.startsWith(key) && e.occurredOn <= today))
+  const out = (spaceId?: string) => mine.filter((e) => e.kind === 'expense' && (!spaceId || e.spaceId === spaceId)).reduce((a, e) => a + e.amount, 0)
+  const spent = out()
+  const inc = mine.filter((e) => e.kind === 'income').reduce((a, e) => a + e.amount, 0)
+  const net = inc - spent
+  const bySpace = snap.spaces.map((s) => ({ s, spent: out(s.id) }))
   return (
     <>
       <div className="card mm">
         <div className="mm-h"><span className="label">{t('monthMoney', { m: month(parts(today)[1]) })}</span></div>
         <div className="mm-grid">
-          <div><span>{t('monthOut')}</span><b className="num">{yen(here.out)}</b></div>
-          <div><span>{t('monthIn')}</span><b className="num amt-in">{yen(here.inc)}</b></div>
-          <div><span>{t('net')}</span><b className={'num' + (here.net < 0 ? ' neg' : '')}>{signed(here.net)}</b></div>
+          <div><span>{t('monthOut')}</span><b className="num">{yen(spent)}</b></div>
+          <div><span>{t('monthIn')}</span><b className="num amt-in">{yen(inc)}</b></div>
+          <div><span>{t('net')}</span><b className={'num' + (net < 0 ? ' neg' : '')}>{(net > 0 ? '+' : '') + yen(net)}</b></div>
         </div>
-        {here.inc > 0 && (
-          <div className="mm-bar" aria-hidden="true"><i style={{ width: `${Math.min(100, ratio * 100)}%` }} /></div>
-        )}
-        {here.inc > 0 && <div className="mm-note">{t('spentOfIncome', { p: Math.round((here.out / here.inc) * 100) })}</div>}
+        {inc > 0 && <div className="mm-bar" aria-hidden="true"><i style={{ width: `${Math.min(100, (spent / inc) * 100)}%` }} /></div>}
+        {inc > 0 && <div className="mm-note">{t('spentOfIncome', { p: Math.round((spent / inc) * 100) })}</div>}
       </div>
-      {all.length > 1 && (
+      {bySpace.length > 1 && (
         <div className="card mm-spaces">
           <div className="label">{t('bySpace')}</div>
-          {all.map(({ s, out, inc, net }) => (
-            <div key={s.id} className={'mm-row' + (s.id === space.id ? ' on' : '')}>
+          {bySpace.map(({ s, spent: n }) => (
+            <div key={s.id} className="mm-row">
               <span className="mm-dot" style={{ background: toneVar(s) }} />
               <div className="mm-main">
                 <b>{s.name}</b>
-                <small>{t('monthOut')} {yen(out)} · {t('monthIn')} {yen(inc)}</small>
+                <div className="mm-share" aria-hidden="true"><i style={{ width: `${spent ? (n / spent) * 100 : 0}%`, background: toneVar(s) }} /></div>
               </div>
-              <b className={'num mm-net' + (net < 0 ? ' neg' : net > 0 ? ' pos' : '')}>{signed(net)}</b>
+              <b className="num mm-net">{yen(n)}</b>
             </div>
           ))}
-          <div className="mm-row total">
-            <div className="mm-main">
-              <b>{t('allSpaces')}</b>
-              <small>{t('monthOut')} {yen(sum.out)} · {t('monthIn')} {yen(sum.inc)}</small>
-            </div>
-            <b className={'num mm-net' + (sum.net < 0 ? ' neg' : sum.net > 0 ? ' pos' : '')}>{signed(sum.net)}</b>
-          </div>
         </div>
       )}
     </>

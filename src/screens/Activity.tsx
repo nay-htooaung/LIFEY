@@ -34,7 +34,10 @@ export function Activity() {
     setMonth(m)
     setSelected(m === monthKey(today) ? today : `${m}-01`)
   }
+  // tapping the selected day again logs something on it
+  const logOn = (d: Day) => ui.open(<EntrySheet prefill={{ occurredOn: d }} />, toneVar(space))
   const pick = (d: Day) => {
+    if (d === selected) return logOn(d)
     if (!d.startsWith(month)) pickMonth(monthKey(d))
     setSelected(d)
   }
@@ -104,7 +107,7 @@ export function Activity() {
 
       <div className="day-h">
         <span>{dateLong(selected)}</span>
-        <button className="link" onClick={() => ui.open(<EntrySheet prefill={{ occurredOn: selected }} />, toneVar(space))}>{t('logThisDay')}</button>
+        <button className="link" onClick={() => logOn(selected)}>{t('logThisDay')}</button>
       </div>
       {loading ? (
         <div className="card empty">{t('loading')}</div>

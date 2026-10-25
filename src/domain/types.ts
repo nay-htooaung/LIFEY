@@ -132,7 +132,7 @@ export interface Pot {
   color: string
   /** The total to reach, or null for none. */
   goal: number | null
-  /** To set aside each month; it comes off what is left to spend. 0 for none. */
+  /** To set aside each month; it comes off what is left at the end of the month. 0 for none. */
   monthly: number
   sort: number
   /** Deleted by the user: hidden, kept so its total stays, can be restored. */

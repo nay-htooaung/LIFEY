@@ -174,13 +174,6 @@ export function spendingView(entries: Entry[]): Entry[] {
   )
 }
 
-export function dailyTotals(entries: Entry[], spaceId: string, on: Day): number[] {
-  const [y, m] = parts(on)
-  const out = new Array<number>(daysInMonth(y, m)).fill(0)
-  for (const e of monthEntries(entries, spaceId, on)) out[parts(e.occurredOn)[2] - 1] += e.amount
-  return out
-}
-
 export interface Upcoming {
   key: string
   kind: 'bill' | 'income' | 'card' | 'transfer'
@@ -295,19 +288,6 @@ export function projection(spaceId: string, s: Snapshot, on: Day, until: Day = n
     })
 }
 
-export interface SafeToSpend {
-  budget: number
-  spent: number
-  committed: number
-  /** Set aside for 貯金 this month (each pot's monthly amount, or more if more went in). */
-  saving: number
-  /** Of that, what is still to be put into the pots. */
-  savingDue: number
-  left: number
-  today: number
-  daysLeft: number
-}
-
 // ------------------------------------------------------------ 貯金
 
 /** All that is in a pot: everything put in, less everything taken out. */
@@ -341,45 +321,27 @@ export function potShares(pot: Pick<Pot, 'id'>, moves: PotMove[]) {
   return [...by].map(([id, amount]) => ({ id, amount })).sort((a, b) => b.amount - a.amount)
 }
 
-/**
- * What can be spent without breaking this month's budgets: the budgets, less what was spent, the bills still
- * scheduled this month and what this month sets aside for 貯金; spread evenly over the days left (today included).
- */
-export function safeToSpend(spaceId: string, s: Snapshot, on: Day): SafeToSpend {
-  const budgeted = s.categories.filter((c) => c.spaceId === spaceId && c.kind === 'expense' && c.monthlyBudget > 0)
-  const ids = new Set(budgeted.map((c) => c.id))
-  const budget = sum(budgeted.map((c) => c.monthlyBudget))
-  const month = monthEntries(s.entries, spaceId, on).filter((e) => e.categoryId && ids.has(e.categoryId))
-  const spent = sum(month.map((e) => e.amount))
-  const spentToday = sum(month.filter((e) => e.occurredOn === on).map((e) => e.amount))
-  const committed = sum(
-    upcoming(spaceId, s, on)
-      .filter((u) => u.kind === 'bill' && u.categoryId && ids.has(u.categoryId) && monthKey(u.on) === monthKey(on) && u.on > on)
-      .map((u) => u.amount),
-  )
-  const [y, m, d] = parts(on)
-  const daysLeft = daysInMonth(y, m) - d + 1
-  const { reserve: saving, due: savingDue } = setAside(spaceId, s, on)
-  const left = budget - spent - committed - saving
-  const today = Math.floor((left + spentToday) / daysLeft - spentToday)
-  return { budget, spent, committed, saving, savingDue, left, today, daysLeft }
-}
-
 export function categorySpent(entries: Entry[], category: Category, on: Day): number {
   return sum(monthEntries(entries, category.spaceId, on, category.kind).filter((e) => e.categoryId === category.id).map((e) => e.amount))
 }
 
-/** What a space has at the end of this month if every budget is used up, step by step (all in yen, signs as shown). */
+/**
+ * The money a space's sources will hold at the end of this month if every budget is used up, step by step.
+ * Cash only: a card charge counts when its statement is paid, so what is billed next month stays out.
+ */
 export interface MonthEndPlan {
   /** Its sources today. */
   balance: number
-  /** Owed on its credit cards today (spent, so it comes off). */
-  cardOwed: number
-  /** Income and money moved in from other spaces, dated later this month. */
+  /** Income and money moved in from other spaces' sources, dated later this month. */
   incomeAhead: number
-  /** What the budgets still allow, or the bills already scheduled in them if more. */
+  /** Card statements paid from its sources later this month, for charges made so far. */
+  cardDue: number
+  /**
+   * What the budgets still allow beyond the bills already scheduled in them (assumed paid this month), plus those
+   * bills where they are paid this month.
+   */
   budgetLeft: number
-  /** Scheduled spending later this month outside the budgets, and money moved out to other spaces. */
+  /** Other scheduled payments out of its sources this month, and money moved to other spaces. */
   otherAhead: number
   /** 貯金: everything in the pots plus what this month still sets aside. */
   saving: number
@@ -387,23 +349,42 @@ export interface MonthEndPlan {
 }
 
 export function monthEndPlan(spaceId: string, s: Snapshot, on: Day): MonthEndPlan {
+  const [y, m] = parts(on)
+  const end = dayInMonth(y, m, 31)
   const mine = new Set(s.sources.filter((x) => x.spaceId === spaceId).map((x) => x.id))
+  const method = new Map(s.methods.map((x) => [x.id, x]))
   const balance = sum(s.sources.filter((x) => x.spaceId === spaceId && !x.archived).map((x) => sourceBalance(x, s.methods, s.flows, on)))
-  const cardOwed = sum(s.methods.filter((m) => m.spaceId === spaceId && !m.archived && m.kind === 'credit').map((m) => creditOutstanding(m, s.flows, on)))
-  const mk = monthKey(on)
-  const later = s.entries.filter((e) => monthKey(e.occurredOn) === mk && e.occurredOn > on)
-  const ahead = spendingView(later.filter((e) => e.spaceId === spaceId))
-  // a transfer is neutral inside the space, but money moving to or from another space's source counts
-  const crossIn = sum(later.filter((e) => e.kind === 'transfer' && e.toSourceId && mine.has(e.toSourceId) && !(e.sourceId && mine.has(e.sourceId))).map((e) => e.amount))
-  const crossOut = sum(later.filter((e) => e.kind === 'transfer' && e.sourceId && mine.has(e.sourceId) && !(e.toSourceId && mine.has(e.toSourceId))).map((e) => e.amount))
+  const cards = s.methods.filter((x) => x.kind === 'credit' && mine.has(x.sourceId))
+  const cardDue = sum(cards.flatMap((c) => charges(s.flows, c.id)
+    .filter((f) => f.occurredOn <= on && paymentDateFor(f.occurredOn, c) > on && paymentDateFor(f.occurredOn, c) <= end).map((f) => f.amount)))
+
+  const later = s.entries.filter((e) => e.occurredOn > on && e.occurredOn <= end)
+  // what an entry takes out of this space's sources before the month ends
+  const cashOut = (e: Entry) => {
+    const cost = e.amount + e.fee
+    if (e.kind === 'income') return 0
+    if (e.kind === 'transfer' && !e.methodId) return e.sourceId && mine.has(e.sourceId) ? (e.toSourceId && mine.has(e.toSourceId) ? e.fee : cost) : 0
+    if (!e.methodId) return e.sourceId && mine.has(e.sourceId) ? cost : 0
+    const pm = method.get(e.methodId)
+    if (!pm || !mine.has(pm.sourceId)) return 0
+    return pm.kind !== 'credit' || paymentDateFor(e.occurredOn, pm) <= end ? cost : 0
+  }
+  const cashIn = (e: Entry) =>
+    (e.kind === 'income' && e.sourceId && mine.has(e.sourceId)) ||
+    (e.kind === 'transfer' && e.toSourceId && mine.has(e.toSourceId) && !(e.sourceId && mine.has(e.sourceId)))
+      ? e.amount : 0
+
   const budgeted = s.categories.filter((c) => c.spaceId === spaceId && c.kind === 'expense' && c.monthlyBudget > 0)
   const ids = new Set(budgeted.map((c) => c.id))
-  const budgetLeft = sum(budgeted.map((c) => Math.max(0, c.monthlyBudget - categorySpent(s.entries, c, on),
-    sum(ahead.filter((e) => e.kind === 'expense' && e.categoryId === c.id).map((e) => e.amount)))))
-  const incomeAhead = sum(ahead.filter((e) => e.kind === 'income').map((e) => e.amount)) + crossIn
-  const otherAhead = sum(ahead.filter((e) => e.kind === 'expense' && !(e.categoryId && ids.has(e.categoryId))).map((e) => e.amount)) + crossOut
+  const inBudget = (e: Entry) => e.kind === 'expense' && e.spaceId === spaceId && !!e.categoryId && ids.has(e.categoryId)
+  const budgetLeft = sum(budgeted.map((c) => {
+    const scheduled = later.filter((e) => inBudget(e) && e.categoryId === c.id)
+    return Math.max(0, c.monthlyBudget - categorySpent(s.entries, c, on) - sum(scheduled.map((e) => e.amount))) + sum(scheduled.map(cashOut))
+  }))
+  const incomeAhead = sum(later.map(cashIn))
+  const otherAhead = sum(later.filter((e) => !inBudget(e)).map(cashOut))
   const saving = savedTotal(spaceId, s) + setAside(spaceId, s, on).due
-  return { balance, cardOwed, incomeAhead, budgetLeft, otherAhead, saving, left: balance - cardOwed + incomeAhead - budgetLeft - otherAhead - saving }
+  return { balance, incomeAhead, cardDue, budgetLeft, otherAhead, saving, left: balance + incomeAhead - cardDue - budgetLeft - otherAhead - saving }
 }
 
 /** Share of the month that has passed, for budget pace markers. */

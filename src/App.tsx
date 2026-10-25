@@ -140,7 +140,7 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): Promise<vo
   }, [locale])
 
   const tabs: [Tab | 'add', string, typeof IconToday][] = [
-    ['today', t('today'), IconToday], ['activity', t('activity'), IconList], ['add', '', IconPlus],
+    ['today', t('thisMonthTab'), IconToday], ['activity', t('activity'), IconList], ['add', '', IconPlus],
     ['wallet', t('wallet'), IconWallet], ['plan', t('plan'), IconPlan],
   ]
   const label = space.kind === 'personal' ? snap.me.displayName || t('me') : space.name
@@ -168,7 +168,7 @@ function Shell({ onSignOut, onResetDemo, canSignOut }: { onSignOut(): Promise<vo
       {/* shows only when saving or loading takes more than a moment */}
       <div className={'sync-bar' + (syncing ? ' on' : '')} role="progressbar" aria-hidden={!syncing} aria-label={t('loading')} />
       <main className="scroll" key={tab + space.id}>
-        {tab === 'today' && <Today go={go} />}
+        {tab === 'today' && <Today />}
         {tab === 'activity' && <Activity />}
         {tab === 'wallet' && <Wallet />}
         {tab === 'plan' && <Plan />}

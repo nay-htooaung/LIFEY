@@ -71,7 +71,7 @@ export const TOOLS = [
     space_id: str('The space, except for create and join.'), name: str('For create and rename.'),
     tone: { type: 'string', enum: ['me', 'a', 'b', 'c', 'd'], description: 'Colour, for create and recolor.' }, member_id: str('For remove_member.'), code: str('For join, e.g. LFY-XXXXXX.'),
   }, ['action']),
-  tool('propose_pot', 'Propose creating, changing, deleting or restoring a 貯金 (savings) pot. Pots are money set aside on paper, not an account; the monthly amount comes off what is left to spend.', {
+  tool('propose_pot', 'Propose creating, changing, deleting or restoring a 貯金 (savings) pot. Pots are money set aside on paper, not an account; the monthly amount comes off what is left at the end of the month.', {
     action: action(['create', 'update', 'delete', 'restore'], 'Delete keeps it restorable.'), pot_id: str('For update, delete and restore.'),
     space_id: str('For create.'), name: str('e.g. "Trip to Okinawa".'), monthly: int('Whole yen to set aside each month; 0 for none.'),
     goal: int('Whole yen to reach; 0 for none.'), color: str('#RRGGBB.'),
@@ -121,14 +121,14 @@ export function appGuide(c: ChatContext): string {
   return [
     `[app] Today is ${c.today}. Language: ${ja ? 'Japanese' : 'English'}. The person is in the space "${c.space.name}" (id ${c.space.id}).`,
     ja ? [
-      'Screens (bottom tabs): 今日 (今月使えるお金, 今後の予定, 来月末の残高), 履歴 (month calendar of entries), お財布 (口座・現金 = sources, 支払い方法 = methods, 純資産 with うち貯金), 計画 (今月の予算 = categories with budgets, 貯金 = savings pots, 収入のカテゴリ, 繰り返しの記録).',
-      '貯金: pots of money set aside on paper (not accounts). Each has 毎月の貯金 (comes off 今月使えるお金) and an optional 目標額. Log with the + button, tab 貯金: 貯金する or 取り崩す.',
+      'Screens (bottom tabs): 今月 (あなたの今月の収支 across every space, スペースごとの支出, 今後の予定, 来月末の残高), 履歴 (month calendar of entries), お財布 (口座・現金 = sources, 支払い方法 = methods, 純資産 with うち貯金), 計画 (月末に残るお金, 今月の予算 = categories with budgets, 貯金 = savings pots, 収入のカテゴリ, 繰り返しの記録).',
+      '貯金: pots of money set aside on paper (not accounts). Each has 毎月の貯金 (comes off 月末に残るお金 on 計画) and an optional 目標額. Log with the + button, tab 貯金: 貯金する or 取り崩す.',
       'Entry kinds: 支出, 収入, 振替 (手数料). Logging: the + button (支出を記録). On an entry: 複製, 編集 or この記録を編集, 削除, and 繰り返しを編集 / 繰り返しをやめる for repeating ones.',
       'Spaces: スペース (button at the top: 新しいスペース, 招待コードで参加; each space\'s 設定 has 招待コード, 新しいコード, メンバー, スペースを抜ける, スペースを削除). The personal space is 自分.',
       'Profile (avatar at the top right): 表示名, 言語, テーマ, キャラクター, 削除済み (restore deleted spaces, sources and methods).',
     ].join('\n') : [
-      'Screens (bottom tabs): Today (Left to spend this month, Coming up, balance at the end of next month), History (month calendar of entries), Wallet (Sources, Payment methods, Net worth with Savings), Plan (Budgets this month = categories with budgets, Savings = pots, Income categories, Repeating entries).',
-      'Savings: pots of money set aside on paper (not accounts). Each has an amount Each month (comes off what is left to spend) and an optional Goal. Log with the + button, tab Savings: Save or Take out.',
+      'Screens (bottom tabs): This month (your month so far across every space, your spending by space, Coming up, balance at the end of next month), History (month calendar of entries), Wallet (Sources, Payment methods, Net worth with Savings), Plan (Left at the end of the month, Budgets this month = categories with budgets, Savings = pots, Income categories, Repeating entries).',
+      'Savings: pots of money set aside on paper (not accounts). Each has an amount Each month (comes off what is left at the end of the month, on Plan) and an optional Goal. Log with the + button, tab Savings: Save or Take out.',
       'Entry kinds: Expense, Income, Transfer (Fee). Logging: the + button. On an entry: Duplicate, Edit or Edit this entry, Delete, and Edit schedule / Stop repeating for repeating ones.',
       'Spaces: the space button at the top (New space, Join with an invite code; each space\'s settings have the Invite code, New code, Members, Leave space, Delete space). The personal space is "Me".',
       'Profile (avatar at the top right): Your name, Language, Theme, Character, Deleted (restore deleted spaces, sources and methods).',
