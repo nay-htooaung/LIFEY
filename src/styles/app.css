@@ -269,6 +269,14 @@ button { cursor: pointer; }
 .pot-sum .big { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -0.03em; line-height: 1.05; }
 .pot-move .ch-x { align-self: center; height: 38px; }
 .nw-split { margin-top: 4px; color: var(--acc); font-weight: 600; }
+/* ---------- month end on 計画 ---------- */
+.me-card { display: flex; flex-direction: column; gap: 6px; }
+.me-big { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; }
+.me-big.neg { color: var(--neg); }
+.me-rows { display: flex; flex-direction: column; margin-top: 6px; border-top: 1px solid var(--line); padding-top: 8px; gap: 6px; }
+.me-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); }
+.me-row .num { color: var(--ink); white-space: nowrap; }
+.me-row .num.amt-in { color: var(--pos); }
 /* ---------- category detail ---------- */
 .cd-h { display: flex; align-items: center; gap: 10px; }
 .cd-h h2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

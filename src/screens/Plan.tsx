@@ -1,4 +1,5 @@
-import { categorySpent, monthPace, potShares, potThisMonth, potTotal, savedTotal } from '../domain/money'
+import { categorySpent, monthEndPlan, monthPace, potShares, potThisMonth, potTotal, savedTotal } from '../domain/money'
+import { parts } from '../domain/dates'
 import { isTemplate, nextOccurrence } from '../domain/recurring'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useLookups, usePersonName, useStore } from '../data/store'
@@ -23,6 +24,8 @@ export function Plan() {
 
   return (
     <>
+      <MonthEnd />
+
       <div className="sec-h"><h3>{t('budgets')}</h3></div>
       <CategoryBars cats={cats.filter((c) => c.kind === 'expense')} pace={pace} />
       <button className="btn" onClick={() => edit()}>{t('newCat')}</button>
@@ -59,6 +62,33 @@ export function Plan() {
         </>
       )}
     </>
+  )
+}
+
+/** What is left at the end of the month once every budget is used, and how it adds up. */
+function MonthEnd() {
+  const { snap, space, today } = useStore()
+  const { t, month } = useI18n()
+  const r = monthEndPlan(space.id, snap, today)
+  // the balance is where it starts; the rest add (+) or take away
+  const steps: [string, number][] = [
+    [t('meCards'), -r.cardOwed], [t('meIncome'), r.incomeAhead], [t('meBudgets'), -r.budgetLeft],
+    [t('meOther'), -r.otherAhead], [t('meSaving'), -r.saving],
+  ]
+  return (
+    <div className="card me-card">
+      <span className="label">{t('meTitle', { m: month(parts(today)[1]) })}</span>
+      <div className={'me-big num' + (r.left < 0 ? ' neg' : '')}>{yen(r.left)}</div>
+      <div className="me-rows">
+        <div className="me-row"><span>{t('meBalance')}</span><span className="num">{yen(r.balance)}</span></div>
+        {steps.filter(([, v]) => v !== 0).map(([label, v]) => (
+          <div key={label} className="me-row">
+            <span>{label}</span>
+            <span className={'num' + (v > 0 ? ' amt-in' : '')}>{v > 0 ? '+' : ''}{yen(v)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 

@@ -151,19 +151,21 @@ function Contribution() {
   )
 }
 
-/** This month's spending, income and what is left over: this space first, then every space side by side. */
+/** This month's spending, income and what is left over: this space's, then my own part of each space side by side. */
 function MonthMoney() {
   const { snap, space, today } = useStore()
   const { t, month } = useI18n()
   const key = monthKey(today)
-  const totals = (spaceId: string) => {
-    const es = spendingView(snap.entries.filter((e) => e.spaceId === spaceId && e.occurredOn.startsWith(key) && e.occurredOn <= today))
+  // `mine`: only what I logged, the part of a shared space's spending that is mine
+  const totals = (spaceId: string, mine = false) => {
+    const es = spendingView(snap.entries.filter((e) => e.spaceId === spaceId && e.occurredOn.startsWith(key) && e.occurredOn <= today
+      && (!mine || e.createdBy === snap.me.id)))
     const out = es.filter((e) => e.kind === 'expense').reduce((a, e) => a + e.amount, 0)
     const inc = es.filter((e) => e.kind === 'income').reduce((a, e) => a + e.amount, 0)
     return { out, inc, net: inc - out }
   }
   const here = totals(space.id)
-  const all = snap.spaces.map((s) => ({ s, ...totals(s.id) }))
+  const all = snap.spaces.map((s) => ({ s, ...totals(s.id, true) }))
   const sum = all.reduce((a, x) => ({ out: a.out + x.out, inc: a.inc + x.inc, net: a.net + x.net }), { out: 0, inc: 0, net: 0 })
   const signed = (n: number) => (n > 0 ? '+' : '') + yen(n)
   const ratio = here.inc + here.out ? here.out / Math.max(here.inc, here.out) : 0
