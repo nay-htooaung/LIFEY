@@ -264,14 +264,6 @@ button { cursor: pointer; }
 .me-card { display: flex; flex-direction: column; gap: 6px; }
 .me-big { font-size: 30px; font-weight: 500; letter-spacing: -0.02em; }
 .me-big.neg { color: var(--neg); }
-.me-details summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--acc); padding: 4px 0; list-style: none; display: flex; align-items: center; gap: 6px; }
-.me-details summary::-webkit-details-marker { display: none; }
-.me-details summary::after { content: ''; width: 7px; height: 7px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); transition: transform 0.15s; }
-.me-details[open] summary::after { transform: rotate(-135deg) translateY(-2px); }
-.me-rows { display: flex; flex-direction: column; margin-top: 6px; border-top: 1px solid var(--line); padding-top: 8px; gap: 6px; }
-.me-row { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); }
-.me-row .num { color: var(--ink); white-space: nowrap; }
-.me-row .num.amt-in { color: var(--pos); }
 /* ---------- category detail ---------- */
 .cd-h { display: flex; align-items: center; gap: 10px; }
 .cd-h h2 { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { monthKey, parts } from '../domain/dates'
-import { nextMonthEnd, projection, spendingView, spentByMember, upcomingThisMonth } from '../domain/money'
+import { monthEnd } from '../domain/recurring'
+import { projection, spendingView, spentByMember, upcomingThisMonth } from '../domain/money'
 import { useI18n, yen } from '../i18n'
 import { toneVar, usePersonName, useStore } from '../data/store'
 import { UpcomingRow } from '../ui/entry'
@@ -52,7 +53,7 @@ export function Today() {
 function Forecast() {
   const { snap, space, personal, today } = useStore()
   const { t, month } = useI18n()
-  const until = nextMonthEnd(today)
+  const until = monthEnd(today)
   const rows = projection(space.id, snap, today, until)
   if (!rows.length) return null
   return (

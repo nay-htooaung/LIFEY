@@ -125,7 +125,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     later copies, and splits the schedule into a new template. "Edit this entry" on a running template splits too.
   - **今月 tab** (the first tab; its code is still `Today`): everything I logged this month up to today across every
     space (支出 / 収入 / 差額), then my spending per space (they add up to the total), then 今後の予定 for the space.
-  - **月末に残るお金** (`monthEndPlan`, top of 計画, breakdown folded under 内訳): cash in the space's sources at the end
+  - **月末に残るお金** (`monthEndPlan`, top of 計画; only the title and the amount, no explanation or breakdown): cash in the space's sources at the end
     of the month if every budget is used up: sources now, plus income still to come, less card statements paid later
     this month, less what the budgets still allow (assumed paid this month) and scheduled bills that leave the
     sources this month, other such payments and moves to other spaces, and 貯金 (pot totals plus this month's still
@@ -136,7 +136,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     (`setAside`). お財布 splits 純資産 into うち貯金 and 自由に使えるお金. Pots are archived, never deleted.
   - **Coming up** on Today lists what is still due this month (`upcomingThisMonth`); the assistant looks 45 days
     ahead (`UPCOMING_DAYS`). The balance card under it projects each account to the end
-    of next month (`projection`): every repeating occurrence still to come, and the card payments they lead to.
+    of this month (`projection` until `monthEnd`): every repeating occurrence still to come, and the card payments they lead to.
 - Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token (`ai_use()`, which
   also counts requests per person per day, with no limit) before each call. Its tools (`tools.ts`) run in the app
   (`run.ts`, `setup.ts`) on the signed-in person's data, so it sees only what they see. It can propose anything the
