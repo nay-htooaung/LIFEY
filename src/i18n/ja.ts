@@ -64,7 +64,7 @@ export const ja: Record<MessageKey, string> = {
   transfer: '振替', transferFrom: '出金元', transferTo: '入金先', fee: '手数料', addFee: '+ 手数料', amountLabel: '金額',
   moveX: '{a}を振替', movedTo: '{s}に{a}を振替えました',
   installTitle: 'Lifeyをインストール', installBtn: 'インストール',
-  installIos: 'Safariの共有ボタンを押して「ホーム画面に追加」を選んでください。', notNow: 'あとで', installed: 'インストールしました',
+  installIos: 'Safariの共有ボタンを押して「ホーム画面に追加」を選んでください。', notNow: 'あとで', installed: 'インストールしました', updating: '新しいバージョンに更新しています…',
   assistant: 'アシスタント', newChat: '新しい会話', askPh: '質問や、記録・修正したいことを入力', send: '送信',
   aiHello: '記録・修正・確認をお手伝いします。適用するまで何も変わりません。',
   aiDidEntry: '新しい記録を{n}件提案しました', aiDidEntry1: '新しい記録を1件提案しました', aiDidEdit: '記録の修正を{n}件提案しました', aiDidEdit1: '記録の修正を1件提案しました',

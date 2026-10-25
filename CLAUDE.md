@@ -80,7 +80,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
 - Latest migration: `20261024010000_ai_no_limit.sql`.
 - Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
-- The installed app updates itself (vite-plugin-pwa autoUpdate) when reopened; tell the user to close and reopen it.
+- The app looks for a new version every 30 minutes and when it comes back to the screen (`src/ui/update.ts`), shows 更新しています… and reloads, waiting while a sheet is open.
 - Dev has throwaway test accounts (`smoke.*@example.com`); leave them.
 - Parallel sessions may work on their own branches (`ccr-*`) cut from `develop`. Before adding a
   migration, `git fetch` and pick a timestamp later than any migration on any branch, so two never collide.

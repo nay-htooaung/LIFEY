@@ -1,5 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { IconFlame } from './icons'
+import { applyUpdate, useUpdateReady } from './update'
+import { useI18n } from '../i18n'
 
 interface Toast { msg: string; flame?: boolean; error?: boolean; id: number }
 interface Sheet { node: ReactNode; tone?: string; key: number }
@@ -122,6 +124,7 @@ export function UIOutlet() {
           </div>
         )
       })}
+      {!sheets.length && <UpdateNotice />}
       {toast && (
         <div className={'toast' + (toast.error ? ' err' : '')} role="status" key={toast.id}>
           {toast.flame && <IconFlame />}
@@ -219,4 +222,18 @@ function SheetFrame({ onClose, children }: { onClose(): void; children: ReactNod
       <div className="sheet-body">{children}</div>
     </div>
   )
+}
+
+/** Shows that a new version is being switched to, then switches. Mounted only while no sheet is open. */
+function UpdateNotice() {
+  const ready = useUpdateReady()
+  const { t } = useI18n()
+  useEffect(() => {
+    if (!ready) return
+    // long enough to read before the reload
+    const timer = setTimeout(applyUpdate, 1500)
+    return () => clearTimeout(timer)
+  }, [ready])
+  if (!ready) return null
+  return <div className="toast" role="status"><span aria-busy="true">{t('updating')}</span></div>
 }

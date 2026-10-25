@@ -62,7 +62,7 @@ export const en = {
   transfer: 'Transfer', transferFrom: 'From', transferTo: 'To', fee: 'Fee', addFee: '+ Fee', amountLabel: 'Amount',
   moveX: 'Move {a}', movedTo: 'Moved {a} to {s}',
   installTitle: 'Install Lifey', installBtn: 'Install',
-  installIos: 'In Safari, tap Share, then Add to Home Screen.', notNow: 'Not now', installed: 'Installed',
+  installIos: 'In Safari, tap Share, then Add to Home Screen.', notNow: 'Not now', installed: 'Installed', updating: 'Updating to the new version…',
   assistant: 'Assistant', newChat: 'New chat', askPh: 'Ask, or tell me what to log or fix', send: 'Send',
   aiHello: 'I can log, fix and look up your money. Nothing changes until you apply it.',
   aiDidEntry: 'Proposed {n} new entries', aiDidEntry1: 'Proposed 1 new entry', aiDidEdit: 'Proposed {n} edits', aiDidEdit1: 'Proposed 1 edit',

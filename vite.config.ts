@@ -32,7 +32,8 @@ export default defineConfig({
     react(),
     pdfCmaps(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // the app picks the moment to switch to a new version (src/ui/update.ts)
+      registerType: 'prompt',
       includeAssets: ['icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Lifey',
