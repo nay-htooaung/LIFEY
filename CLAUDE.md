@@ -67,7 +67,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   connections). A model that is busy (429/503), refused (404, then hidden for an hour) or silent for 20 s hands over to
   the next, up to three. Secrets must be type Secret (a Text variable is wiped by the next deploy). OpenCode's free
   Zen models refuse requests from outside OpenCode. This sandbox reaches neither provider; test on dev with the
-  account `smoke.assistant@example.com` (password in the session scratchpad only) and `wrangler tail lifey-dev`
+  account `smoke.assistant@example.com` (password in the environment variable `LIFEY_SMOKE_PASSWORD`) and `wrangler tail lifey-dev`
   (pipe `tail -f /dev/null` into it so it stays open).
 - `.github/workflows/deploy.yml` runs on pushes to `develop` and `main`: checks, then `node scripts/migrate.mjs <ref>` applies pending migrations
   through the Supabase Management API (only `SUPABASE_ACCESS_TOKEN` is needed; GitHub runners cannot reach the
