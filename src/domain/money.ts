@@ -143,7 +143,7 @@ export interface Upcoming {
   sourceId: string | null
 }
 
-/** How far ahead Coming up and its forecast look. */
+/** How far ahead the assistant's list of what is coming looks. */
 export const UPCOMING_DAYS = 45
 
 export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = UPCOMING_DAYS): Upcoming[] {
@@ -178,6 +178,10 @@ export function upcoming(spaceId: string, s: Snapshot, on: Day, horizonDays = UP
   }
   return out.sort((a, b) => (a.on < b.on ? -1 : a.on > b.on ? 1 : 0))
 }
+
+/** Coming up on Today: only what is still due this month. */
+export const upcomingThisMonth = (spaceId: string, s: Snapshot, on: Day): Upcoming[] =>
+  upcoming(spaceId, s, on).filter((u) => monthKey(u.on) === monthKey(on))
 
 export interface AccountForecast {
   source: Source

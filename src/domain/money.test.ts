@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { upcomingThisMonth, creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
 import { addTag, nameSuggestions, tagSuggestions } from './suggest'
@@ -97,6 +97,10 @@ describe('safe to spend', () => {
     // (38000 - 11000 - 7700 + 1000) / 9 - 1000
     expect(r.today).toBe(Math.floor(20300 / 9 - 1000))
     expect(upcoming('me', s, '2026-10-23')[0]).toMatchObject({ kind: 'bill', on: '2026-10-30', amount: 7700 })
+    // Today lists only this month; next month's occurrence waits until November
+    expect(upcoming('me', s, '2026-10-31').map((u) => u.on)).toContain('2026-11-30')
+    expect(upcomingThisMonth('me', s, '2026-10-31').filter((u) => u.on > '2026-10-31')).toEqual([])
+    expect(upcomingThisMonth('me', s, '2026-10-23').map((u) => u.on)).toContain('2026-10-30')
   })
   it('sets 貯金 aside before spreading the rest', () => {
     const base = safeToSpend('me', { ...s0(), pots: [], potMoves: [] }, '2026-10-23')

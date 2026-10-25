@@ -125,7 +125,8 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
     Moves are logged by hand (+ button, 貯金 tab; positive saves, negative takes out); totals are summed, never
     stored. Each pot's monthly amount (or more, if more went in this month) comes off what is left to spend
     (`setAside`). お財布 splits 純資産 into うち貯金 and 自由に使えるお金. Pots are archived, never deleted.
-  - **Coming up** looks 45 days ahead (`UPCOMING_DAYS`). The balance card under it projects each account to the end
+  - **Coming up** on Today lists what is still due this month (`upcomingThisMonth`); the assistant looks 45 days
+    ahead (`UPCOMING_DAYS`). The balance card under it projects each account to the end
     of next month (`projection`): every repeating occurrence still to come, and the card payments they lead to.
 - Assistant (`src/assistant/`): the model runs behind `/api/chat`, which checks the Supabase token (`ai_use()`, which
   also counts requests per person per day, with no limit) before each call. Its tools (`tools.ts`) run in the app

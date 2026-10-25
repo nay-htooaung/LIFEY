@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { monthKey, parts } from '../domain/dates'
-import { dailyTotals, nextMonthEnd, projection, safeToSpend, spendingView, spentByMember, upcoming } from '../domain/money'
+import { dailyTotals, nextMonthEnd, projection, safeToSpend, spendingView, spentByMember, upcomingThisMonth } from '../domain/money'
 import { useI18n, yen } from '../i18n'
 import { toneVar, usePersonName, useStore } from '../data/store'
 import { UpcomingRow } from '../ui/entry'
@@ -17,12 +17,12 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
   const [allUp, setAllUp] = useState(false)
 
   const sts = safeToSpend(space.id, snap, today)
-  const up = upcoming(space.id, snap, today)
+  const up = upcomingThisMonth(space.id, snap, today)
   const daily = dailyTotals(snap.entries, space.id, today)
   const [, , dom] = parts(today)
   const sorted = daily.filter(Boolean).sort((a, b) => b - a)
   const cap = sorted[1] || sorted[0] || 1
-  const billDays = new Set(up.filter((u) => u.kind !== 'income' && u.on.slice(0, 7) === today.slice(0, 7)).map((u) => parts(u.on)[2]))
+  const billDays = new Set(up.filter((u) => u.kind !== 'income').map((u) => parts(u.on)[2]))
   const pct = sts.budget ? Math.min(1, (sts.spent + sts.committed) / sts.budget) : 0
   const R = 2 * Math.PI * 30
   // in a shared space, my personal accounts are shown to me only; say so next to them
@@ -91,9 +91,9 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
               return <UpcomingRow key={u.key} item={u} sourceName={via} onlyMe={ends.some((x) => x && isMine(x.spaceId))} />
             })}
           </div>
-          <Forecast />
         </>
       )}
+      <Forecast />
     </>
   )
 }
