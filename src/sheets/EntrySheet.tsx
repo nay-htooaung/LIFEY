@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { addDays } from '../domain/dates'
 import { asNew, isTemplate, nextOccurrence, scheduleChange } from '../domain/recurring'
+import { addTag, nameSuggestions, tagSuggestions } from '../domain/suggest'
 import type { EntryKind, MoneyKind, NewEntry, Repeat } from '../domain/types'
 import { runSchedule } from '../data/repo'
 import { useI18n, yen } from '../i18n'
@@ -12,6 +13,7 @@ import { SourceSheet } from './SourceSheet'
 import { IconLock } from '../ui/icons'
 import { useUI } from '../ui/ui'
 import { Dot, Select } from '../ui/Select'
+import { Suggest } from '../ui/Suggest'
 
 const LAST_VIA = 'lifey-last-via'
 const readLast = (): Record<string, string> => {
@@ -113,6 +115,14 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
     setField('amount')
   }
 
+  // picking an earlier name also brings back the category it had last time
+  const pickName = (picked: string) => {
+    setName(picked)
+    const last = snap.entries.filter((e) => e.spaceId === spaceId && e.kind === kind && e.name === picked && e.categoryId)
+      .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))[0]
+    if (last && cats.some((c) => c.id === last.categoryId)) setCategoryId(last.categoryId)
+  }
+
   const ready = !!n && !!viaId && (kind !== 'transfer' || !!toId)
   const save = async () => {
     if (!ready) return
@@ -185,7 +195,8 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
       <div className="picks">
         <div className="pick">
           <label className="pick-l" htmlFor="entry-name">{t('name')}</label>
-          <input id="entry-name" className="input" value={name} maxLength={60} placeholder={t('optional')} onChange={(e) => setName(e.target.value)} />
+          <Suggest id="entry-name" className="input" value={name} maxLength={60} placeholder={t('optional')} onChange={setName}
+            suggestions={nameSuggestions(snap.entries, spaceId, kind, name)} onPick={pickName} />
         </div>
         {!editId && snap.spaces.length > 1 && (
           <div className="pick">
@@ -255,7 +266,8 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
           )}
           <div className="field">
             <label className="label" htmlFor="entry-tags">{t('tags')}</label>
-            <input id="entry-tags" value={tags} placeholder={t('tagsPh')} onChange={(e) => setTags(e.target.value)} />
+            <Suggest id="entry-tags" value={tags} placeholder={t('tagsPh')} onChange={setTags}
+              suggestions={tagSuggestions(snap.entries, spaceId, tags)} onPick={(tag) => setTags(addTag(tags, tag))} />
           </div>
         </div>
       </details>

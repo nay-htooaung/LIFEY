@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { execSync } from 'node:child_process'
 import type { Plugin } from 'vite'
 
 // pdf.js needs its character maps to read the words of Japanese PDFs (src/assistant/file.ts); they are served
@@ -25,9 +26,20 @@ const pdfCmaps = (): Plugin => ({
   },
 })
 
+// shown in the menu, so the person can tell which version their phone runs
+const VERSION = JSON.parse(readFileSync('package.json', 'utf8')).version as string
+const BUILD = (() => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim()
+  } catch {
+    return ''
+  }
+})()
+
 // base './' lets the same build run at a domain root or under a sub-path (e.g. GitHub Pages).
 export default defineConfig({
   base: './',
+  define: { __APP_VERSION__: JSON.stringify(VERSION), __APP_BUILD__: JSON.stringify(BUILD) },
   plugins: [
     react(),
     pdfCmaps(),

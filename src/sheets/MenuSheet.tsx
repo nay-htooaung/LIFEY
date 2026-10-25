@@ -15,6 +15,7 @@ export function MenuSheet() {
         <div className="mod"><b>{t('fridge')}</b><small>{t('mFridge')}</small><span className="pill mute">{t('later')}</span></div>
         <div className="mod"><b>{t('tasks')}</b><small>{t('mTasks')}</small><span className="pill mute">{t('later')}</span></div>
       </div>
+      <p className="version">{t('version', { v: __APP_VERSION__ })}{__APP_BUILD__ && ` · ${__APP_BUILD__}`}</p>
     </>
   )
 }

@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { parts } from '../domain/dates'
-import { dailyTotals, nextMonthEnd, projection, safeToSpend, spentByMember, upcoming } from '../domain/money'
+import { monthKey, parts } from '../domain/dates'
+import { dailyTotals, nextMonthEnd, projection, safeToSpend, spendingView, spentByMember, upcoming } from '../domain/money'
 import { useI18n, yen } from '../i18n'
-import { usePersonName, useStore } from '../data/store'
+import { toneVar, usePersonName, useStore } from '../data/store'
 import { UpcomingRow } from '../ui/entry'
 import { IconLock } from '../ui/icons'
 import { InstallCard } from '../ui/InstallCard'
@@ -70,6 +70,8 @@ export function Today({ go }: { go(tab: 'activity' | 'plan' | 'wallet'): void })
         </div>
         <div className="ribbon-x"><span>1</span><span>{t('today')}</span><span>{daily.length}</span></div>
       </div>
+
+      <MonthMoney />
 
       <InstallCard dismissible />
 
@@ -146,5 +148,61 @@ function Contribution() {
         ))}
       </div>
     </div>
+  )
+}
+
+/** This month's spending, income and what is left over: this space first, then every space side by side. */
+function MonthMoney() {
+  const { snap, space, today } = useStore()
+  const { t, month } = useI18n()
+  const key = monthKey(today)
+  const totals = (spaceId: string) => {
+    const es = spendingView(snap.entries.filter((e) => e.spaceId === spaceId && e.occurredOn.startsWith(key) && e.occurredOn <= today))
+    const out = es.filter((e) => e.kind === 'expense').reduce((a, e) => a + e.amount, 0)
+    const inc = es.filter((e) => e.kind === 'income').reduce((a, e) => a + e.amount, 0)
+    return { out, inc, net: inc - out }
+  }
+  const here = totals(space.id)
+  const all = snap.spaces.map((s) => ({ s, ...totals(s.id) }))
+  const sum = all.reduce((a, x) => ({ out: a.out + x.out, inc: a.inc + x.inc, net: a.net + x.net }), { out: 0, inc: 0, net: 0 })
+  const signed = (n: number) => (n > 0 ? '+' : '') + yen(n)
+  const ratio = here.inc + here.out ? here.out / Math.max(here.inc, here.out) : 0
+  return (
+    <>
+      <div className="card mm">
+        <div className="mm-h"><span className="label">{t('monthMoney', { m: month(parts(today)[1]) })}</span></div>
+        <div className="mm-grid">
+          <div><span>{t('monthOut')}</span><b className="num">{yen(here.out)}</b></div>
+          <div><span>{t('monthIn')}</span><b className="num amt-in">{yen(here.inc)}</b></div>
+          <div><span>{t('net')}</span><b className={'num' + (here.net < 0 ? ' neg' : '')}>{signed(here.net)}</b></div>
+        </div>
+        {here.inc > 0 && (
+          <div className="mm-bar" aria-hidden="true"><i style={{ width: `${Math.min(100, ratio * 100)}%` }} /></div>
+        )}
+        {here.inc > 0 && <div className="mm-note">{t('spentOfIncome', { p: Math.round((here.out / here.inc) * 100) })}</div>}
+      </div>
+      {all.length > 1 && (
+        <div className="card mm-spaces">
+          <div className="label">{t('bySpace')}</div>
+          {all.map(({ s, out, inc, net }) => (
+            <div key={s.id} className={'mm-row' + (s.id === space.id ? ' on' : '')}>
+              <span className="mm-dot" style={{ background: toneVar(s) }} />
+              <div className="mm-main">
+                <b>{s.name}</b>
+                <small>{t('monthOut')} {yen(out)} · {t('monthIn')} {yen(inc)}</small>
+              </div>
+              <b className={'num mm-net' + (net < 0 ? ' neg' : net > 0 ? ' pos' : '')}>{signed(net)}</b>
+            </div>
+          ))}
+          <div className="mm-row total">
+            <div className="mm-main">
+              <b>{t('allSpaces')}</b>
+              <small>{t('monthOut')} {yen(sum.out)} · {t('monthIn')} {yen(sum.inc)}</small>
+            </div>
+            <b className={'num mm-net' + (sum.net < 0 ? ' neg' : sum.net > 0 ? ' pos' : '')}>{signed(sum.net)}</b>
+          </div>
+        </div>
+      )}
+    </>
   )
 }

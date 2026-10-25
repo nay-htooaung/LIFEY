@@ -78,6 +78,8 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
 - Latest migration: `20261024010000_ai_no_limit.sql`.
+- Version: `package.json` (0.x.x until the v1.0.0 release), shown with the commit in the menu (lifey 家計 ⌄). Bump it with each
+  deploy to dev: minor for new features, patch for fixes.
 - Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
   build with dev's `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` (in deploy.yml), then `npx wrangler deploy --env dev`.
 - The app looks for a new version every 30 minutes and when it comes back to the screen (`src/ui/update.ts`), shows 更新しています… and reloads, waiting while a sheet is open.
@@ -99,6 +101,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   - Each open sheet owns a history entry, so Android back closes it. Tabs other than Today sit one entry above Today.
   - Sheets close by dragging the handle only, never the body.
 - Dropdowns are always `src/ui/Select.tsx`, never a native `<select>`. It takes an optional last "+ New …" row.
+  Text fields that offer earlier values use `src/ui/Suggest.tsx` (entry name and tags); months are picked with `src/ui/MonthWheel.tsx`.
 - Themes are `[data-skin]` token blocks (midnight, light, milky). `index.html` applies the saved theme before first paint.
 - Money rules (`src/domain/money.ts`, `recurring.ts`; keep the unit tests in step):
   - **Transfers** (`kind = 'transfer'`) move `amount` from `source_id` to `to_source_id`; `fee` comes out of the
@@ -145,8 +148,9 @@ Edit schedule 繰り返しを編集, Edit this entry この記録を編集.
 
 Removed on purpose; do not bring back without asking:
 
-- Today: the streak card and no-spend days, the list of spaces, Recent entries.
-- History: search and filter chips (it is a month calendar now).
+- Today: the streak card and no-spend days, Recent entries. (The by-space money card is wanted; a list of spaces to switch to is not.)
+- History: search and filter chips (it is a month calendar now), the month's totals (moved to Today), and the ‹ › month arrows
+  (months change by swiping the calendar or with the year/month wheels).
 - Sign-in: "Try with example data" (demo mode only runs when the build has no Supabase settings).
 - "Bank transfer ·" in front of source names under Paid with (sources are listed by name).
 - Native `<select>`, closing a sheet by dragging its body, and the words household / グループ in the UI.

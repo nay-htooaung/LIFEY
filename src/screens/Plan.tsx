@@ -2,6 +2,7 @@ import { categorySpent, monthPace, potShares, potThisMonth, potTotal, savedTotal
 import { isTemplate, nextOccurrence } from '../domain/recurring'
 import { useI18n, yen } from '../i18n'
 import { toneVar, useLookups, usePersonName, useStore } from '../data/store'
+import { CategoryDetail } from '../sheets/CategoryDetail'
 import { CategorySheet } from '../sheets/CategorySheet'
 import { PotSheet } from '../sheets/PotSheet'
 import { EntrySheet } from '../sheets/EntrySheet'
@@ -23,26 +24,7 @@ export function Plan() {
   return (
     <>
       <div className="sec-h"><h3>{t('budgets')}</h3></div>
-      {cats.some((c) => c.kind === 'expense') && <div className="card" style={{ paddingBlock: 6 }}>
-        {cats.filter((c) => c.kind === 'expense').map((c) => {
-          const spent = categorySpent(snap.entries, c, today)
-          const b = c.monthlyBudget
-          const r = b ? spent / b : 0
-          const col = !b ? 'var(--muted)' : r > 1 ? 'var(--neg)' : r > pace + 0.1 ? 'var(--warn)' : 'var(--pos)'
-          return (
-            <button key={c.id} className="bud" onClick={() => edit(c)}>
-              <div className="h">
-                <span><span className="sw" style={{ background: c.color }} /><b>{c.name}</b></span>
-                <span className="num use"><span style={r > 1 ? { color: 'var(--neg)' } : undefined}>{yen(spent)}</span>{b ? <span className="of"> / {yen(b)}</span> : null}</span>
-              </div>
-              <div className="bar">
-                <i style={{ width: `${Math.min(100, r * 100)}%`, background: col }} />
-                {b ? <span className="pace" style={{ left: `${pace * 100}%` }} /> : null}
-              </div>
-            </button>
-          )
-        })}
-      </div>}
+      <CategoryBars cats={cats.filter((c) => c.kind === 'expense')} pace={pace} />
       <button className="btn" onClick={() => edit()}>{t('newCat')}</button>
 
       <Savings />
@@ -50,11 +32,7 @@ export function Plan() {
       {cats.some((c) => c.kind === 'income') && (
         <>
           <div className="sec-h"><h3>{t('incomeCats')}</h3></div>
-          <div className="chips wrap">
-            {cats.filter((c) => c.kind === 'income').map((c) => (
-              <button key={c.id} className="chip" onClick={() => edit(c)}><span className="sw" style={{ background: c.color }} />{c.name}</button>
-            ))}
-          </div>
+          <CategoryBars cats={cats.filter((c) => c.kind === 'income')} pace={pace} />
         </>
       )}
 
@@ -81,6 +59,44 @@ export function Plan() {
         </>
       )}
     </>
+  )
+}
+
+/**
+ * Each category this month: tap for its entries. A budget gets a bar against it with the month's pace; without one,
+ * the bar compares it with the category that used the most.
+ */
+function CategoryBars({ cats, pace }: { cats: Category[]; pace: number }) {
+  const { snap, space, today } = useStore()
+  const ui = useUI()
+  const { t } = useI18n()
+  if (!cats.length) return null
+  const used = new Map(cats.map((c) => [c.id, categorySpent(snap.entries, c, today)]))
+  const most = Math.max(1, ...used.values())
+  return (
+    <div className="card" style={{ paddingBlock: 6 }}>
+      {cats.map((c) => {
+        const spent = used.get(c.id)!
+        const b = c.kind === 'expense' ? c.monthlyBudget : 0
+        const r = b ? spent / b : spent / most
+        const col = c.kind === 'income' ? 'var(--pos)' : !b ? 'var(--muted)' : r > 1 ? 'var(--neg)' : r > pace + 0.1 ? 'var(--warn)' : 'var(--pos)'
+        return (
+          <button key={c.id} className="bud" onClick={() => ui.open(<CategoryDetail id={c.id} />, toneVar(space))}>
+            <div className="h">
+              <span><span className="sw" style={{ background: c.color }} /><b>{c.name}</b></span>
+              <span className="num use">
+                <span style={b && r > 1 ? { color: 'var(--neg)' } : c.kind === 'income' && spent ? { color: 'var(--pos)' } : undefined}>{yen(spent)}</span>
+                {b ? <span className="of"> / {yen(b)}</span> : c.kind === 'expense' ? <span className="of"> · {t('noBudget')}</span> : null}
+              </span>
+            </div>
+            <div className="bar">
+              <i style={{ width: `${Math.min(100, r * 100)}%`, background: col }} />
+              {b ? <span className="pace" style={{ left: `${pace * 100}%` }} /> : null}
+            </div>
+          </button>
+        )
+      })}
+    </div>
   )
 }
 

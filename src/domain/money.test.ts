@@ -3,6 +3,7 @@ import { addMonths, dayInMonth } from './dates'
 import { creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
+import { addTag, nameSuggestions, tagSuggestions } from './suggest'
 import type { Category, Entry, Flow, PaymentMethod, Pot, PotMove, Snapshot, Source } from './types'
 
 const visa: PaymentMethod = { id: 'visa', spaceId: 'me', name: 'Visa', kind: 'credit', sourceId: 'chk', creditLimit: 500000, limitSharedWith: null, closingDay: 15, paymentDay: 10, archived: false }
@@ -291,5 +292,31 @@ describe('projection to the end of next month', () => {
     expect(f.now).toBe(400000)
     // October's posted salary and November's (not posted yet) come in; the card pays September's gym
     expect([f.in, f.out, f.after]).toEqual([600000, 8000, 992000])
+  })
+})
+
+describe('entry form suggestions', () => {
+  const es = [
+    entry({ name: 'ランチ', occurredOn: '2026-10-01', tags: ['仕事'] }),
+    entry({ name: 'ランチ', occurredOn: '2026-10-03', tags: ['仕事', '友達'] }),
+    entry({ name: 'ブランチ', occurredOn: '2026-10-05' }),
+    entry({ name: 'Lunch set', occurredOn: '2026-10-02', tags: ['travel'] }),
+    entry({ name: 'ランチ', spaceId: 'home' }),
+    entry({ name: '給料', kind: 'income' }),
+  ]
+  it('offers earlier names of this kind in this space, starting matches first', () => {
+    expect(nameSuggestions(es, 'me', 'expense', 'らんち')).toEqual(['ランチ', 'ブランチ'])
+    expect(nameSuggestions(es, 'me', 'expense', 'ＬＵＮ')).toEqual(['Lunch set'])
+    expect(nameSuggestions(es, 'me', 'expense', '')).toEqual([])
+    expect(nameSuggestions(es, 'me', 'expense', '給')).toEqual([])
+    // what is already typed in full is not offered again
+    expect(nameSuggestions(es, 'me', 'expense', 'ランチ')).toEqual(['ブランチ'])
+  })
+  it('offers tags not yet added, most used first, and adds the picked one', () => {
+    expect(tagSuggestions(es, 'me', '')).toEqual(['仕事', '友達', 'travel'])
+    expect(tagSuggestions(es, 'me', '仕事, ')).toEqual(['友達', 'travel'])
+    expect(tagSuggestions(es, 'me', '仕事、友')).toEqual(['友達'])
+    expect(addTag('仕事, 友', '友達')).toBe('仕事, 友達, ')
+    expect(addTag('', '仕事')).toBe('仕事, ')
   })
 })
