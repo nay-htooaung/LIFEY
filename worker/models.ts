@@ -3,12 +3,12 @@
 // free tier (only GEMINI_MODELS, since newer Flash models were overloaded).
 
 export type Provider = 'go' | 'gemini'
-/** `vision`: it can read photos. */
-export interface Model { id: string; name: string; provider: Provider; vision: boolean }
+/** `vision`: it can read photos. `output`: the most it can write in one reply (tokens), when the catalogue says. */
+export interface Model { id: string; name: string; provider: Provider; vision: boolean; output?: number }
 export interface ModelList { models: Model[]; recommended: string | null }
 
 /** models.dev's entry for a model (the catalogue OpenCode uses). */
-interface Catalogue { name?: string; tool_call?: boolean; status?: string; provider?: { npm?: string }; modalities?: { input?: string[] } }
+interface Catalogue { name?: string; tool_call?: boolean; status?: string; provider?: { npm?: string }; modalities?: { input?: string[] }; limit?: { output?: number } }
 
 const GO_URL = 'https://opencode.ai/zen/go/v1'
 const CATALOGUE = 'https://models.dev/api.json'
@@ -28,7 +28,7 @@ export function goModels(live: string[], catalogue: Record<string, Catalogue> | 
       const chat = !c.provider?.npm || c.provider.npm === '@ai-sdk/openai-compatible'
       return chat && c.tool_call !== false && c.status !== 'deprecated'
     })
-    .map((id) => ({ id: `go:${id}`, name: catalogue?.[id]?.name ?? id, provider: 'go' as const, vision: !!catalogue?.[id]?.modalities?.input?.includes('image') }))
+    .map((id) => ({ id: `go:${id}`, name: catalogue?.[id]?.name ?? id, provider: 'go' as const, vision: !!catalogue?.[id]?.modalities?.input?.includes('image'), output: catalogue?.[id]?.limit?.output }))
 }
 
 const GEMINI_NAMES: Record<string, string> = { 'gemini-3.6-flash': 'Gemini 3.6 Flash' }

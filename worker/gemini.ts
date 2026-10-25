@@ -76,8 +76,8 @@ export function toGemini(system: string, messages: OpenAiMsg[], tools: readonly 
         name: f.name, description: f.description, ...(f.parameters ? { parametersJsonSchema: f.parameters } : {}),
       })),
     }],
+    // no maxOutputTokens: the model's own limit
     generationConfig: {
-      maxOutputTokens: 4000,
       // think briefly and say what it is thinking about, so the wait shows progress
       ...(thinking ? { thinkingConfig: { includeThoughts: true, ...(gen3 ? { thinkingLevel: 'low' } : { thinkingBudget: 1024 }) } } : {}),
     },

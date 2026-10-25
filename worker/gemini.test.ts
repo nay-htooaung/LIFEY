@@ -43,7 +43,7 @@ describe('Gemini requests', () => {
     expect(body.generationConfig.thinkingConfig).toEqual({ includeThoughts: true, thinkingLevel: 'low' })
     expect(toGemini('S', msgs, tools, 'gemini-2.5-flash').contents.at(-1)).toEqual({ role: 'model', parts: [{ functionCall: { name: 'get_overview', args: {} } }] })
     expect(toGemini('S', msgs, tools, 'gemini-2.5-flash').generationConfig.thinkingConfig).toEqual({ includeThoughts: true, thinkingBudget: 1024 })
-    expect(toGemini('S', msgs, tools, 'gemini-3.8-flash', false).generationConfig).toEqual({ maxOutputTokens: 4000 })
+    expect(toGemini('S', msgs, tools, 'gemini-3.8-flash', false).generationConfig).toEqual({})
   })
 })
 

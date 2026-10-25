@@ -34,11 +34,6 @@ const list = (s?: string) => (s ?? '').split(',').map((x) => x.trim()).filter(Bo
 const keys = (env: Env): Keys => ({ go: env.OPENCODE_API_KEY, gemini: env.GEMINI_API_KEY, geminiModels: list(env.GEMINI_MODELS), preferred: list(env.AI_PREFERRED) })
 const configured = (env: Env) => !!(env.OPENCODE_API_KEY || env.GEMINI_API_KEY)
 
-/** Words without a photo go as one string: some chat/completions models take a list of parts only with an image in it,
- * and answer 400 to a file's text sent as parts. */
-export const plainText = (content: Msg['content']): Msg['content'] =>
-  Array.isArray(content) && content.every((p) => p.type === 'text') ? content.map((p) => p.text).join('\n\n') : content
-
 const fail = (status: number, error: string) =>
   new Response(JSON.stringify({ error }), { status, headers: { 'content-type': 'application/json' } })
 
@@ -78,7 +73,7 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
   // only the conversation itself; the system prompt and tools are set here
   const convo = messages
     .filter((m) => m && ['user', 'assistant', 'tool'].includes(m.role))
-    .map(({ role, content, tool_calls, tool_call_id }) => ({ role, content: plainText(content), ...(tool_calls ? { tool_calls } : {}), ...(tool_call_id ? { tool_call_id } : {}) }))
+    .map(({ role, content, tool_calls, tool_call_id }) => ({ role, content, ...(tool_calls ? { tool_calls } : {}), ...(tool_call_id ? { tool_call_id } : {}) }))
   const ctx: ChatContext = {
     today: /^\d{4}-\d{2}-\d{2}$/.test(context.today) ? context.today : new Date().toISOString().slice(0, 10),
     locale: context.locale === 'ja' ? 'ja' : 'en',
@@ -151,6 +146,8 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
     // until the first words arrive this is short, then the whole reply gets two minutes
     const ctl = new AbortController()
     let timer = setTimeout(() => ctl.abort(), FIRST_WORDS_MS)
+    // the model's whole reply length: a statement's entries take many tokens, and a cut-short reply has nothing to use
+    const output = models.find((x) => x.id === m)?.output
     const call = (thinking: boolean) => provider === 'go'
       ? fetch(`${GO_URL}/chat/completions`, {
         method: 'POST', signal: ctl.signal,
@@ -159,7 +156,7 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
           'x-opencode-session': session, 'user-agent': 'lifey-assistant/0.1',
         },
         body: JSON.stringify({
-          model: id, stream: true, max_tokens: 4000, tools: TOOLS, tool_choice: 'auto',
+          model: id, stream: true, ...(output ? { max_tokens: output } : {}), tools: TOOLS, tool_choice: 'auto',
           // Gemini's signatures mean nothing to other models
           messages: [{ role: 'system', content: SYSTEM_PROMPT }, ...(convo as OpenAiMsg[]).map(({ tool_calls, ...msg }) =>
             tool_calls ? { ...msg, tool_calls: tool_calls.map(({ extra_content: _x, ...tc }) => ({ ...tc, type: 'function' })) } : msg)],
@@ -194,7 +191,7 @@ async function chat(req: Request, env: Env, worker: { waitUntil(p: Promise<unkno
         console.error('model failed', m, res.status, (await res.text()).slice(0, 600))
         if (res.status === 404) markBroken(m)
         const code = res.status === 429 || res.status === 503 ? 'model_busy' : `model_${res.status}`
-        // a model that refuses this request (400) may take it as another model would, so the next one tries
+        // a provider sometimes answers 400 to a request it takes on a retry (seen once with a PDF's text), so the next model tries
         if ([400, 404, 429, 500, 502, 503].includes(res.status)) return code
         await send(`data: ${JSON.stringify({ error: { code } })}\n\n`)
         return 'done'
