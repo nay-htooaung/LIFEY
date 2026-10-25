@@ -120,6 +120,9 @@ function overview({ snap, space, today, person }: ToolCtx) {
     })),
     sources: snap.sources.filter((s) => !s.archived).map(sourceRow),
     payment_methods: snap.methods.filter((m) => !m.archived).map(methodRow),
+    // other members' cards shared into a space: expenses there can be paid with them (method_id); nothing else is known
+    cards_shared_with_me: snap.methodShares.filter((x) => x.active && !x.archived && x.ownerId !== snap.me.id)
+      .map((x) => ({ id: x.methodId, name: x.name, kind: x.kind, owner: person(x.ownerId), usable_in_space: spaceName(x.spaceId) })),
     categories: snap.categories.map((k) => ({
       id: k.id, name: k.name, kind: k.kind, space: spaceName(k.spaceId), color: k.color,
       ...(k.kind === 'expense' ? { budget: k.monthlyBudget, spent_this_month: categorySpent(snap.entries, k, today) } : {}),
@@ -201,7 +204,12 @@ export function buildEntry(a: Args, before: Entry | undefined, c: Pick<ToolCtx, 
   const method = methodId ? snap.methods.find((m) => m.id === methodId && !m.archived) : undefined
   const source = sourceId ? snap.sources.find((s) => s.id === sourceId && !s.archived) : undefined
   const to = toSourceId ? snap.sources.find((s) => s.id === toSourceId && !s.archived) : undefined
-  if (methodId && !method) return 'unknown method_id'
+  // another member's card shared into this space
+  const lent = methodId && !method
+    ? c.snap.methodShares.find((x) => x.methodId === methodId && x.spaceId === spaceId && x.active && !x.archived && x.ownerId !== c.snap.me.id)
+    : undefined
+  if (methodId && !method && !lent) return 'unknown method_id (a card shared with you works only in the space it is shared into)'
+  if (lent && kind !== 'expense') return 'a card shared with you pays expenses only'
   if (sourceId && !source) return 'unknown source_id'
   if (toSourceId && !to) return 'unknown to_source_id'
   if (categoryId) {
@@ -209,7 +217,7 @@ export function buildEntry(a: Args, before: Entry | undefined, c: Pick<ToolCtx, 
     if (!k || k.spaceId !== spaceId) return 'category_id must be a category of the same space'
     if (k.kind !== kind) return `category is for ${k.kind}, not ${kind}`
   }
-  if (kind === 'expense' && !!method === !!source) return 'an expense needs exactly one of method_id or source_id'
+  if (kind === 'expense' && !!(method || lent) === !!source) return 'an expense needs exactly one of method_id or source_id'
   if (kind === 'income' && (method || !source)) return 'income needs source_id (and no method_id)'
   if (kind === 'transfer') {
     if (!to) return 'a transfer needs to_source_id'

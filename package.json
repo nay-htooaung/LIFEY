@@ -1,7 +1,7 @@
 {
   "name": "lifey",
   "private": true,
-  "version": "0.2.1",
+  "version": "0.3.0",
   "type": "module",
   "description": "Lifey: one app for the people you live with. Money module MVP.",
   "scripts": {

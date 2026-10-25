@@ -77,7 +77,7 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   The user replaces it with `develop` at the v1.0.0 release (pushing `main` deploys prod). Other branches run
   `check.yml` only (the four checks, no deploy). `rebuild/money-mvp` is the retired name of `develop`.
 - Sign-up is invitation only: `select public.create_signup_invite('note', days);` in the SQL editor (README).
-- Latest migration: `20261024010000_ai_no_limit.sql`.
+- Latest migration: `20261025000000_method_shares.sql`.
 - Version: `package.json` (0.x.x until the v1.0.0 release), shown with the commit in the menu (lifey 家計 ⌄). Bump it with each
   deploy to dev: minor for new features, patch for fixes.
 - Pushing `develop` deploys dev (only on the user's go-ahead); to deploy dev by hand (the session has `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`):
@@ -100,6 +100,10 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   - `ui.open` replaces the current sheet; `ui.push` stacks one on top, keeping the sheet below mounted with its state.
   - Each open sheet owns a history entry, so Android back closes it. Tabs other than Today sit one entry above Today.
   - Sheets close by dragging the handle only, never the body.
+- お財布: tapping a source or a payment method opens `AccountDetail`: its balance (or what is owed), then month by
+  month what went through it (`accountLines`: entries, card statements on their payment day, and one line for
+  members' entries I cannot see), this month split into 予定 and 記録済み; older months load on scroll. Edit is the
+  ✎ button at the top. Categories on 計画 open `CategoryDetail` the same way.
 - Dropdowns are always `src/ui/Select.tsx`, never a native `<select>`. It takes an optional last "+ New …" row.
   Text fields that offer earlier values use `src/ui/Suggest.tsx` (entry name and tags); months are picked with `src/ui/MonthWheel.tsx`.
 - Themes are `[data-skin]` token blocks (midnight, light, milky). `index.html` applies the saved theme before first paint.
@@ -139,6 +143,10 @@ Ask before anything risky (prod, `main`, deleting data, changing what others in 
   screens' real names, today, language and space) goes with the first message of a conversation only, and later
   moves (space, date, language) are told as `[app]` notes, so each conversation's requests share a cacheable start.
 - Privacy: other members never see your personal methods or sources, only "<name>'s personal funds".
+  A personal payment method can be lent to shared spaces (`method_shares`, set in its edit sheet): members may pay
+  expenses there with it and learn only its name, kind and owner (`shared_methods()`, shown as "<name>'s <card>").
+  Charges go on the owner's card (`money_flows()` shows them to the owner only), who pays the bill. Stopping a share
+  sets `stopped_at`, so past entries keep the name and can still be edited.
   Members may update only a space's `name` and `tone` (column grant).
 
 ## Names and removed features

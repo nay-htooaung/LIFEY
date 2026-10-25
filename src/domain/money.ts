@@ -93,6 +93,61 @@ export function sourceBalance(source: Source, methods: PaymentMethod[], flows: F
   return bal
 }
 
+/**
+ * One line of an account's history, signed from the account's side (+ in, − out): an entry, a card statement paid
+ * from a source, or (hidden) what members logged where I cannot see the entry but the account moved.
+ */
+export interface AccountLine {
+  key: string
+  on: Day
+  amount: number
+  entry?: Entry
+  card?: PaymentMethod
+  hidden?: boolean
+}
+
+/** What went in and out of a source, or onto a payment method, in `month` (YYYY-MM), newest first. */
+export function accountLines(account: { source: Source } | { method: PaymentMethod }, s: Pick<Snapshot, 'entries' | 'methods' | 'flows'>, month: string): AccountLine[] {
+  const inMonth = (d: Day) => d.startsWith(month)
+  const lines: AccountLine[] = []
+  let moved = 0
+  if ('method' in account) {
+    const m = account.method
+    for (const e of s.entries) {
+      if (e.methodId === m.id && inMonth(e.occurredOn)) lines.push({ key: e.id, on: e.occurredOn, amount: -(e.amount + e.fee), entry: e })
+    }
+    moved = -sum(charges(s.flows, m.id).filter((f) => inMonth(f.occurredOn)).map((f) => f.amount))
+  } else {
+    const src = account.source
+    // debit cards and the like take each payment from the source at once
+    const direct = new Set(s.methods.filter((m) => m.sourceId === src.id && m.kind !== 'credit').map((m) => m.id))
+    for (const e of s.entries.filter((x) => inMonth(x.occurredOn))) {
+      let amount = 0
+      if (e.methodId) {
+        if (direct.has(e.methodId)) amount -= e.amount + e.fee
+      } else if (e.sourceId === src.id) amount += e.kind === 'income' ? e.amount : -(e.amount + e.fee)
+      if (e.kind === 'transfer' && e.toSourceId === src.id) amount += e.amount
+      if (amount) lines.push({ key: e.id, on: e.occurredOn, amount, entry: e })
+    }
+    for (const f of s.flows.filter((x) => inMonth(x.occurredOn))) {
+      if (f.sourceId === src.id) moved += f.kind === 'income' ? f.amount : -f.amount
+      else if (f.methodId && direct.has(f.methodId) && f.kind === 'expense') moved -= f.amount
+    }
+    // each card statement paid from it this month
+    for (const m of s.methods.filter((x) => x.sourceId === src.id && x.kind === 'credit')) {
+      const due = new Map<Day, number>()
+      for (const f of charges(s.flows, m.id)) {
+        const on = paymentDateFor(f.occurredOn, m)
+        if (inMonth(on)) due.set(on, (due.get(on) ?? 0) + f.amount)
+      }
+      for (const [on, amount] of due) lines.push({ key: `card-${m.id}-${on}`, on, amount: -amount, card: m })
+    }
+  }
+  const seen = sum(lines.filter((l) => l.entry).map((l) => l.amount))
+  if (moved !== seen) lines.push({ key: `hidden-${month}`, on: `${month}-01`, amount: moved - seen, hidden: true })
+  return lines.sort((a, b) => b.on.localeCompare(a.on))
+}
+
 export function netPosition(spaceId: string, s: Snapshot, on: Day) {
   const sources = s.sources.filter((x) => x.spaceId === spaceId && !x.archived)
   const methods = s.methods.filter((x) => x.spaceId === spaceId && !x.archived)

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { upcomingThisMonth, creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
+import { accountLines, upcomingThisMonth, creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, safeToSpend, sourceBalance, upcoming } from './money'
 import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
 import { addTag, nameSuggestions, tagSuggestions } from './suggest'
@@ -79,7 +79,7 @@ describe('safe to spend', () => {
   it('spreads what is left after scheduled bills over the remaining days', () => {
     const s: Snapshot = {
       me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en', avatar: null, theme: 'midnight' },
-      profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], pots: [], potMoves: [],
+      profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], pots: [], potMoves: [], methodShares: [],
       categories: [
         { id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense', monthlyBudget: 30000, sort: 0 },
         { id: 'gym', spaceId: 'me', name: 'Gym', color: '#000', kind: 'expense', monthlyBudget: 8000, sort: 0 },
@@ -112,7 +112,7 @@ describe('safe to spend', () => {
 
 const s0 = () => ({
   me: { id: 'u1', displayName: 'You', color: '#000', locale: 'en' as const, avatar: null, theme: 'midnight' as const },
-  profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [],
+  profiles: {}, spaces: [], deletedSpaces: [], sources: [chk], methods: [debit], flows: [], methodShares: [],
   categories: [{ id: 'food', spaceId: 'me', name: 'Food', color: '#000', kind: 'expense' as const, monthlyBudget: 30000, sort: 0 }],
   entries: [entry({ amount: 10000, occurredOn: '2026-10-05' })],
 })
@@ -322,5 +322,36 @@ describe('entry form suggestions', () => {
     expect(tagSuggestions(es, 'me', '仕事、友')).toEqual(['友達'])
     expect(addTag('仕事, 友', '友達')).toBe('仕事, 友達, ')
     expect(addTag('', '仕事')).toBe('仕事, ')
+  })
+})
+
+describe('account history', () => {
+  const card: PaymentMethod = { ...visa, id: 'card', closingDay: 31, paymentDay: 27 }
+  const es = [
+    entry({ id: 'a', methodId: 'card', amount: 3000, occurredOn: '2026-09-10' }),
+    entry({ id: 'b', methodId: 'card', amount: 2000, occurredOn: '2026-10-02' }),
+    entry({ id: 'c', methodId: 'deb', amount: 500, occurredOn: '2026-10-03' }),
+    entry({ id: 'd', kind: 'income', methodId: null, sourceId: 'chk', amount: 300000, occurredOn: '2026-10-25' }),
+    entry({ id: 'e', kind: 'transfer', methodId: null, sourceId: 'chk', toSourceId: 'pp', amount: 5000, fee: 110, occurredOn: '2026-10-05' }),
+  ]
+  const s = { entries: es, methods: [card, debit], flows: flowsOf(es) }
+  it('lists a card\'s charges by month', () => {
+    expect(accountLines({ method: card }, s, '2026-10').map((l) => [l.key, l.amount])).toEqual([['b', -2000]])
+    expect(accountLines({ method: card }, s, '2026-09').map((l) => [l.key, l.amount])).toEqual([['a', -3000]])
+  })
+  it('lists what came into and went out of a source, with card statements on their payment day', () => {
+    expect(accountLines({ source: chk }, s, '2026-10').map((l) => [l.key, l.on, l.amount])).toEqual([
+      ['card-card-2026-10-27', '2026-10-27', -3000],
+      ['d', '2026-10-25', 300000],
+      ['e', '2026-10-05', -5110],
+      ['c', '2026-10-03', -500],
+    ])
+    expect(accountLines({ source: { ...chk, id: 'pp' } }, s, '2026-10').map((l) => [l.key, l.amount])).toEqual([['e', 5000]])
+  })
+  it('adds what members logged out of sight as one line', () => {
+    // a flow without a visible entry: a member's personal entry paid from a shared source
+    const hiddenFlow = { methodId: null, sourceId: 'chk', kind: 'expense' as const, amount: 800, occurredOn: '2026-10-08' }
+    const lines = accountLines({ source: chk }, { ...s, flows: [...s.flows, hiddenFlow] }, '2026-10')
+    expect(lines.find((l) => l.hidden)).toMatchObject({ amount: -800 })
   })
 })

@@ -63,6 +63,21 @@ export interface PaymentMethod {
   archived: boolean
 }
 
+/**
+ * A personal payment method shared into a space: its members may pay there with it but see only this much.
+ * The owner gets their own shares here too. A share that was stopped stays (active false) so past entries keep the name.
+ */
+export interface MethodShare {
+  methodId: string
+  /** The space it is shared into. */
+  spaceId: string
+  name: string
+  kind: MethodKind
+  ownerId: string
+  archived: boolean
+  active: boolean
+}
+
 export interface Category {
   id: string
   spaceId: string
@@ -149,4 +164,5 @@ export interface Snapshot {
   /** Every pot of my spaces, archived ones too, and all their moves (totals need every month). */
   pots: Pot[]
   potMoves: PotMove[]
+  methodShares: MethodShare[]
 }

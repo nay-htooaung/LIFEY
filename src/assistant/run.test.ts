@@ -17,6 +17,7 @@ const snap = {
   categories: [{ id: 'food', spaceId: 'me', name: 'Food', color: '', kind: 'expense', monthlyBudget: 0, sort: 0 }, { id: 'pay', spaceId: 'me', name: 'Pay', color: '', kind: 'income', monthlyBudget: 0, sort: 1 }],
   entries: [lunch, { ...lunch, id: 'rent', repeat: 'monthly' }], flows: [], profiles: {}, deletedSpaces: [],
   pots: [{ id: 'trip', spaceId: 'me', name: 'Trip', color: '#000', goal: 150000, monthly: 10000, sort: 1, archived: false }], potMoves: [],
+  methodShares: [{ methodId: 'amex', spaceId: 'home', name: 'Amex', kind: 'credit', ownerId: 'u2', archived: false, active: true }],
 } as unknown as Snapshot
 const c = { snap, space: snap.spaces[0], today: '2026-10-23' }
 
@@ -38,6 +39,11 @@ describe('assistant proposals', () => {
     expect(buildEntry({ kind: 'income', amount: 1, method_id: 'visa' }, undefined, c)).toMatch(/source_id/)
     expect(buildEntry({ kind: 'transfer', amount: 1, source_id: 'chk', to_source_id: 'chk' }, undefined, c)).toMatch(/different/)
     expect(buildEntry({ kind: 'transfer', amount: 1, method_id: 'visa', to_source_id: 'cash' }, undefined, c)).toMatch(/e-money/)
+  })
+  it('pays an expense with a card another member shared into the space, and only that', () => {
+    expect(buildEntry({ kind: 'expense', amount: 2800, method_id: 'amex', space_id: 'home' }, undefined, c)).toMatchObject({ spaceId: 'home', methodId: 'amex', sourceId: null })
+    expect(buildEntry({ kind: 'expense', amount: 2800, method_id: 'amex' }, undefined, c)).toMatch(/unknown method_id/)
+    expect(buildEntry({ kind: 'transfer', amount: 2800, method_id: 'amex', space_id: 'home', to_source_id: 'pp' }, undefined, c)).toMatch(/expenses only/)
   })
   it('lets a card charge e-money', () => {
     expect(buildEntry({ kind: 'transfer', amount: 3000, method_id: 'visa', to_source_id: 'pp' }, undefined, c)).toMatchObject({ methodId: 'visa', sourceId: null, toSourceId: 'pp', categoryId: null })

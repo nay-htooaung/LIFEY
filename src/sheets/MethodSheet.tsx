@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { MethodKind } from '../domain/types'
 import { useI18n } from '../i18n'
-import { useStore, useSubmit } from '../data/store'
+import { toneVar, useStore, useSubmit } from '../data/store'
 import { parseYen } from '../ui/bits'
 import { Select } from '../ui/Select'
 import { useUI } from '../ui/ui'
@@ -39,6 +39,16 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
   // Cards already sharing this one's limit; then this card must keep its own.
   const sharers = editId ? snap.methods.filter((m) => m.limitSharedWith === editId && !m.archived) : []
   const [confirm, setConfirm] = useState(false)
+  // a personal method can be lent to shared spaces I belong to: members pay with it there, seeing only its name
+  const personalMethod = snap.spaces.find((x) => x.id === spaceId)?.kind === 'personal'
+  const households = personalMethod ? snap.spaces.filter((x) => x.kind === 'household') : []
+  const sharedNow = new Set(editId ? snap.methodShares.filter((x) => x.methodId === editId && x.active).map((x) => x.spaceId) : [])
+  const [shareTo, setShareTo] = useState(sharedNow)
+  const toggleShare = (id: string) => setShareTo((cur) => {
+    const next = new Set(cur)
+    if (!next.delete(id)) next.add(id)
+    return next
+  })
 
   if (!sources.length) {
     return (
@@ -62,8 +72,13 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
       creditLimit: credit && !shared ? parseYen(limit) || null : null, limitSharedWith: shared,
       closingDay: credit ? close : null, paymentDay: credit ? pay : null,
     }
-    if (editId) return void submit('save', (r) => r.updateMethod(editId, method), t('saved'), { close: true })
-    void submit('save', (r) => r.addMethod(method), t('added', { x: n }), { close: true }).then((r) => r?.ok && onSaved?.(r.value))
+    const changed = households.filter((h) => sharedNow.has(h.id) !== shareTo.has(h.id))
+    void submit('save', async (r) => {
+      const id = editId ?? (await r.addMethod(method))
+      if (editId) await r.updateMethod(editId, method)
+      for (const h of changed) await r.setMethodShare(id, h.id, shareTo.has(h.id))
+      return id
+    }, editId ? t('saved') : t('added', { x: n }), { close: true }).then((r) => !editId && r?.ok && onSaved?.(r.value))
   }
 
   return (
@@ -115,6 +130,19 @@ export function MethodSheet({ editId, spaceId: forSpace, onSaved }: Props) {
               <Select id="m-pay" value={String(pay)} onChange={(v) => setPay(+v)} options={dayOptions} />
             </div>
           </div>
+        </div>
+      )}
+      {households.length > 0 && (
+        <div className="field">
+          <span className="label">{t('lendTo')}</span>
+          <div className="chips wrap">
+            {households.map((h) => (
+              <button key={h.id} className="chip" aria-pressed={shareTo.has(h.id)} onClick={() => toggleShare(h.id)}>
+                <span className="sw" style={{ background: toneVar(h), borderRadius: '50%' }} />{h.name}
+              </button>
+            ))}
+          </div>
+          <span className="tiny muted">{t('lendHint')}</span>
         </div>
       )}
       <button className="btn primary big" disabled={busy} aria-busy={pending === 'save'} onClick={save}>{editId ? t('save') : t('mTitle')}</button>

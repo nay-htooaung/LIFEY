@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { dayInMonth, monthKey, today } from '../domain/dates'
-import type { Category, Entry, Flow, PaymentMethod, Pot, PotMove, Profile, Snapshot, Source, Space } from '../domain/types'
+import type { Category, Entry, Flow, MethodShare, PaymentMethod, Pot, PotMove, Profile, Snapshot, Source, Space } from '../domain/types'
 import { RepoError, type Repo } from './repo'
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -54,7 +54,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     mode: 'cloud',
     async load(): Promise<Snapshot> {
       const monthStart = `${monthKey(today())}-01`
-      const [profiles, spaces, members, sources, methods, cats, entries, flows, pots, potMoves] = await Promise.all([
+      const [profiles, spaces, members, sources, methods, cats, entries, flows, pots, potMoves, shares] = await Promise.all([
         sb.from('profiles').select('*'),
         sb.from('spaces').select('*').order('created_at'),
         sb.from('space_members').select('space_id,user_id,joined_at').is('left_at', null).order('joined_at'),
@@ -65,6 +65,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         sb.rpc('money_flows'),
         sb.from('pots').select('*').order('sort').order('created_at'),
         sb.from('pot_moves').select('*').order('occurred_on', { ascending: false }).limit(10000),
+        sb.rpc('shared_methods'),
       ])
       const profs = Object.fromEntries((check(profiles) as Row[]).map((r) => [r.id, toProfile(r)]))
       const memberRows = check(members) as Row[]
@@ -89,6 +90,9 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         })),
         pots: (check(pots) as Row[]).map(toPot),
         potMoves: (check(potMoves) as Row[]).map(toPotMove),
+        methodShares: (check(shares) as Row[]).map((r): MethodShare => ({
+          methodId: r.method_id, spaceId: r.space_id, name: r.name, kind: r.kind, ownerId: r.owner_id, archived: !!r.archived, active: !!r.active,
+        })),
       }
     },
     async loadMonth(month) {
@@ -121,6 +125,9 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
     },
     async setMethodArchived(id, archived) {
       check(await sb.from('payment_methods').update({ archived }).eq('id', id))
+    },
+    async setMethodShare(methodId, spaceId, shared) {
+      check(await sb.from('method_shares').upsert({ method_id: methodId, space_id: spaceId, stopped_at: shared ? null : new Date().toISOString() }))
     },
     async addMethod(m) {
       return (check(await sb.from('payment_methods').insert(methodRow(m)).select('id').single()) as Row).id
@@ -199,7 +206,7 @@ export function createCloudRepo(sb: SupabaseClient, userId: string): Repo {
         timer = setTimeout(onChange, 400)
       }
       const channel = sb.channel('lifey-money')
-      for (const table of ['entries', 'sources', 'payment_methods', 'categories', 'spaces', 'space_members', 'pots', 'pot_moves']) {
+      for (const table of ['entries', 'sources', 'payment_methods', 'categories', 'spaces', 'space_members', 'pots', 'pot_moves', 'method_shares']) {
         channel.on('postgres_changes', { event: '*', schema: 'public', table }, ping)
       }
       channel.subscribe()

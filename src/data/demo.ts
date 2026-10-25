@@ -126,6 +126,8 @@ export function seedDemo(locale: Locale): Snapshot {
 
   const snap: Snapshot = {
     me: profiles[ME], profiles, spaces, deletedSpaces: [], sources, methods, categories, entries, flows: [], pots, potMoves,
+    // Sam lets Our Home pay with a personal card: its name is all I get to see
+    methodShares: [{ methodId: 'demo-sam-card', spaceId: 'home', name: L('Amex Gold', '三井住友カード'), kind: 'credit', ownerId: 'demo-sam', archived: false, active: true }],
   }
   return withFlows(snap)
 }
@@ -137,6 +139,7 @@ function withFlows(s: Snapshot): Snapshot {
     deletedSpaces: s.deletedSpaces ?? [],
     pots: s.pots ?? [],
     potMoves: s.potMoves ?? [],
+    methodShares: s.methodShares ?? [],
     me: { ...s.me, avatar: s.me.avatar ?? null, theme: s.me.theme ?? 'midnight' },
     sources: s.sources.map((x) => ({ ...x, archived: x.archived ?? false })),
     methods: s.methods.map((x) => ({ ...x, archived: x.archived ?? false })),
@@ -208,6 +211,11 @@ export function createDemoRepo(locale: Locale): Repo & { reset(locale: Locale): 
     },
     async setSourceArchived(id: string, archived: boolean) {
       commit({ ...snap, sources: snap.sources.map((x) => (x.id === id ? { ...x, archived } : x)) })
+    },
+    async setMethodShare(methodId: string, spaceId: string, shared: boolean) {
+      const m = snap.methods.find((x) => x.id === methodId)!
+      const row = { methodId, spaceId, name: m.name, kind: m.kind, ownerId: ME, archived: m.archived, active: shared }
+      commit({ ...snap, methodShares: [...snap.methodShares.filter((x) => x.methodId !== methodId || x.spaceId !== spaceId), row] })
     },
     async setMethodArchived(id: string, archived: boolean) {
       commit({ ...snap, methods: snap.methods.map((x) => (x.id === id ? { ...x, archived } : x)) })

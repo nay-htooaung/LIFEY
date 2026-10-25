@@ -499,11 +499,86 @@ do $$ begin
   insert into public.pot_moves (pot_id, space_id, amount) values (current_setting('t.pot')::uuid, current_setting('t.home')::uuid, 100);
   raise exception 'TEST FAIL: a stranger put money in a pot';
 exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+-- a personal card shared into a space: members pay with it there, but never see or change the card
+select t.as_user('eve');
+select set_config('t.eve_home', public.create_household('Eve Home', 'b')::text, false);
+select t.as_user('you');
+insert into public.method_shares (method_id, space_id) values (current_setting('t.visa')::uuid, current_setting('t.home')::uuid);
+do $$ begin
+  insert into public.method_shares (method_id, space_id) values (current_setting('t.jdeb')::uuid, current_setting('t.home')::uuid);
+  raise exception 'TEST FAIL: shared a method that is not personal';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.method_shares (method_id, space_id) values (current_setting('t.visa')::uuid, current_setting('t.eve_home')::uuid);
+  raise exception 'TEST FAIL: shared a card into a space you are not in';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.method_shares (method_id, space_id) values (current_setting('t.visa')::uuid, current_setting('t.my_space')::uuid);
+  raise exception 'TEST FAIL: shared a card into a personal space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+
+select t.as_user('sam');
+select set_config('t.sam_space', (select id::text from public.spaces where kind = 'personal' and owner_id = auth.uid()), false);
+select t.ok((select count(*) from public.payment_methods where id = current_setting('t.visa')::uuid) = 0, 'a shared card stays unreadable to members');
+select t.ok((select count(*) from public.method_shares where space_id = current_setting('t.home')::uuid) = 1, 'members see that a card is shared into their space');
+select t.ok((select count(*) from public.shared_methods() where method_id = current_setting('t.visa')::uuid and space_id = current_setting('t.home')::uuid
+             and name = 'Visa' and kind = 'credit' and owner_id = current_setting('t.you')::uuid and active) = 1,
+            'members learn only the shared card''s name, kind and owner');
+insert into public.entries (space_id, kind, amount, method_id, name)
+values (current_setting('t.home')::uuid, 'expense', 2800, current_setting('t.visa')::uuid, 'Groceries')
+returning set_config('t.sam_visa', id::text, false) \gset
+select t.ok((select count(*) from public.money_flows() where method_id = current_setting('t.visa')::uuid) = 0, 'members do not see the shared card''s charges as flows');
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id)
+  values (current_setting('t.sam_space')::uuid, 'expense', 100, current_setting('t.visa')::uuid);
+  raise exception 'TEST FAIL: paid with a shared card outside its space';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id, to_source_id)
+  values (current_setting('t.home')::uuid, 'transfer', 100, current_setting('t.visa')::uuid, current_setting('t.suica')::uuid);
+  raise exception 'TEST FAIL: charged e-money with a shared card';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  insert into public.method_shares (method_id, space_id) values (current_setting('t.visa')::uuid, current_setting('t.sam_space')::uuid);
+  raise exception 'TEST FAIL: a member shared someone else''s card';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+update public.method_shares set stopped_at = now();
+update public.payment_methods set name = 'Mine' where id = current_setting('t.visa')::uuid;
+
+select t.as_user('you');
+select t.ok((select stopped_at is null from public.method_shares where method_id = current_setting('t.visa')::uuid), 'members cannot stop a share');
+select t.ok((select name from public.payment_methods where id = current_setting('t.visa')::uuid) = 'Visa', 'members cannot change a shared card');
+select t.ok(exists (select 1 from public.money_flows() where method_id = current_setting('t.visa')::uuid and amount = 2800),
+            'a member''s charge goes on the owner''s card');
+update public.method_shares set stopped_at = now() where method_id = current_setting('t.visa')::uuid;
+
+select t.as_user('sam');
+do $$ begin
+  insert into public.entries (space_id, kind, amount, method_id)
+  values (current_setting('t.home')::uuid, 'expense', 100, current_setting('t.visa')::uuid);
+  raise exception 'TEST FAIL: paid with a card after its share stopped';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+update public.entries set name = 'Groceries (week 4)' where id = current_setting('t.sam_visa')::uuid;
+select t.ok((select name from public.entries where id = current_setting('t.sam_visa')::uuid) = 'Groceries (week 4)',
+            'an entry paid with the card can still be edited after the share stops');
+select t.ok((select not active from public.shared_methods() where method_id = current_setting('t.visa')::uuid), 'a stopped share still names the card');
+
+select t.as_user('eve');
+select t.ok((select count(*) from public.shared_methods()) = 0, 'strangers learn nothing about shared cards');
+select t.ok((select count(*) from public.method_shares) = 0, 'strangers do not see shares');
+
+select t.as_user('you');
+update public.method_shares set stopped_at = null where method_id = current_setting('t.visa')::uuid;
+select t.ok((select stopped_at is null from public.method_shares where method_id = current_setting('t.visa')::uuid), 'a card can be shared again');
 reset role;
 set role anon;
 do $$ begin
   perform 1 from public.pots;
   raise exception 'TEST FAIL: anon read pots';
+exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
+do $$ begin
+  perform 1 from public.shared_methods();
+  raise exception 'TEST FAIL: anon read shared cards';
 exception when others then if sqlerrm like 'TEST FAIL%' then raise; end if; end $$;
 reset role;
 \echo 'privacy tests passed'

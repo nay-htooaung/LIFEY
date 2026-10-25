@@ -5,7 +5,7 @@ import { addTag, nameSuggestions, tagSuggestions } from '../domain/suggest'
 import type { EntryKind, MoneyKind, NewEntry, Repeat } from '../domain/types'
 import { runSchedule } from '../data/repo'
 import { useI18n, yen } from '../i18n'
-import { toneVar, useStore, useSubmit } from '../data/store'
+import { toneVar, usePersonName, useStore, useSubmit } from '../data/store'
 import { CategorySheet } from './CategorySheet'
 import { MethodSheet } from './MethodSheet'
 import { PotMoveForm } from './PotSheet'
@@ -39,6 +39,7 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
   const { submit, pending } = useSubmit()
   const ui = useUI()
   const { t } = useI18n()
+  const person = usePersonName()
   const series = scheduleOf ? snap.entries.find((e) => e.id === scheduleOf) : undefined
   const base = editId ? snap.entries.find((e) => e.id === editId) : series
   // a schedule is edited from its next date; a schedule that has not started yet from its first
@@ -81,10 +82,16 @@ export function EntrySheet({ editId, scheduleOf, prefill, onDraft }: Props) {
     const pool = kind === 'income' ? sources : kind === 'expense' ? [...methods.map((x) => ({ ...x, isSource: false })), ...sources]
       : [...sources, ...methods.map((x) => ({ ...x, isSource: false }))]
     const rank = (sid: string) => (sid === spaceId ? 0 : sid === personal.id ? 1 : 2)
-    return pool
+    const own = pool
       .sort((a, b) => rank(a.spaceId) - rank(b.spaceId))
       .map((x) => ({ id: x.id, name: x.name, kind: x.kind, spaceId: x.spaceId, isSource: x.isSource, personal: x.spaceId === personal.id && spaceId !== personal.id }))
-  }, [kind, snap.methods, snap.sources, spaceId, personal.id, via, toVia])
+    // another member's card shared into this space: pay with it here, known only by its name
+    const lent = kind !== 'expense' ? [] : snap.methodShares
+      .filter((x) => x.spaceId === spaceId && x.ownerId !== snap.me.id && ((x.active && !x.archived) || x.methodId === via))
+      .map((x) => ({ id: x.methodId, name: t('cardOf', { p: person(x.ownerId), x: x.name }), kind: x.kind, spaceId, isSource: false, personal: false }))
+    // after the space's own, before mine and other spaces'
+    return [...own.filter((o) => o.spaceId === spaceId), ...lent, ...own.filter((o) => o.spaceId !== spaceId)]
+  }, [kind, snap.methods, snap.sources, snap.methodShares, snap.me.id, spaceId, personal.id, via, toVia, t, person])
 
   const catId = cats.some((c) => c.id === categoryId) ? categoryId : (cats[0]?.id ?? null)
   const lastUsed = readLast()

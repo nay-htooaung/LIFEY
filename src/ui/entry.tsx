@@ -22,11 +22,14 @@ export function usePaidWith() {
     const m = e.methodId ? method.get(e.methodId) : undefined
     const s = e.sourceId ? source.get(e.sourceId) : undefined
     const visible = e.methodId ? m : s
+    // a member's card shared into the space: its name and whose it is, nothing more
+    const lent = e.methodId && !m ? snap.methodShares.find((x) => x.methodId === e.methodId) : undefined
     const nameOf = (x?: { name: string }) => x?.name ?? t('hiddenSrc', { p: person(e.createdBy) })
-    const label = e.kind === 'transfer'
-      ? `${nameOf(visible)} → ${nameOf(e.toSourceId ? source.get(e.toSourceId) : undefined)}`
-      : nameOf(visible)
-    const personal = !visible || (visible.spaceId !== e.spaceId && snap.spaces.find((x) => x.id === visible.spaceId)?.kind === 'personal')
+    const label = lent ? t('cardOf', { p: person(lent.ownerId), x: lent.name })
+      : e.kind === 'transfer'
+        ? `${nameOf(visible)} → ${nameOf(e.toSourceId ? source.get(e.toSourceId) : undefined)}`
+        : nameOf(visible)
+    const personal = !lent && (!visible || (visible.spaceId !== e.spaceId && snap.spaces.find((x) => x.id === visible.spaceId)?.kind === 'personal'))
     return { label, personal, mine: !!visible && personal }
   }
 }

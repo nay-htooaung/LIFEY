@@ -25,6 +25,8 @@ export interface Repo {
   /** Deletes (true) or restores (false). Nothing is erased. */
   setSourceArchived(id: string, archived: boolean): Promise<void>
   setMethodArchived(id: string, archived: boolean): Promise<void>
+  /** Lets the members of a space pay there with my personal method (true), or stops it (false). */
+  setMethodShare(methodId: string, spaceId: string, shared: boolean): Promise<void>
   addMethod(method: NewMethod): Promise<string>
   updateMethod(id: string, method: NewMethod): Promise<void>
   saveCategory(category: CategoryInput): Promise<string>

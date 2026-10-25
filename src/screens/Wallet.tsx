@@ -3,6 +3,7 @@ import type { MethodKind, SourceKind } from '../domain/types'
 import { parts } from '../domain/dates'
 import { useI18n, yen } from '../i18n'
 import { useLookups, useStore } from '../data/store'
+import { AccountDetail } from '../sheets/AccountDetail'
 import { MethodSheet } from '../sheets/MethodSheet'
 import { SourceSheet } from '../sheets/SourceSheet'
 import { useUI } from '../ui/ui'
@@ -37,7 +38,7 @@ export function Wallet() {
       <div className="sec-h"><h3>{t('sources')}</h3><button className="link" onClick={() => ui.open(<SourceSheet />)}>{t('addSource')}</button></div>
       <div className="card list">
         {sources.length ? sources.map((s) => (
-          <button key={s.id} className="row" onClick={() => ui.open(<SourceSheet editId={s.id} />)}>
+          <button key={s.id} className="row" onClick={() => ui.open(<AccountDetail sourceId={s.id} />)}>
             <span className="glyph acc">{SRC_GLYPH[s.kind]}</span>
             <div className="main"><div className="t">{s.name}</div><div className="s">{t(s.kind)}{space.kind === 'household' ? ` · ${t('shared')}` : ''}</div></div>
             <span className="amt num">{yen(sourceBalance(s, snap.methods, snap.flows, today))}</span>
@@ -51,7 +52,7 @@ export function Wallet() {
           {methods.map((m) => {
             if (m.kind !== 'credit') {
               return (
-                <button key={m.id} className="row" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
+                <button key={m.id} className="row" onClick={() => ui.open(<AccountDetail methodId={m.id} />)}>
                   <span className="glyph plain">{METHOD_GLYPH[m.kind]}</span>
                   <div className="main"><div className="t">{m.name}</div><div className="s">{t(m.kind)} · {t('from', { s: source.get(m.sourceId)?.name ?? '—' })}</div></div>
                 </button>
@@ -63,7 +64,7 @@ export function Wallet() {
             const lim = creditLimitUse(m, snap.methods, snap.flows, today)
             const used = lim ? lim.used / lim.limit : 0
             return (
-              <button key={m.id} className="row" onClick={() => ui.open(<MethodSheet editId={m.id} />)}>
+              <button key={m.id} className="row" onClick={() => ui.open(<AccountDetail methodId={m.id} />)}>
                 <span className="glyph acc">{METHOD_GLYPH.credit}</span>
                 <div className="main">
                   <div className="t">{m.name}</div>
