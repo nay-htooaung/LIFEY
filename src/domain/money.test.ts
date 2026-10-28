@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { addMonths, dayInMonth } from './dates'
-import { monthEndPlan, accountLines, upcomingThisMonth, creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, sourceBalance, upcoming } from './money'
+import { budgetTotals, monthEndPlan, accountLines, upcomingThisMonth, creditLimitUse, nextMonthEnd, potShares, potThisMonth, potTotal, projection, savedTotal, setAside, flowsOf, monthEntries, creditOutstanding, nextCardPayment, paymentDateFor, sourceBalance, upcoming } from './money'
 import { changeImpact, entriesAfter, flowsAfter, type Change } from './changes'
 import { dueOccurrences, nextOccurrence, scheduleChange } from './recurring'
 import { addTag, nameSuggestions, tagSuggestions } from './suggest'
@@ -376,5 +376,10 @@ describe('money left at the end of the month if the budgets are used up', () => 
     })
     // the joint account's space sees the move as money coming in
     expect(monthEndPlan('home', s, '2026-10-20').incomeAhead).toBe(50000)
+  })
+  it('adds up the budgets and what the categories used so far', () => {
+    // food 4,000 + fun 1,000; gym's 7,700 and phone's 3,000 come later; the 50,000 move is not spending
+    expect(budgetTotals(es, s.categories, '2026-10-20')).toEqual({ spent: 5000, budget: 35000 })
+    expect(budgetTotals(es, s.categories, '2026-10-31')).toEqual({ spent: 15700, budget: 35000 })
   })
 })

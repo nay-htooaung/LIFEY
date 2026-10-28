@@ -325,6 +325,12 @@ export function categorySpent(entries: Entry[], category: Category, on: Day): nu
   return sum(monthEntries(entries, category.spaceId, on, category.kind).filter((e) => e.categoryId === category.id).map((e) => e.amount))
 }
 
+/** This month's spending in the given expense categories so far, and their budgets added up (計画's total row). */
+export function budgetTotals(entries: Entry[], categories: Category[], on: Day): { spent: number; budget: number } {
+  const cats = categories.filter((c) => c.kind === 'expense')
+  return { spent: sum(cats.map((c) => categorySpent(entries, c, on))), budget: sum(cats.map((c) => c.monthlyBudget)) }
+}
+
 /**
  * The money a space's sources will hold at the end of this month if every budget is used up, step by step.
  * Cash only: a card charge counts when its statement is paid, so what is billed next month stays out.

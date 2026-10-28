@@ -255,6 +255,8 @@ button { cursor: pointer; }
 .bud .sw { width: 10px; height: 10px; border-radius: 3px; flex: none; }
 .bud .use { flex: none; font-size: 13px; }
 .bud .of { color: var(--muted); }
+.bud-total .h { font-size: 15px; }
+.bud-total .use { font-size: 14px; }
 .pot-s { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 12px; color: var(--muted); }
 .pot-sum { display: flex; flex-direction: column; gap: 2px; }
 .pot-sum .big { font-family: var(--display); font-weight: 800; font-size: 34px; letter-spacing: -0.03em; line-height: 1.05; }

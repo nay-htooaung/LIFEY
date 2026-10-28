@@ -1,4 +1,4 @@
-import { categorySpent, monthEndPlan, monthPace, potShares, potThisMonth, potTotal, savedTotal } from '../domain/money'
+import { budgetTotals, categorySpent, monthEndPlan, monthPace, potShares, potThisMonth, potTotal, savedTotal } from '../domain/money'
 import { parts } from '../domain/dates'
 import { isTemplate, nextOccurrence } from '../domain/recurring'
 import { useI18n, yen } from '../i18n'
@@ -89,8 +89,10 @@ function CategoryBars({ cats, pace }: { cats: Category[]; pace: number }) {
   if (!cats.length) return null
   const used = new Map(cats.map((c) => [c.id, categorySpent(snap.entries, c, today)]))
   const most = Math.max(1, ...used.values())
+  const total = cats[0].kind === 'expense' ? budgetTotals(snap.entries, cats, today) : null
   return (
     <div className="card" style={{ paddingBlock: 6 }}>
+      {total && <BudgetTotal {...total} pace={pace} />}
       {cats.map((c) => {
         const spent = used.get(c.id)!
         const b = c.kind === 'expense' ? c.monthlyBudget : 0
@@ -112,6 +114,30 @@ function CategoryBars({ cats, pace }: { cats: Category[]; pace: number }) {
           </button>
         )
       })}
+    </div>
+  )
+}
+
+/** The budget card's first row: what the categories used this month against their budgets added up. */
+function BudgetTotal({ spent, budget, pace }: { spent: number; budget: number; pace: number }) {
+  const { t } = useI18n()
+  const r = budget ? spent / budget : 0
+  const col = r > 1 ? 'var(--neg)' : r > pace + 0.1 ? 'var(--warn)' : 'var(--pos)'
+  return (
+    <div className="bud bud-total">
+      <div className="h">
+        <span><b>{t('budgetTotal')}</b></span>
+        <span className="num use">
+          <span style={budget && r > 1 ? { color: 'var(--neg)' } : undefined}>{yen(spent)}</span>
+          {budget ? <span className="of"> / {yen(budget)}</span> : <span className="of"> · {t('noBudget')}</span>}
+        </span>
+      </div>
+      {budget ? (
+        <div className="bar">
+          <i style={{ width: `${Math.min(100, r * 100)}%`, background: col }} />
+          <span className="pace" style={{ left: `${pace * 100}%` }} />
+        </div>
+      ) : null}
     </div>
   )
 }

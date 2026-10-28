@@ -8,7 +8,7 @@ export const ja: Record<MessageKey, string> = {
   whoPaid: '今月の{s}の支出',
   monthMoney: 'あなたの{m}の収支（今日まで・全スペース）', spentOfIncome: '収入の{p}%を使いました', bySpace: 'スペースごとの支出',
   version: 'バージョン {v}',
-  spentIn: '{m}の支出', receivedIn: '{m}の収入', overBy: '予算を{a}超えています', leftOf: '残り{a}', noBudget: '予算なし', nothingInCat: '今月はまだ記録がありません。',
+  spentIn: '{m}の支出', receivedIn: '{m}の収入', overBy: '予算を{a}超えています', leftOf: '残り{a}', budgetTotal: '合計', noBudget: '予算なし', nothingInCat: '今月はまだ記録がありません。',
   pickMonth: '月を選ぶ', year: '年', monthL: '月',
   cardOf: '{p}の{x}',
   lendTo: 'メンバーも支払いに使えるスペース', lendHint: 'メンバーに見えるのはカードの名前だけです。支払いはあなたのカードにつき、引き落としもあなたです。',

@@ -6,7 +6,7 @@ export const en = {
   whoPaid: 'Spent in {s} this month',
   monthMoney: 'Your {m} so far, all spaces', spentOfIncome: '{p}% of income spent', bySpace: 'Your spending by space',
   version: 'Version {v}',
-  spentIn: 'Spent in {m}', receivedIn: 'Received in {m}', overBy: '{a} over budget', leftOf: '{a} left', noBudget: 'no budget', nothingInCat: 'Nothing in this category this month.',
+  spentIn: 'Spent in {m}', receivedIn: 'Received in {m}', overBy: '{a} over budget', leftOf: '{a} left', budgetTotal: 'Total', noBudget: 'no budget', nothingInCat: 'Nothing in this category this month.',
   pickMonth: 'Choose a month', year: 'Year', monthL: 'Month',
   cardOf: "{p}'s {x}",
   lendTo: 'Members can pay with it in', lendHint: 'They see only its name. Its charges go on your card and you pay the bill.',
