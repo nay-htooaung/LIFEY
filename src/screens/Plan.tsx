@@ -27,6 +27,7 @@ export function Plan() {
       <MonthEnd />
 
       <div className="sec-h"><h3>{t('budgets')}</h3></div>
+      <BudgetTotal cats={cats} pace={pace} />
       <CategoryBars cats={cats.filter((c) => c.kind === 'expense')} pace={pace} />
       <button className="btn" onClick={() => edit()}>{t('newCat')}</button>
 
@@ -89,10 +90,8 @@ function CategoryBars({ cats, pace }: { cats: Category[]; pace: number }) {
   if (!cats.length) return null
   const used = new Map(cats.map((c) => [c.id, categorySpent(snap.entries, c, today)]))
   const most = Math.max(1, ...used.values())
-  const total = cats[0].kind === 'expense' ? budgetTotals(snap.entries, cats, today) : null
   return (
     <div className="card" style={{ paddingBlock: 6 }}>
-      {total && <BudgetTotal {...total} pace={pace} />}
       {cats.map((c) => {
         const spent = used.get(c.id)!
         const b = c.kind === 'expense' ? c.monthlyBudget : 0
@@ -118,19 +117,23 @@ function CategoryBars({ cats, pace }: { cats: Category[]; pace: number }) {
   )
 }
 
-/** The budget card's first row: what the categories used this month against their budgets added up. */
-function BudgetTotal({ spent, budget, pace }: { spent: number; budget: number; pace: number }) {
+/** Its own card above the categories: what they used this month against their budgets added up, and what is left. */
+function BudgetTotal({ cats, pace }: { cats: Category[]; pace: number }) {
+  const { snap, today } = useStore()
   const { t } = useI18n()
+  if (!cats.some((c) => c.kind === 'expense')) return null
+  const { spent, budget } = budgetTotals(snap.entries, cats, today)
   const r = budget ? spent / budget : 0
   const col = r > 1 ? 'var(--neg)' : r > pace + 0.1 ? 'var(--warn)' : 'var(--pos)'
   return (
-    <div className="bud bud-total">
+    <div className="card bud-sum">
       <div className="h">
-        <span><b>{t('budgetTotal')}</b></span>
-        <span className="num use">
-          <span style={budget && r > 1 ? { color: 'var(--neg)' } : undefined}>{yen(spent)}</span>
-          {budget ? <span className="of"> / {yen(budget)}</span> : <span className="of"> · {t('noBudget')}</span>}
-        </span>
+        <span className="label">{t('budgetSpent')}</span>
+        {budget ? <span className={'num left' + (r > 1 ? ' neg' : '')}>{r > 1 ? t('overBy', { a: yen(spent - budget) }) : t('leftOf', { a: yen(budget - spent) })}</span> : null}
+      </div>
+      <div className="num">
+        <span className={'big' + (r > 1 ? ' neg' : '')}>{yen(spent)}</span>
+        <span className="of">{budget ? ` / ${yen(budget)}` : ` · ${t('noBudget')}`}</span>
       </div>
       {budget ? (
         <div className="bar">
